@@ -1,0 +1,25 @@
+{
+  "name": "Lochitra",
+  "short_name": "Lochitra",
+  "description": "AI, Technology, Online Income & Success Stories",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#2563EB",
+  "background_color": "#0F172A",
+  "categories": ["news", "education", "technology"],
+  "icons": [
+    {
+      "src": "/static/favicons/android-chrome-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/static/favicons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

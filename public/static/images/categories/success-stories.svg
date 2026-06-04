@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="Success Stories category illustration">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="800" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a0a00"/>
+      <stop offset="100%" stop-color="#3b1a00"/>
+    </linearGradient>
+    <linearGradient id="star-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <radialGradient id="glow-center" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="star-glow">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="450" fill="url(#bg)"/>
+
+  <!-- Radial glow from center -->
+  <circle cx="400" cy="210" r="200" fill="url(#glow-center)"/>
+
+  <!-- Background constellation lines -->
+  <g stroke="#92400e" stroke-width="1" opacity="0.2">
+    <line x1="400" y1="210" x2="220" y2="100"/>
+    <line x1="400" y1="210" x2="580" y2="100"/>
+    <line x1="400" y1="210" x2="640" y2="280"/>
+    <line x1="400" y1="210" x2="500" y2="360"/>
+    <line x1="400" y1="210" x2="300" y2="360"/>
+    <line x1="400" y1="210" x2="160" y2="280"/>
+    <line x1="220" y1="100" x2="580" y2="100"/>
+    <line x1="580" y1="100" x2="640" y2="280"/>
+    <line x1="160" y1="280" x2="220" y2="100"/>
+  </g>
+
+  <!-- Outer small stars (background) -->
+  <g fill="#92400e" opacity="0.4">
+    <polygon points="130,80 133,90 144,90 135,96 138,107 130,101 122,107 125,96 116,90 127,90" transform="scale(0.7) translate(57,34)"/>
+    <polygon points="680,60 683,70 694,70 685,76 688,87 680,81 672,87 675,76 666,70 677,70" transform="scale(0.6)"/>
+    <polygon points="720,340 723,350 734,350 725,356 728,367 720,361 712,367 715,356 706,350 717,350" transform="scale(0.5)"/>
+  </g>
+
+  <!-- Medium stars (mid-distance) -->
+  <g fill="#d97706" opacity="0.6" filter="url(#star-glow)">
+    <!-- Star at 220,100 -->
+    <polygon points="220,80 225,95 242,95 228,105 233,120 220,110 207,120 212,105 198,95 215,95"/>
+    <!-- Star at 580,100 -->
+    <polygon points="580,80 585,95 602,95 588,105 593,120 580,110 567,120 572,105 558,95 575,95"/>
+    <!-- Star at 160,280 -->
+    <polygon points="160,260 164,273 178,273 167,281 171,294 160,286 149,294 153,281 142,273 156,273"/>
+    <!-- Star at 640,280 -->
+    <polygon points="640,260 644,273 658,273 647,281 651,294 640,286 629,294 633,281 622,273 636,273"/>
+    <!-- Star at 300,360 -->
+    <polygon points="300,340 304,353 318,353 307,361 311,374 300,366 289,374 293,361 282,353 296,353"/>
+    <!-- Star at 500,360 -->
+    <polygon points="500,340 504,353 518,353 507,361 511,374 500,366 489,374 493,361 482,353 496,353"/>
+  </g>
+
+  <!-- Central hero star -->
+  <polygon
+    points="400,150 411,185 448,185 418,207 429,242 400,220 371,242 382,207 352,185 389,185"
+    fill="url(#star-grad)"
+    filter="url(#star-glow)"
+    opacity="0.98"
+  />
+
+  <!-- Inner glow ring -->
+  <circle cx="400" cy="196" r="28" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0.3"/>
+  <circle cx="400" cy="196" r="45" fill="none" stroke="#d97706" stroke-width="1" opacity="0.2"/>
+
+  <!-- Subtle confetti dots -->
+  <g opacity="0.35">
+    <circle cx="340" cy="140" r="3" fill="#fbbf24"/>
+    <circle cx="460" cy="130" r="2" fill="#fbbf24"/>
+    <circle cx="320" cy="270" r="2.5" fill="#d97706"/>
+    <circle cx="480" cy="275" r="2" fill="#fbbf24"/>
+    <circle cx="370" cy="320" r="3" fill="#d97706"/>
+    <circle cx="430" cy="315" r="2" fill="#fbbf24"/>
+    <circle cx="250" cy="200" r="2" fill="#92400e"/>
+    <circle cx="550" cy="200" r="2" fill="#92400e"/>
+  </g>
+
+  <!-- Bottom label bar -->
+  <rect x="0" y="400" width="800" height="50" fill="#100500" opacity="0.65"/>
+  <text x="32" y="431" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700" fill="#fbbf24" letter-spacing="2">SUCCESS STORIES</text>
+  <text x="760" y="431" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#d97706" text-anchor="end" opacity="0.8">LOCHITRA</text>
+</svg>

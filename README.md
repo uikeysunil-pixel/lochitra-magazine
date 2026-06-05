@@ -1,4 +1,4 @@
-# Locitra Magazine
+# Lochitra Magazine
 
 Lochitra Magazine is a modern AI, Technology, Online Income, Career Growth and Success Stories publication built with Next.js and Tailwind CSS.
 

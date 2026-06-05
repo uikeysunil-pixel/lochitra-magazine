@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     'career growth',
     'success stories',
     'digital skills',
-    'Lochitra',
+    'Locitra',
   ],
   authors: [{ name: siteMetadata.author }],
   creator: siteMetadata.author,

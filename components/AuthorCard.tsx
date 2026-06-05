@@ -5,7 +5,7 @@ interface AuthorCardProps {
   name: string
   avatar?: string
   occupation?: string
-  /** Short bio — if omitted a default Lochitra bio is shown */
+  /** Short bio — if omitted a default Locitra bio is shown */
   bio?: string
   email?: string
   twitter?: string
@@ -13,16 +13,9 @@ interface AuthorCardProps {
 }
 
 /**
- * Reusable author bio block displayed at the bottom of every article.
- *
- * Renders:
- *  - Circular avatar (with gradient fallback)
- *  - "Written by" label
- *  - Author name + verified badge + role
- *  - Short bio
- *  - Optional social icons
- *
- * Usage: PostLayout, standalone author pages, etc.
+ * Premium author bio block displayed at the bottom of every article.
+ * Includes: avatar, "Written by" label, name, verified badge, role,
+ * expertise tags, bio, social links.
  */
 export default function AuthorCard({
   name,
@@ -34,50 +27,52 @@ export default function AuthorCard({
   linkedin,
 }: AuthorCardProps) {
   const defaultBio =
-    'Sunil Kumar writes about AI tools, technology trends, online income opportunities, career growth, and digital success stories.'
+    'Sunil Kumar writes about AI tools, technology trends, online income opportunities, career growth, and digital success stories. With years of experience in the digital space, he helps readers navigate the fast-changing world of technology and build meaningful careers online.'
+
+  const expertiseAreas = ['AI & Technology', 'Online Income', 'Career Growth', 'Digital Strategy']
 
   return (
     <aside
       aria-label={`About the author, ${name}`}
-      className="mt-10 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
+      className="mt-14 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-900"
     >
-      {/* Top accent bar */}
+      {/* Top accent gradient bar */}
       <div
-        className="from-primary-600 h-1 w-full bg-gradient-to-r to-cyan-500"
+        className="from-primary-600 h-1.5 w-full bg-gradient-to-r via-blue-500 to-cyan-400"
         aria-hidden="true"
       />
 
-      <div className="p-6 sm:p-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-7">
-          {/* Avatar */}
+      <div className="p-7 sm:p-9">
+        {/* Label */}
+        <p className="text-primary-600 dark:text-primary-400 mb-5 text-[10px] font-bold tracking-[0.18em] uppercase">
+          About the Author
+        </p>
+
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
+          {/* Avatar column */}
           <div className="flex-shrink-0">
-            <div className="ring-primary-200 dark:ring-primary-700 relative h-20 w-20 overflow-hidden rounded-full shadow-md ring-2 sm:h-24 sm:w-24">
+            <div className="ring-primary-200 dark:ring-primary-700 relative h-24 w-24 overflow-hidden rounded-2xl shadow-lg ring-2 sm:h-28 sm:w-28">
               {avatar ? (
                 <Image
                   src={avatar}
                   alt={`${name} — author photo`}
                   fill
-                  sizes="96px"
+                  sizes="112px"
                   className="object-cover object-top"
                 />
               ) : (
-                <div className="from-primary-600 flex h-full w-full items-center justify-center bg-gradient-to-br to-cyan-500 text-3xl font-bold text-white">
+                <div className="from-primary-600 flex h-full w-full items-center justify-center bg-gradient-to-br to-cyan-500 text-4xl font-bold text-white">
                   {name?.charAt(0) ?? 'A'}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Content */}
+          {/* Content column */}
           <div className="min-w-0 flex-1">
-            {/* Label */}
-            <p className="text-primary-600 dark:text-primary-400 mb-1.5 text-xs font-semibold tracking-widest uppercase">
-              Written by
-            </p>
-
             {/* Name + verified badge */}
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{name}</h3>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <h3 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">{name}</h3>
               <span
                 className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
                 aria-label="Verified author"
@@ -94,20 +89,31 @@ export default function AuthorCard({
             </div>
 
             {/* Role */}
-            {occupation && (
-              <p className="mt-0.5 text-sm font-medium text-gray-500 dark:text-gray-400">
-                {occupation}
-              </p>
-            )}
+            <p className="mb-1 text-sm font-semibold text-gray-500 dark:text-gray-400">
+              {occupation || 'Founder & Editor, Locitra'}
+            </p>
+
+            {/* Expertise tags */}
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {expertiseAreas.map((area) => (
+                <span
+                  key={area}
+                  className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                >
+                  {area}
+                </span>
+              ))}
+            </div>
 
             {/* Bio */}
-            <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+            <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
               {bio || defaultBio}
             </p>
 
             {/* Social links */}
             {(email || twitter || linkedin) && (
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-5 flex items-center gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
+                <span className="text-xs text-gray-400 dark:text-gray-500">Follow:</span>
                 {email && <SocialIcon kind="mail" href={`mailto:${email}`} size={4} />}
                 {linkedin && <SocialIcon kind="linkedin" href={linkedin} size={4} />}
                 {twitter && <SocialIcon kind="x" href={twitter} size={4} />}

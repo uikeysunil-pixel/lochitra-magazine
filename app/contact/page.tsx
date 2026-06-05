@@ -3,7 +3,7 @@ import { genPageMetadata } from 'app/seo'
 export const metadata = genPageMetadata({
   title: 'Contact',
   description:
-    'Get in touch with the Lochitra team. We welcome questions, feedback, and collaboration proposals.',
+    'Get in touch with the Locitra team. We welcome questions, feedback, and collaboration proposals.',
 })
 
 export default function ContactPage() {
@@ -20,7 +20,7 @@ export default function ContactPage() {
 
       <div className="prose dark:prose-invert max-w-none pt-10 pb-8">
         <p>
-          Lochitra is a digital magazine covering AI tools, technology trends, online income
+          Locitra is a digital magazine covering AI tools, technology trends, online income
           strategies, career growth, and success stories. Whether you have feedback, a story pitch,
           or a partnership idea — reach out.
         </p>
@@ -28,7 +28,7 @@ export default function ContactPage() {
         <h2>Email Us</h2>
         <p>
           The fastest way to reach us is by email:{' '}
-          <a href="mailto:contact@lochitra.com">contact@lochitra.com</a>
+          <a href="mailto:contact@locitra.com">contact@locitra.com</a>
         </p>
         <p>We aim to respond within 2–3 business days.</p>
 
@@ -50,8 +50,8 @@ export default function ContactPage() {
 
         <h2>General Inquiries</h2>
         <p>
-          For corrections, suggestions, or any other questions about Lochitra, please don&apos;t
-          hesitate to reach out at <a href="mailto:contact@lochitra.com">contact@lochitra.com</a>.
+          For corrections, suggestions, or any other questions about Locitra, please don&apos;t
+          hesitate to reach out at <a href="mailto:contact@locitra.com">contact@locitra.com</a>.
         </p>
       </div>
     </div>

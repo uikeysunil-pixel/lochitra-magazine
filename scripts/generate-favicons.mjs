@@ -60,7 +60,10 @@ async function generate() {
     const img = sharp(svgBuffer).resize(size, size)
     if (bg) {
       // Flatten onto brand dark background for apple/mstile
-      await img.flatten({ background: { r: 15, g: 23, b: 42 } }).png().toFile(outPath)
+      await img
+        .flatten({ background: { r: 15, g: 23, b: 42 } })
+        .png()
+        .toFile(outPath)
     } else {
       await img.png().toFile(outPath)
     }

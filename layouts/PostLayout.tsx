@@ -87,7 +87,7 @@ export default function PostLayout({
           </h1>
 
           {/* Meta row: author + date + reading time + updated date + editorial badge */}
-          <div className="mb-8 flex flex-wrap items-start gap-x-0 gap-y-4 sm:gap-x-6">
+          <div className="mb-6 flex flex-wrap items-start gap-x-0 gap-y-4 sm:gap-x-6">
             {/* Author block */}
             {primaryAuthor && (
               <div className="flex items-center gap-3">
@@ -107,14 +107,17 @@ export default function PostLayout({
                     {primaryAuthor.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {primaryAuthor.occupation || 'Founder & Editor, Lochitra'}
+                    {primaryAuthor.occupation || 'Founder & Editor, Locitra'}
                   </p>
                 </div>
               </div>
             )}
 
             {/* Divider — vertical on sm+ */}
-            <div className="hidden h-10 w-px bg-gray-200 sm:block dark:bg-gray-700" aria-hidden="true" />
+            <div
+              className="hidden h-10 w-px bg-gray-200 sm:block dark:bg-gray-700"
+              aria-hidden="true"
+            />
 
             {/* Date + reading time + updated + editorial */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500 dark:text-gray-400">
@@ -142,7 +145,9 @@ export default function PostLayout({
               {/* Reading time */}
               {readingTime?.text && (
                 <>
-                  <span aria-hidden="true" className="text-gray-300 dark:text-gray-600">·</span>
+                  <span aria-hidden="true" className="text-gray-300 dark:text-gray-600">
+                    ·
+                  </span>
                   <span className="flex items-center gap-1.5">
                     <svg
                       className="h-3.5 w-3.5 text-gray-400"
@@ -166,7 +171,9 @@ export default function PostLayout({
               {/* Updated date — shown only when different from publish date */}
               {lastmod && lastmod !== date && (
                 <>
-                  <span aria-hidden="true" className="text-gray-300 dark:text-gray-600">·</span>
+                  <span aria-hidden="true" className="text-gray-300 dark:text-gray-600">
+                    ·
+                  </span>
                   <span className="flex items-center gap-1.5 text-xs">
                     <svg
                       className="h-3.5 w-3.5 text-gray-400"
@@ -207,14 +214,21 @@ export default function PostLayout({
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                Reviewed by Lochitra Editorial Team
+                Reviewed by Locitra Editorial Team
               </span>
             </div>
           </div>
 
-          {/* Featured image — full-width hero */}
+          {/* Short excerpt — appears between meta and image */}
+          {content.summary && (
+            <p className="mb-6 text-base leading-relaxed text-gray-500 sm:text-lg dark:text-gray-400">
+              {content.summary}
+            </p>
+          )}
+
+          {/* Featured image — reduced dominance, appears after title/meta/excerpt */}
           {featuredImage && (
-            <div className="relative mb-2 aspect-video w-full overflow-hidden rounded-2xl shadow-lg">
+            <div className="relative mb-2 aspect-[16/7] w-full overflow-hidden rounded-2xl shadow-lg">
               <NextImage
                 src={featuredImage}
                 alt={title}
@@ -233,7 +247,7 @@ export default function PostLayout({
          * Uses flex so the article column grows naturally.
          * TOC aside is fixed at 240px, hidden on mobile.
          */}
-        <div className={hasToc ? 'lg:flex lg:items-start lg:gap-14' : ''}>
+        <div className={hasToc ? 'lg:flex lg:items-start lg:gap-12' : ''}>
           {/* ── Main content column ─────────────────────────────────────── */}
           <div className="min-w-0 flex-1">
             {/* Mobile TOC accordion — auto-hidden on lg+ by its own lg:hidden */}
@@ -267,7 +281,7 @@ export default function PostLayout({
                   <p className="mb-1 text-[11px] font-bold tracking-[0.15em] text-blue-400 uppercase">
                     Weekly Intelligence
                   </p>
-                  <h3 className="mb-3 text-xl font-extrabold leading-snug text-white sm:text-2xl">
+                  <h3 className="mb-3 text-xl leading-snug font-extrabold text-white sm:text-2xl">
                     Stay Ahead of the Curve
                   </h3>
                   <p className="text-sm leading-relaxed text-blue-100/80">
@@ -297,9 +311,7 @@ export default function PostLayout({
                       />
                     </svg>
                   </Link>
-                  <p className="text-[11px] text-blue-300/60">
-                    No spam. Unsubscribe anytime.
-                  </p>
+                  <p className="text-[11px] text-blue-300/60">No spam. Unsubscribe anytime.</p>
                 </div>
               </div>
             </div>
@@ -309,7 +321,7 @@ export default function PostLayout({
               <AuthorCard
                 name={primaryAuthor.name}
                 avatar={primaryAuthor.avatar}
-                occupation={primaryAuthor.occupation || 'Founder & Editor, Lochitra'}
+                occupation={primaryAuthor.occupation || 'Founder & Editor, Locitra'}
                 email={primaryAuthor.email}
                 twitter={primaryAuthor.twitter}
                 linkedin={primaryAuthor.linkedin}
@@ -324,9 +336,9 @@ export default function PostLayout({
             )}
           </div>
 
-          {/* ── Desktop TOC sidebar — 240px, hidden on mobile ─────────── */}
+          {/* ── Desktop TOC sidebar — 25% width, hidden on mobile ──────── */}
           {hasToc && (
-            <aside className="hidden w-[240px] shrink-0 lg:block">
+            <aside className="hidden w-[25%] max-w-[280px] min-w-[200px] shrink-0 lg:block">
               <DesktopToc toc={toc as any} />
             </aside>
           )}
@@ -352,7 +364,7 @@ export default function PostLayout({
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 [&_article]:flex [&_article]:h-full [&_article]:flex-col">
               {relatedPosts.slice(0, 3).map((post) => (
                 <ArticleCard
                   key={post.slug}
@@ -385,7 +397,7 @@ export default function PostLayout({
                 <span className="text-primary-600 dark:text-primary-400 mb-1.5 text-xs font-bold tracking-wide uppercase">
                   ← Previous
                 </span>
-                <span className="text-sm font-medium leading-snug text-gray-700 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-gray-100">
+                <span className="text-sm leading-snug font-medium text-gray-700 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-gray-100">
                   {prev.title}
                 </span>
               </Link>
@@ -398,7 +410,7 @@ export default function PostLayout({
                 <span className="text-primary-600 dark:text-primary-400 mb-1.5 text-xs font-bold tracking-wide uppercase">
                   Next →
                 </span>
-                <span className="text-sm font-medium leading-snug text-gray-700 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-gray-100">
+                <span className="text-sm leading-snug font-medium text-gray-700 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-gray-100">
                   {next.title}
                 </span>
               </Link>

@@ -1,18 +1,19 @@
 /** @type {import("pliny/config").PlinyConfig } */
 
 const siteMetadata = {
-  title: 'Lochitra',
+  title: 'Locitra',
   author: 'Sunil Kumar',
-  headerTitle: 'Lochitra',
-  description: 'AI, Technology, Online Income & Success Stories',
+  headerTitle: 'Locitra',
+  description:
+    'Locitra is a modern blog covering AI tools, technology, online income opportunities, career growth, and success stories.',
   language: 'en-us',
   theme: 'system',
-  siteUrl: 'https://lochitra.com',
-  siteRepo: 'https://github.com/lochitra',
+  siteUrl: 'https://locitra.com',
+  siteRepo: 'https://github.com/locitra',
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
   socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.png`,
 
-  email: 'contact@lochitra.com',
+  email: 'contact@locitra.com',
   github: '',
   x: '',
   facebook: '',

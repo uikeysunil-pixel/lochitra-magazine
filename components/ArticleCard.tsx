@@ -51,8 +51,10 @@ export default function ArticleCard({
     ? CATEGORY_GRADIENT_CLASSES[cat.color]
     : 'from-primary-600 to-primary-800'
 
-  // Consistent image heights — large variant gets more height for visual punch
-  const imageHeight = size === 'large' ? 'h-52 sm:h-56' : 'h-44 sm:h-48'
+  // Consistent image heights — large variant gets more height for visual punch on desktop
+  const imageHeight = size === 'large' ? 'h-56 sm:h-64' : 'h-44 sm:h-48'
+  // Summary line clamp — large cards show 3 lines for more context
+  const summaryClamp = size === 'large' ? 'line-clamp-3' : 'line-clamp-2'
 
   return (
     <article className="group hover:border-primary-200 dark:hover:border-primary-800 flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:shadow-lg dark:border-gray-700 dark:bg-gray-900">
@@ -124,7 +126,9 @@ export default function ArticleCard({
 
         {/* Summary */}
         {summary && (
-          <p className="mb-4 line-clamp-2 flex-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          <p
+            className={`mb-4 flex-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400 ${summaryClamp}`}
+          >
             {summary}
           </p>
         )}

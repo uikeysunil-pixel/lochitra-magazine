@@ -129,6 +129,46 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
       <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
+      {/* ── Organization + Person JSON-LD ─────────────────────────── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'Organization',
+                '@id': 'https://locitra.com/#organization',
+                name: 'Locitra',
+                url: 'https://locitra.com',
+                logo: {
+                  '@type': 'ImageObject',
+                  url: 'https://locitra.com/static/images/logo.png',
+                  width: 512,
+                  height: 512,
+                },
+                contactPoint: {
+                  '@type': 'ContactPoint',
+                  email: 'contact@locitra.com',
+                  contactType: 'editorial',
+                },
+                sameAs: [],
+              },
+              {
+                '@type': 'Person',
+                '@id': 'https://locitra.com/#founder',
+                name: 'Sunil Kumar',
+                jobTitle: 'Founder & Editor',
+                worksFor: {
+                  '@id': 'https://locitra.com/#organization',
+                },
+                url: 'https://locitra.com/about',
+                email: 'contact@locitra.com',
+              },
+            ],
+          }),
+        }}
+      />
       <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
         <ThemeProviders>
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />

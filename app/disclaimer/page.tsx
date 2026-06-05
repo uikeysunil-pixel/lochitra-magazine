@@ -64,10 +64,57 @@ export default function DisclaimerPage() {
 
         <h2>AI-Generated Content</h2>
         <p>
-          Some articles on Locitra may be written with the assistance of AI tools. All AI-assisted
-          content is reviewed and edited by our editorial team before publication to ensure accuracy
-          and quality.
+          Some articles on Locitra may be written with the assistance of AI tools. Where AI has been
+          used to assist in drafting, structuring, or researching content, it is clearly disclosed
+          within the article or in our <a href="/editorial-policy">Editorial Policy</a>.
         </p>
+        <p>
+          All AI-assisted content undergoes mandatory human review and editing before publication.
+          Our editorial team checks AI-generated content for accuracy, clarity, factual correctness,
+          and adherence to our content standards. We do not publish unreviewed AI-generated content.
+        </p>
+
+        <h2>No Professional Advice</h2>
+        <p>
+          The content published on Locitra is intended for general informational and educational
+          purposes only. Nothing on this website constitutes or should be interpreted as:
+        </p>
+        <ul>
+          <li>Financial or investment advice</li>
+          <li>Legal advice</li>
+          <li>Tax advice</li>
+          <li>Medical or health advice</li>
+          <li>Career or employment advice from a certified professional</li>
+        </ul>
+        <p>
+          Always consult a qualified professional before making decisions in any of these areas.
+          Locitra is not responsible for decisions made based on content published on this website.
+        </p>
+
+        <h2>Accuracy Disclaimer</h2>
+        <p>
+          We make every effort to ensure that the information on Locitra is accurate, current, and
+          useful at the time of publication. However, information — especially in fast-moving fields
+          like technology and AI — can become outdated quickly.
+        </p>
+        <p>
+          We provide all information in good faith but make no warranties or representations of any
+          kind, express or implied, as to the completeness, accuracy, or fitness for a particular
+          purpose of any content on this site.
+        </p>
+
+        <h2>User Responsibility</h2>
+        <p>
+          Readers are responsible for independently verifying any information found on Locitra
+          before acting upon it. We encourage you to:
+        </p>
+        <ul>
+          <li>Cross-reference information with authoritative or official sources.</li>
+          <li>Consult qualified professionals where appropriate.</li>
+          <li>
+            Use your own judgment when evaluating tools, products, or strategies covered here.
+          </li>
+        </ul>
 
         <h2>Contact</h2>
         <p>

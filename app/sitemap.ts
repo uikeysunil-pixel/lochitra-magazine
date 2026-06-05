@@ -29,6 +29,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'contact',
     'privacy-policy',
     'disclaimer',
+    'terms',
+    'editorial-policy',
   ].map((route) => ({
     url: `${siteUrl}/${route}`,
     lastModified: new Date().toISOString().split('T')[0],

@@ -83,7 +83,86 @@ export default function PrivacyPolicyPage() {
           posting the new policy on this page with an updated date.
         </p>
 
-        <h2>8. Contact Us</h2>
+        <h2>8. Google Analytics</h2>
+        <p>
+          Locitra may use Google Analytics to understand how visitors interact with our website.
+          Google Analytics collects data such as pages visited, time spent on site, geographic
+          location (country/region level), browser type, and device type. This data is aggregated
+          and anonymised and helps us improve our content and user experience.
+        </p>
+        <p>
+          Google Analytics may set cookies on your device. You can opt out of Google Analytics
+          tracking by installing the{' '}
+          <a
+            href="https://tools.google.com/dlpage/gaoptout"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Google Analytics Opt-out Browser Add-on
+          </a>
+          .
+        </p>
+
+        <h2>9. Advertising</h2>
+        <p>
+          Locitra may in the future display advertisements through Google AdSense or similar
+          advertising partners. These advertising partners may use cookies and web beacons to
+          display ads based on your previous visits to this site and other sites on the internet
+          (interest-based or personalised advertising).
+        </p>
+        <p>
+          You can opt out of personalised advertising by visiting{' '}
+          <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer">
+            Google&apos;s Ad Settings
+          </a>{' '}
+          or{' '}
+          <a href="https://optout.aboutads.info/" target="_blank" rel="noopener noreferrer">
+            aboutads.info
+          </a>
+          . We do not control third-party advertising cookies.
+        </p>
+
+        <h2>10. GDPR and Your Data Rights</h2>
+        <p>
+          If you are located in the European Economic Area (EEA), you have the following rights
+          regarding your personal data:
+        </p>
+        <ul>
+          <li>
+            <strong>Right to access:</strong> You may request a copy of the personal data we hold
+            about you.
+          </li>
+          <li>
+            <strong>Right to rectification:</strong> You may request correction of inaccurate
+            personal data.
+          </li>
+          <li>
+            <strong>Right to erasure:</strong> You may request deletion of your personal data where
+            applicable.
+          </li>
+          <li>
+            <strong>Right to object:</strong> You may object to the processing of your personal data
+            in certain circumstances.
+          </li>
+        </ul>
+        <p>
+          To exercise any of these rights, please contact us at{' '}
+          <a href="mailto:contact@locitra.com">contact@locitra.com</a>. We will respond within 30
+          days.
+        </p>
+
+        <h2>11. Data Security</h2>
+        <p>
+          We take reasonable technical and organisational measures to protect your personal
+          information against loss, misuse, unauthorised access, disclosure, alteration, or
+          destruction. Our website is served over HTTPS to encrypt data in transit.
+        </p>
+        <p>
+          However, no method of transmission over the internet is 100% secure. While we strive to
+          protect your personal information, we cannot guarantee its absolute security.
+        </p>
+
+        <h2>12. Contact Us</h2>
         <p>
           If you have questions about this Privacy Policy, please contact us at{' '}
           <a href="mailto:contact@locitra.com">contact@locitra.com</a>.

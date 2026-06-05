@@ -73,7 +73,9 @@ export default function Footer() {
                   { href: '/', label: 'Home' },
                   { href: '/blog', label: 'All Articles' },
                   { href: '/about', label: 'About Us' },
+                  { href: '/editorial-policy', label: 'Editorial Policy' },
                   { href: '/privacy-policy', label: 'Privacy Policy' },
+                  { href: '/terms', label: 'Terms & Conditions' },
                   { href: '/disclaimer', label: 'Disclaimer' },
                 ].map(({ href, label }) => (
                   <li key={href}>
@@ -154,7 +156,7 @@ export default function Footer() {
             </Link>
             . All Rights Reserved. Made with ❤️ for curious minds.
           </p>
-          <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
             <Link
               href="/privacy-policy"
               className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -167,6 +169,20 @@ export default function Footer() {
               className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
             >
               Disclaimer
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link
+              href="/terms"
+              className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            >
+              Terms
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link
+              href="/editorial-policy"
+              className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            >
+              Editorial Policy
             </Link>
             <span aria-hidden="true">·</span>
             <Link

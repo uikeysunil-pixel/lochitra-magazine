@@ -279,7 +279,7 @@ export default function Home({ posts }) {
 
       {/* ── Premium Trust Panel ───────────────────────────────────── */}
       <section
-        aria-label="Lochitra credibility statistics"
+        aria-label="Locitra credibility statistics"
         className="border-b border-gray-100 py-6 dark:border-gray-800"
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -309,7 +309,7 @@ export default function Home({ posts }) {
             <div className="ring-primary-200 dark:ring-primary-800 relative h-16 w-16 overflow-hidden rounded-full shadow-md ring-2 sm:h-14 sm:w-14">
               <Image
                 src="/static/images/sunil-kumar.jpg"
-                alt="Sunil Kumar — Founder & Editor, Lochitra"
+                alt="Sunil Kumar — Founder & Editor, Locitra"
                 fill
                 sizes="64px"
                 className="object-cover object-top"
@@ -340,7 +340,7 @@ export default function Home({ posts }) {
               </span>
             </div>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Founder &amp; Editor, Lochitra
+              Founder &amp; Editor, Locitra
             </p>
             <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-600 dark:text-gray-400">
               Writing about AI tools, technology trends, online income opportunities, career growth,
@@ -352,7 +352,7 @@ export default function Home({ posts }) {
 
       {/* ── Topic Bar ─────────────────────────────────────────────── */}
       <section
-        aria-label="Topics covered on Lochitra"
+        aria-label="Topics covered on Locitra"
         className="border-b border-gray-100 py-4 dark:border-gray-800"
       >
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -612,7 +612,7 @@ export default function Home({ posts }) {
       <section className="py-12">
         <div className="to-primary-900 dark:to-primary-950 rounded-2xl bg-gradient-to-br from-gray-900 px-8 py-10 text-center text-white shadow-lg dark:from-gray-950">
           <h2 className="mb-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
-            Stay Ahead with Lochitra
+            Stay Ahead with Locitra
           </h2>
           <p className="mb-7 text-base leading-relaxed text-gray-300 sm:text-lg">
             Covering AI Tools, Technology, Online Income, Career Growth, and Success Stories —
@@ -621,7 +621,7 @@ export default function Home({ posts }) {
           <Link
             href="/blog"
             className="text-primary-700 inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3 text-sm font-bold shadow transition-all hover:bg-gray-100 hover:shadow-md"
-            aria-label="Explore all Lochitra articles"
+            aria-label="Explore all Locitra articles"
           >
             Explore All Articles
             <svg

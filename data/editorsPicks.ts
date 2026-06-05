@@ -1,5 +1,5 @@
 /**
- * Editor's Picks — Lochitra
+ * Editor's Picks — Locitra
  *
  * Curate manually by adding or removing article slugs from this array.
  * The homepage will automatically resolve the full post data (title, summary, date, etc.)
@@ -19,4 +19,3 @@ export const EDITORS_PICKS_SLUGS: string[] = [
   'how-to-start-earning-online-beginners-guide',
   'top-technology-trends-2026',
 ]
-

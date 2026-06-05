@@ -248,49 +248,63 @@
   /* Scoped to .article-prose so homepage prose is untouched.     */
   .article-prose {
     font-size: 1.125rem; /* 18px */
-    line-height: 1.9;
+    line-height: 1.85;
 
     & p {
-      margin-bottom: 1.75em;
+      margin-bottom: 1.85em;
     }
 
     /* Larger, bolder section headings */
     & h2 {
-      font-size: 1.625rem;
-      margin-top: 3em;
-      margin-bottom: 0.85em;
+      font-size: 1.65rem;
+      margin-top: 3.25em;
+      margin-bottom: 0.9em;
       padding-bottom: 0.5em;
     }
 
     & h3 {
-      font-size: 1.25rem;
-      margin-top: 2.25em;
-      margin-bottom: 0.65em;
+      font-size: 1.275rem;
+      margin-top: 2.5em;
+      margin-bottom: 0.7em;
     }
 
     & h4 {
       font-size: 1.1rem;
-      margin-top: 2em;
+      margin-top: 2.1em;
       margin-bottom: 0.55em;
     }
 
     /* Breathier list items */
     & ul > li,
     & ol > li {
-      margin-bottom: 0.65em;
+      margin-bottom: 0.75em;
+      line-height: 1.8;
+    }
+
+    /* Better nested list spacing */
+    & ul,
+    & ol {
+      margin-bottom: 1.85em;
+      margin-top: 0.25em;
     }
 
     /* Larger lead paragraph */
     & > p:first-of-type {
-      font-size: 1.2em;
+      font-size: 1.175em;
       line-height: 1.85;
+      color: var(--color-gray-600);
     }
 
     /* Bigger blockquote */
     & blockquote {
       font-size: 1.1em;
       padding: 1.5em 2em;
-      margin: 2.5em 0;
+      margin: 2.75em 0;
+    }
+
+    /* HR gets more breathing room */
+    & hr {
+      margin: 3em 0;
     }
   }
 

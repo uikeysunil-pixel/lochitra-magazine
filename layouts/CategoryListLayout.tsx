@@ -5,7 +5,11 @@ import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import ArticleCard from '@/components/ArticleCard'
-import { type Category, CATEGORY_BADGE_CLASSES, CATEGORY_GRADIENT_CLASSES } from '@/data/categoryData'
+import {
+  type Category,
+  CATEGORY_BADGE_CLASSES,
+  CATEGORY_GRADIENT_CLASSES,
+} from '@/data/categoryData'
 
 interface PaginationProps {
   totalPages: number
@@ -37,7 +41,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
         <Link
           href={currentPage - 1 === 1 ? `/${basePath}/` : `/${basePath}/page/${currentPage - 1}`}
           rel="prev"
-          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-700 dark:hover:text-primary-400"
+          className="hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors dark:border-gray-700 dark:text-gray-300"
         >
           ← Previous
         </Link>
@@ -51,7 +55,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
         <Link
           href={`/${basePath}/page/${currentPage + 1}`}
           rel="next"
-          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-700 dark:hover:text-primary-400"
+          className="hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors dark:border-gray-700 dark:text-gray-300"
         >
           Next →
         </Link>
@@ -88,11 +92,17 @@ export default function CategoryListLayout({
           <div className="flex-1">
             {/* Breadcrumb */}
             <nav className="mb-2 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-              <Link href="/" className="transition-colors hover:text-primary-600 dark:hover:text-primary-400">
+              <Link
+                href="/"
+                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >
                 Home
               </Link>
               <span aria-hidden="true">/</span>
-              <Link href="/categories" className="transition-colors hover:text-primary-600 dark:hover:text-primary-400">
+              <Link
+                href="/categories"
+                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >
                 Categories
               </Link>
               <span aria-hidden="true">/</span>
@@ -100,7 +110,7 @@ export default function CategoryListLayout({
             </nav>
 
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
                 {category.name}
               </h1>
               <span
@@ -137,10 +147,7 @@ export default function CategoryListLayout({
           </div>
 
           {pagination && pagination.totalPages > 1 && (
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-            />
+            <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
           )}
         </section>
       ) : (
@@ -150,7 +157,7 @@ export default function CategoryListLayout({
           </p>
           <Link
             href="/blog"
-            className="mt-4 inline-block text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
+            className="text-primary-600 hover:text-primary-700 dark:text-primary-400 mt-4 inline-block text-sm font-medium"
           >
             Browse all articles →
           </Link>

@@ -2,7 +2,7 @@ import { genPageMetadata } from 'app/seo'
 
 export const metadata = genPageMetadata({
   title: 'Privacy Policy',
-  description: 'Lochitra Privacy Policy — how we collect, use, and protect your information.',
+  description: 'Locitra Privacy Policy — how we collect, use, and protect your information.',
 })
 
 export default function PrivacyPolicyPage() {
@@ -19,10 +19,10 @@ export default function PrivacyPolicyPage() {
 
       <div className="prose dark:prose-invert max-w-none pt-10 pb-8">
         <p>
-          Welcome to Lochitra (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). We are committed
+          Welcome to Locitra (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). We are committed
           to protecting your personal information and your right to privacy. This Privacy Policy
           explains how we collect, use, and safeguard your information when you visit{' '}
-          <a href="https://lochitra.com">lochitra.com</a>.
+          <a href="https://locitra.com">locitra.com</a>.
         </p>
 
         <h2>1. Information We Collect</h2>
@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
         <h2>2. How We Use Your Information</h2>
         <p>We use the information we collect to:</p>
         <ul>
-          <li>Operate and improve the Lochitra website and content</li>
+          <li>Operate and improve the Locitra website and content</li>
           <li>Analyze traffic and understand our audience</li>
           <li>Respond to inquiries and feedback</li>
           <li>Comply with legal obligations</li>
@@ -67,7 +67,7 @@ export default function PrivacyPolicyPage() {
 
         <h2>5. Links to Other Sites</h2>
         <p>
-          Lochitra may contain links to external websites. We are not responsible for the privacy
+          Locitra may contain links to external websites. We are not responsible for the privacy
           practices or content of those sites and encourage you to review their privacy policies.
         </p>
 
@@ -86,7 +86,7 @@ export default function PrivacyPolicyPage() {
         <h2>8. Contact Us</h2>
         <p>
           If you have questions about this Privacy Policy, please contact us at{' '}
-          <a href="mailto:contact@lochitra.com">contact@lochitra.com</a>.
+          <a href="mailto:contact@locitra.com">contact@locitra.com</a>.
         </p>
       </div>
     </div>

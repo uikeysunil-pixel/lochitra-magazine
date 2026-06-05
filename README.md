@@ -1,6 +1,6 @@
-# Lochitra Magazine
+# Locitra
 
-Lochitra Magazine is a modern AI, Technology, Online Income, Career Growth and Success Stories publication built with Next.js and Tailwind CSS.
+Locitra is a modern blog covering AI tools, technology, online income opportunities, career growth, and success stories. Built with Next.js and Tailwind CSS.
 
 ## Categories
 
@@ -23,4 +23,4 @@ Sunil Kumar Uikey
 
 ## Website
 
-https://lochitra.com
+https://locitra.com

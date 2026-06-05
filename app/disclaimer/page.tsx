@@ -3,7 +3,7 @@ import { genPageMetadata } from 'app/seo'
 export const metadata = genPageMetadata({
   title: 'Disclaimer',
   description:
-    'Lochitra Disclaimer — affiliate disclosure, earnings disclaimer, and general content disclaimer.',
+    'Locitra Disclaimer — affiliate disclosure, earnings disclaimer, and general content disclaimer.',
 })
 
 export default function DisclaimerPage() {
@@ -21,20 +21,20 @@ export default function DisclaimerPage() {
       <div className="prose dark:prose-invert max-w-none pt-10 pb-8">
         <h2>General Disclaimer</h2>
         <p>
-          The information provided on Lochitra (lochitra.com) is for general informational and
+          The information provided on Locitra (locitra.com) is for general informational and
           educational purposes only. While we strive to keep content accurate and up to date, we
           make no representations or warranties of any kind, express or implied, about the
           completeness, accuracy, reliability, or suitability of the information.
         </p>
         <p>
           Any reliance you place on the information on this website is strictly at your own risk.
-          Lochitra shall not be held liable for any loss or damage arising from the use of, or
+          Locitra shall not be held liable for any loss or damage arising from the use of, or
           reliance on, any information published here.
         </p>
 
         <h2>Affiliate Disclosure</h2>
         <p>
-          In accordance with the FTC guidelines, Lochitra may contain affiliate links. This means
+          In accordance with the FTC guidelines, Locitra may contain affiliate links. This means
           that if you click on a link and make a purchase, we may receive a small commission at no
           additional cost to you.
         </p>
@@ -45,7 +45,7 @@ export default function DisclaimerPage() {
 
         <h2>Earnings Disclaimer</h2>
         <p>
-          Any income or earnings figures mentioned on Lochitra are examples only and should not be
+          Any income or earnings figures mentioned on Locitra are examples only and should not be
           interpreted as typical or guaranteed results. Individual results will always vary and
           depend on many factors including but not limited to individual effort, experience, and
           market conditions.
@@ -57,14 +57,14 @@ export default function DisclaimerPage() {
 
         <h2>External Links</h2>
         <p>
-          Lochitra may link to external websites for your convenience and information. These links
-          do not signify our endorsement of those sites or their content. We have no control over
-          the nature, content, and availability of external websites.
+          Locitra may link to external websites for your convenience and information. These links do
+          not signify our endorsement of those sites or their content. We have no control over the
+          nature, content, and availability of external websites.
         </p>
 
         <h2>AI-Generated Content</h2>
         <p>
-          Some articles on Lochitra may be written with the assistance of AI tools. All AI-assisted
+          Some articles on Locitra may be written with the assistance of AI tools. All AI-assisted
           content is reviewed and edited by our editorial team before publication to ensure accuracy
           and quality.
         </p>
@@ -72,7 +72,7 @@ export default function DisclaimerPage() {
         <h2>Contact</h2>
         <p>
           For questions about this disclaimer, please contact us at{' '}
-          <a href="mailto:contact@lochitra.com">contact@lochitra.com</a>.
+          <a href="mailto:contact@locitra.com">contact@locitra.com</a>.
         </p>
       </div>
     </div>

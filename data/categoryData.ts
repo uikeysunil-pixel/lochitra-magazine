@@ -1,5 +1,5 @@
 /**
- * Single source of truth for Lochitra's 5 primary categories.
+ * Single source of truth for Locitra's 5 primary categories.
  *
  * Used by:
  * - app/categories/page.tsx       (index page)

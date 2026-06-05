@@ -6,7 +6,7 @@ import { allBlogs } from 'contentlayer/generated'
 export const metadata = genPageMetadata({
   title: 'Categories',
   description:
-    'Browse all Lochitra content categories — AI Tools, Technology, Online Income, Career Growth, and Success Stories.',
+    'Browse all Locitra content categories — AI Tools, Technology, Online Income, Career Growth, and Success Stories.',
 })
 
 /** Count articles per category slug */

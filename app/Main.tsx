@@ -146,6 +146,11 @@ export default function Home({ posts }) {
 
   return (
     <div>
+      {/* ── Page-level H1 (screen-reader only) ───────────────────────────── */}
+      {/* Required for SEO: guarantees exactly one H1 regardless of post state. */}
+      {/* Invisible to sighted users — zero visual impact. */}
+      <h1 className="sr-only">Locitra — AI Tools, Technology &amp; Online Income Blog</h1>
+
       {/* ── Hero Section ──────────────────────────────────────────── */}
       {heroPost && (
         <section className="border-b border-gray-100 pt-10 pb-10 dark:border-gray-800">
@@ -168,14 +173,14 @@ export default function Home({ posts }) {
                 ))}
               </div>
 
-              <h1 className="mb-4 text-3xl leading-tight font-extrabold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
+              <h2 className="mb-4 text-3xl leading-tight font-extrabold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
                 <Link
                   href={`/blog/${heroPost.slug}`}
                   className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                 >
                   {heroPost.title}
                 </Link>
-              </h1>
+              </h2>
 
               <p className="mb-5 text-lg leading-relaxed text-gray-600 dark:text-gray-400">
                 {heroPost.summary}

@@ -31,10 +31,10 @@ export function genPageMetadata({
     description: desc,
     ...(canonical && { alternates: { canonical } }),
     openGraph: {
-      title: `${title} | ${siteMetadata.title}`,
+      title: `${title} | Locitra`,
       description: desc,
       url: canonical || siteMetadata.siteUrl,
-      siteName: siteMetadata.title,
+      siteName: 'Locitra',
       images: [
         {
           url: ogImage,
@@ -47,7 +47,7 @@ export function genPageMetadata({
       type: 'website',
     },
     twitter: {
-      title: `${title} | ${siteMetadata.title}`,
+      title: `${title} | Locitra`,
       card: 'summary_large_image',
       description: desc,
       images: [ogImage],

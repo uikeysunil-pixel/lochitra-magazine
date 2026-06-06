@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteMetadata.siteUrl),
   title: {
     default: siteMetadata.title,
-    template: `%s | ${siteMetadata.title}`,
+    template: `%s | Locitra`,
   },
   description: siteMetadata.description,
   keywords: [
@@ -48,16 +48,16 @@ export const metadata: Metadata = {
     other: [{ rel: 'mask-icon', url: '/static/favicons/safari-pinned-tab.svg', color: '#2563EB' }],
   },
   openGraph: {
-    title: siteMetadata.title,
+    title: 'Locitra',
     description: siteMetadata.description,
     url: siteMetadata.siteUrl,
-    siteName: siteMetadata.title,
+    siteName: 'Locitra',
     images: [
       {
         url: siteMetadata.siteUrl + siteMetadata.socialBanner,
         width: 1200,
         height: 630,
-        alt: `${siteMetadata.title} — AI, Technology & Online Income`,
+        alt: 'Locitra — AI, Technology & Online Income',
       },
     ],
     locale: 'en_US',
@@ -81,13 +81,13 @@ export const metadata: Metadata = {
     },
   },
   twitter: {
-    title: siteMetadata.title,
+    title: 'Locitra',
     card: 'summary_large_image',
     description: siteMetadata.description,
     images: [
       {
         url: siteMetadata.siteUrl + siteMetadata.socialBanner,
-        alt: `${siteMetadata.title} — AI, Technology & Online Income`,
+        alt: 'Locitra — AI, Technology & Online Income',
       },
     ],
   },
@@ -130,7 +130,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
       <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
-      {/* ── Organization + Person JSON-LD ─────────────────────────── */}
+      {/* ── Organization + WebSite + Person JSON-LD ───────────────────── */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -142,6 +142,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 '@id': 'https://locitra.com/#organization',
                 name: 'Locitra',
                 url: 'https://locitra.com',
+                description:
+                  'Expert guides on AI tools, technology, online income, career growth, and success stories.',
                 logo: {
                   '@type': 'ImageObject',
                   url: 'https://locitra.com/static/images/logo.png',
@@ -154,6 +156,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   contactType: 'editorial',
                 },
                 sameAs: [],
+              },
+              {
+                '@type': 'WebSite',
+                '@id': 'https://locitra.com/#website',
+                name: 'Locitra',
+                url: 'https://locitra.com',
+                description:
+                  'Expert guides on AI tools, technology, online income, career growth, and success stories.',
+                publisher: { '@id': 'https://locitra.com/#organization' },
+                potentialAction: {
+                  '@type': 'SearchAction',
+                  target: {
+                    '@type': 'EntryPoint',
+                    urlTemplate: 'https://locitra.com/blog?q={search_term_string}',
+                  },
+                  'query-input': 'required name=search_term_string',
+                },
               },
               {
                 '@type': 'Person',

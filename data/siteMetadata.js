@@ -1,11 +1,12 @@
 /** @type {import("pliny/config").PlinyConfig } */
 
 const siteMetadata = {
-  title: 'Locitra',
+  title: 'Locitra - AI Tools, Technology & Online Income Blog',
   author: 'Sunil Kumar',
   headerTitle: 'Locitra',
   description:
-    'Locitra is a modern blog covering AI tools, technology, online income opportunities, career growth, and success stories.',
+    'Explore Locitra for expert guides on AI tools, technology trends, online income strategies, career growth tips, and real success stories from digital creators.',
+  shortTitle: 'Locitra',
   language: 'en-us',
   theme: 'system',
   siteUrl: 'https://locitra.com',

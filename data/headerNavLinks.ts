@@ -5,6 +5,7 @@ const headerNavLinks = [
   { href: '/categories/online-income', title: 'Online Income' },
   { href: '/categories/career-growth', title: 'Career Growth' },
   { href: '/categories/success-stories', title: 'Success Stories' },
+  { href: '/categories/software-reviews', title: 'Software Reviews' },
   { href: '/about', title: 'About' },
   { href: '/contact', title: 'Contact' },
 ]

@@ -16,6 +16,6 @@
 
 export const EDITORS_PICKS_SLUGS: string[] = [
   'chatgpt-vs-gemini-2026', // Large featured card — newest AI Tools article
-  'how-to-start-earning-online-beginners-guide',
+  'freelancing-for-beginners-2026',
   'top-technology-trends-2026',
 ]

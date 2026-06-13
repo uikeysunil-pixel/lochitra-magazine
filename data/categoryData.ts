@@ -71,7 +71,7 @@ export const CATEGORIES: Category[] = [
     slug: 'software-reviews',
     name: 'Software Reviews',
     icon: '🛠️',
-    color: 'blue',
+    color: 'green',
     description: 'In-depth analysis of the best software tools',
     seoDescription:
       'Comprehensive, hands-on reviews of the best software tools for productivity, security, and growth in 2026.',

@@ -50,7 +50,7 @@ const TRUST_STATS = [
         />
       </svg>
     ),
-    label: '5 Categories',
+    label: '6 Categories',
     sub: 'Covered',
   },
   {
@@ -122,6 +122,7 @@ const TRUST_STATS = [
 const TOPICS = [
   { slug: 'ai-tools', label: 'AI Tools', icon: '🤖' },
   { slug: 'technology', label: 'Technology', icon: '💻' },
+  { slug: 'software-reviews', label: 'Software Reviews', icon: '🛠️' },
   { slug: 'online-income', label: 'Online Income', icon: '💰' },
   { slug: 'career-growth', label: 'Career Growth', icon: '📈' },
   { slug: 'success-stories', label: 'Success Stories', icon: '⭐' },

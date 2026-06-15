@@ -1,6 +1,7 @@
 import Link from './Link'
 import siteMetadata from '@/data/siteMetadata'
 import SocialIcon from '@/components/social-icons'
+import NewsletterForm from './NewsletterForm'
 
 export default function Footer() {
   return (
@@ -114,30 +115,8 @@ export default function Footer() {
                 </li>
               </ul>
 
-              {/* Newsletter placeholder */}
-              <div>
-                <h4 className="mb-2 text-xs font-bold tracking-widest text-gray-900 uppercase dark:text-gray-100">
-                  Newsletter
-                </h4>
-                <p className="mb-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-                  Weekly insights on AI, tech & digital income — free.
-                </p>
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="email"
-                    placeholder="your@email.com"
-                    disabled
-                    aria-label="Newsletter email (coming soon)"
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-400 placeholder-gray-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:placeholder-gray-600"
-                  />
-                  <button
-                    disabled
-                    className="from-primary-600 to-primary-700 w-full cursor-not-allowed rounded-lg bg-gradient-to-r px-3 py-2 text-xs font-semibold text-white opacity-60"
-                  >
-                    Subscribe — Coming Soon
-                  </button>
-                </div>
-              </div>
+              {/* Newsletter component */}
+              <NewsletterForm />
             </div>
           </div>
         </div>

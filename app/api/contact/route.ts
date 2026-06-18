@@ -29,8 +29,7 @@ export async function POST(req: Request) {
     }
 
     const apiKey = process.env.BREVO_API_KEY
-    console.log("BREVO_API_KEY exists:", !!process.env.BREVO_API_KEY)
-    
+
     if (!apiKey) {
       console.error('Missing BREVO_API_KEY environment variable')
       return NextResponse.json(

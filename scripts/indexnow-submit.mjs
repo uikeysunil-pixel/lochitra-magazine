@@ -15,7 +15,7 @@ export async function submitIndexNow() {
 
     // 2. Import the transpiled utility
     const { submitToIndexNow, getSiteUrl } = await import('./.indexnow-temp.mjs')
-    
+
     // Clean up temp file immediately so it doesn't linger
     fs.unlinkSync(tempFile)
 
@@ -38,7 +38,7 @@ export async function submitIndexNow() {
     // We use a 7-day lookback window
     const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
     const now = Date.now()
-    
+
     let recentArticlesCount = 0
 
     for (const post of allBlogs) {
@@ -46,7 +46,7 @@ export async function submitIndexNow() {
 
       // Use lastmod when available. Fallback to date only when lastmod is missing.
       const modifiedDate = new Date(post.lastmod || post.date).getTime()
-      
+
       if (now - modifiedDate <= SEVEN_DAYS_MS) {
         urlsToSubmit.add(`${siteUrl}/blog/${post.slug}`)
         recentArticlesCount++
@@ -54,8 +54,10 @@ export async function submitIndexNow() {
     }
 
     const finalUrls = Array.from(urlsToSubmit)
-    
-    console.log(`[IndexNow] Discovered ${finalUrls.length} URLs to submit (including ${recentArticlesCount} recent articles).`)
+
+    console.log(
+      `[IndexNow] Discovered ${finalUrls.length} URLs to submit (including ${recentArticlesCount} recent articles).`
+    )
     if (recentArticlesCount > 0) {
       console.log(`[IndexNow] Example URLs: \n  - ${finalUrls.slice(0, 3).join('\n  - ')}`)
     }
@@ -68,7 +70,6 @@ export async function submitIndexNow() {
     } else {
       console.warn(`[IndexNow] ⚠️ Submission failed: ${result.error}`)
     }
-
   } catch (err) {
     // IndexNow failures must NEVER break deployment
     console.warn(`[IndexNow] ⚠️ An error occurred during automated submission:`, err.message)

@@ -251,6 +251,7 @@ export default function PostLayout({
           {/* ── Main content column ─────────────────────────────────────── */}
           <div className="min-w-0 flex-1">
             {/* Mobile TOC accordion — auto-hidden on lg+ by its own lg:hidden */}
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {hasToc && <TableOfContents toc={toc as any} />}
 
             {/* Article body */}
@@ -339,6 +340,7 @@ export default function PostLayout({
           {/* ── Desktop TOC sidebar — 25% width, hidden on mobile ──────── */}
           {hasToc && (
             <aside className="hidden w-[25%] max-w-[280px] min-w-[200px] shrink-0 lg:block">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <DesktopToc toc={toc as any} />
             </aside>
           )}

@@ -147,8 +147,14 @@ export default function PrivacyPolicyPage() {
         </ul>
         <p>
           To exercise any of these rights, please contact us at{' '}
-          <a href="mailto:contact@locitra.com">contact@locitra.com</a>. We will respond within 30
-          days.
+          <a
+            href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+            aria-label="Email Locitra"
+            className="hover:underline"
+          >
+            contact@locitra.com
+          </a>
+          . We will respond within 30 days.
         </p>
 
         <h2>11. Data Security</h2>
@@ -165,7 +171,14 @@ export default function PrivacyPolicyPage() {
         <h2>12. Contact Us</h2>
         <p>
           If you have questions about this Privacy Policy, please contact us at{' '}
-          <a href="mailto:contact@locitra.com">contact@locitra.com</a>.
+          <a
+            href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+            aria-label="Email Locitra"
+            className="hover:underline"
+          >
+            contact@locitra.com
+          </a>
+          .
         </p>
       </div>
     </div>

@@ -119,7 +119,14 @@ export default function DisclaimerPage() {
         <h2>Contact</h2>
         <p>
           For questions about this disclaimer, please contact us at{' '}
-          <a href="mailto:contact@locitra.com">contact@locitra.com</a>.
+          <a
+            href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+            aria-label="Email Locitra"
+            className="hover:underline"
+          >
+            contact@locitra.com
+          </a>
+          .
         </p>
       </div>
     </div>

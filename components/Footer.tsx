@@ -107,10 +107,11 @@ export default function Footer() {
                 </li>
                 <li>
                   <a
-                    href={`mailto:${siteMetadata.email}`}
-                    className="hover:text-primary-600 dark:hover:text-primary-400 text-gray-500 transition-colors dark:text-gray-400"
+                    href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+                    aria-label="Email Locitra"
+                    className="hover:underline"
                   >
-                    {siteMetadata.email}
+                    contact@locitra.com
                   </a>
                 </li>
               </ul>

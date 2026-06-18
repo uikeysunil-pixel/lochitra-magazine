@@ -203,7 +203,11 @@ export default function AboutPage() {
           </p>
           <p>
             📧{' '}
-            <a href="mailto:contact@locitra.com" className="text-primary-600 dark:text-primary-400">
+            <a
+              href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+              aria-label="Email Locitra"
+              className="hover:underline"
+            >
               contact@locitra.com
             </a>
           </p>

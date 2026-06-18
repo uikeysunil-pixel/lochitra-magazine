@@ -187,8 +187,14 @@ export default function EditorialPolicyPage() {
         </ul>
         <p>
           To report an error, please contact us at{' '}
-          <a href="mailto:contact@locitra.com">contact@locitra.com</a> with the subject line
-          &quot;Correction Request&quot; and a description of the issue.
+          <a
+            href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+            aria-label="Email Locitra"
+            className="hover:underline"
+          >
+            contact@locitra.com
+          </a>{' '}
+          with the subject line &quot;Correction Request&quot; and a description of the issue.
         </p>
 
         {/* 8. Contact */}
@@ -200,7 +206,14 @@ export default function EditorialPolicyPage() {
         <p>
           <strong>Sunil Kumar</strong> — Founder &amp; Editor, Locitra
           <br />
-          Email: <a href="mailto:contact@locitra.com">contact@locitra.com</a>
+          Email:{' '}
+          <a
+            href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+            aria-label="Email Locitra"
+            className="hover:underline"
+          >
+            contact@locitra.com
+          </a>
           <br />
           Website: <a href="https://locitra.com">locitra.com</a>
         </p>

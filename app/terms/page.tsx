@@ -76,7 +76,14 @@ export default function TermsPage() {
         </ul>
         <p>
           For permissions beyond fair use, please contact{' '}
-          <a href="mailto:contact@locitra.com">contact@locitra.com</a>.
+          <a
+            href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+            aria-label="Email Locitra"
+            className="hover:underline"
+          >
+            contact@locitra.com
+          </a>
+          .
         </p>
 
         <h2>4. User Responsibilities</h2>
@@ -148,7 +155,14 @@ export default function TermsPage() {
         <p>
           <strong>Locitra</strong>
           <br />
-          Email: <a href="mailto:contact@locitra.com">contact@locitra.com</a>
+          Email:{' '}
+          <a
+            href="mailto:contact@locitra.com?subject=Inquiry%20from%20Locitra"
+            aria-label="Email Locitra"
+            className="hover:underline"
+          >
+            contact@locitra.com
+          </a>
           <br />
           Website: <a href="https://locitra.com">locitra.com</a>
         </p>

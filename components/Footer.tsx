@@ -76,6 +76,7 @@ export default function Footer() {
                   { href: '/about', label: 'About Us' },
                   { href: '/editorial-policy', label: 'Editorial Policy' },
                   { href: '/privacy-policy', label: 'Privacy Policy' },
+                  { href: '/newsletter', label: 'Newsletter' },
                   { href: '/terms', label: 'Terms & Conditions' },
                   { href: '/disclaimer', label: 'Disclaimer' },
                 ].map(({ href, label }) => (

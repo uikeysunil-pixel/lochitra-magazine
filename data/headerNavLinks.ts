@@ -7,6 +7,7 @@ const headerNavLinks = [
   { href: '/categories/success-stories', title: 'Success Stories' },
   { href: '/categories/software-reviews', title: 'Software Reviews' },
   { href: '/about', title: 'About' },
+  { href: '/newsletter', title: 'Newsletter' },
   { href: '/contact', title: 'Contact' },
 ]
 

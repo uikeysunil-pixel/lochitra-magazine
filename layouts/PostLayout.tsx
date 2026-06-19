@@ -13,6 +13,7 @@ import AuthorCard from '@/components/AuthorCard'
 import TableOfContents, { DesktopToc } from '@/components/TableOfContents'
 import ShareBar from '@/components/ShareBar'
 import ArticleCard from '@/components/ArticleCard'
+import ArticleNewsletterBox from '@/components/ArticleNewsletterBox'
 
 const postDateTemplate: Intl.DateTimeFormatOptions = {
   year: 'numeric',
@@ -273,49 +274,7 @@ export default function PostLayout({
             <ShareBar url={articleUrl} title={title} />
 
             {/* ── Premium Newsletter CTA ────────────────────────────────── */}
-            <div className="my-12 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f172a] via-[#1e3a5f] to-[#0f172a] px-8 py-10 shadow-xl dark:from-[#0a0f1a] dark:via-[#0f2240] dark:to-[#0a0f1a]">
-              {/* Top accent line */}
-              <div className="mb-6 h-px w-16 bg-gradient-to-r from-blue-400 to-cyan-400" />
-
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
-                <div className="flex-1">
-                  <p className="mb-1 text-[11px] font-bold tracking-[0.15em] text-blue-400 uppercase">
-                    Weekly Intelligence
-                  </p>
-                  <h3 className="mb-3 text-xl leading-snug font-extrabold text-white sm:text-2xl">
-                    Stay Ahead of the Curve
-                  </h3>
-                  <p className="text-sm leading-relaxed text-blue-100/80">
-                    AI tools, technology trends, digital income strategies and creator success
-                    stories — curated every week, always free.
-                  </p>
-                </div>
-
-                <div className="flex flex-shrink-0 flex-col gap-3 sm:items-end">
-                  <Link
-                    href="/blog"
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/30 transition-all hover:scale-105 hover:shadow-blue-900/50"
-                  >
-                    Explore All Articles
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 8l4 4m0 0l-4 4m4-4H3"
-                      />
-                    </svg>
-                  </Link>
-                  <p className="text-[11px] text-blue-300/60">No spam. Unsubscribe anytime.</p>
-                </div>
-              </div>
-            </div>
+            <ArticleNewsletterBox />
 
             {/* Author Card */}
             {primaryAuthor && (

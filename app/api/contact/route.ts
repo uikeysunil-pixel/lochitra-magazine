@@ -1,17 +1,93 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(req: Request) {
+// ── In-memory rate limiter (IP → { count, resetAt }) ─────────────────────────
+// Uses a simple sliding window without an external Redis dependency.
+// For production at scale, replace with @upstash/ratelimit + @upstash/redis.
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+
+const RATE_LIMIT_MAX = 5 // max submissions
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // per 1 hour
+const MAX_BODY_BYTES = 12_000 // 12 KB hard cap
+
+/** Field character limits (FTC / anti-abuse) */
+const FIELD_LIMITS: Record<string, number> = {
+  name: 100,
+  email: 254,
+  subject: 200,
+  reason: 100,
+  message: 5_000,
+}
+
+/** Minimal HTML-entity escaper — prevents injection into admin email body */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return false
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return true
+  entry.count++
+  return false
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { name, email, subject, reason, message, botField } = body
+    // ── 1. Body size guard ──────────────────────────────────────────────────
+    const contentLength = req.headers.get('content-length')
+    if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+      return NextResponse.json({ success: false, message: 'Request too large.' }, { status: 413 })
+    }
 
-    // 1. Honeypot check
+    // ── 2. CSRF / Origin check ──────────────────────────────────────────────
+    const origin = req.headers.get('origin') ?? ''
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://locitra.com'
+    const isProd = process.env.NODE_ENV === 'production'
+    if (isProd && origin && !origin.startsWith(siteUrl)) {
+      return NextResponse.json({ success: false, message: 'Forbidden.' }, { status: 403 })
+    }
+
+    // ── 3. IP rate limiting ─────────────────────────────────────────────────
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+      req.headers.get('x-real-ip') ??
+      '127.0.0.1'
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { success: false, message: 'Too many submissions. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
+    // ── 4. Parse body ───────────────────────────────────────────────────────
+    let body: Record<string, unknown>
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json(
+        { success: false, message: 'Invalid request body.' },
+        { status: 400 }
+      )
+    }
+
+    const { name, email, subject, reason, message, botField } = body as Record<string, string>
+
+    // ── 5. Honeypot ─────────────────────────────────────────────────────────
     if (botField) {
-      // If honeypot is filled, silently ignore and return success to deceive bots
+      // Silently succeed — deceives bots without revealing detection
       return NextResponse.json({ success: true })
     }
 
-    // 2. Validation
+    // ── 6. Required field validation ────────────────────────────────────────
     if (!name || !email || !subject || !reason || !message) {
       return NextResponse.json(
         { success: false, message: 'All fields are required.' },
@@ -19,7 +95,30 @@ export async function POST(req: Request) {
       )
     }
 
-    const trimmedEmail = email.trim()
+    // ── 7. Type checks ──────────────────────────────────────────────────────
+    const fields = { name, email, subject, reason, message }
+    for (const [key, val] of Object.entries(fields)) {
+      if (typeof val !== 'string') {
+        return NextResponse.json(
+          { success: false, message: `Invalid value for ${key}.` },
+          { status: 400 }
+        )
+      }
+    }
+
+    // ── 8. Field length limits ──────────────────────────────────────────────
+    for (const [field, limit] of Object.entries(FIELD_LIMITS)) {
+      const val = (body[field] as string | undefined) ?? ''
+      if (val.length > limit) {
+        return NextResponse.json(
+          { success: false, message: `${field} exceeds maximum length of ${limit} characters.` },
+          { status: 400 }
+        )
+      }
+    }
+
+    // ── 9. Email format validation ──────────────────────────────────────────
+    const trimmedEmail = email.trim().toLowerCase()
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(trimmedEmail)) {
       return NextResponse.json(
@@ -28,34 +127,43 @@ export async function POST(req: Request) {
       )
     }
 
+    // ── 10. Sanitize all string inputs (HTML injection prevention) ──────────
+    const safeName = escapeHtml(name.trim())
+    const safeSubject = escapeHtml(subject.trim())
+    const safeReason = escapeHtml(reason.trim())
+    const safeMessage = escapeHtml(message.trim())
+
+    // ── 11. Env var guards ──────────────────────────────────────────────────
     const apiKey = process.env.BREVO_API_KEY
+    const adminEmail = process.env.ADMIN_EMAIL ?? 'uikeysunil@gmail.com'
+    const ccEmail = process.env.CONTACT_CC_EMAIL ?? 'contact@locitra.com'
 
     if (!apiKey) {
-      console.error('Missing BREVO_API_KEY environment variable')
+      console.error('[Contact API] Missing BREVO_API_KEY')
       return NextResponse.json(
         { success: false, message: 'Server configuration error.' },
         { status: 500 }
       )
     }
 
-    // 3. Send email to admin
+    // ── 12. Send email to admin ─────────────────────────────────────────────
     const adminEmailPayload = {
       sender: { name: 'Locitra Contact Form', email: 'newsletter@locitra.com' },
-      to: [{ email: 'uikeysunil@gmail.com', name: 'Locitra Admin' }],
-      cc: [{ email: 'contact@locitra.com', name: 'Locitra Contact' }],
-      replyTo: { email: trimmedEmail, name: name },
-      subject: `[Locitra Contact] ${subject}`,
+      to: [{ email: adminEmail, name: 'Locitra Admin' }],
+      cc: [{ email: ccEmail, name: 'Locitra Contact' }],
+      replyTo: { email: trimmedEmail, name: safeName },
+      subject: `[Locitra Contact] ${safeSubject}`,
       htmlContent: `
         <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Name:</strong> ${safeName}</p>
         <p><strong>Email:</strong> ${trimmedEmail}</p>
-        <p><strong>Reason:</strong> ${reason}</p>
-        <p><strong>Subject:</strong> ${subject}</p>
+        <p><strong>Reason:</strong> ${safeReason}</p>
+        <p><strong>Subject:</strong> ${safeSubject}</p>
         <hr />
         <p><strong>Message:</strong></p>
-        <p style="white-space: pre-wrap;">${message}</p>
+        <p style="white-space: pre-wrap; font-family: monospace; background: #f9f9f9; padding: 12px; border-radius: 4px;">${safeMessage}</p>
         <hr />
-        <p><small>Timestamp: ${new Date().toISOString()}</small></p>
+        <p><small>Submitted: ${new Date().toISOString()} | IP: ${ip}</small></p>
       `,
     }
 
@@ -70,30 +178,31 @@ export async function POST(req: Request) {
     })
 
     if (!adminResponse.ok) {
-      const errorData = await adminResponse.json()
-      console.error('Brevo API Error (Admin Email):', errorData)
+      const errorData = await adminResponse.json().catch(() => ({}))
+      console.error('[Contact API] Brevo admin email error:', errorData)
       return NextResponse.json(
         { success: false, message: 'Failed to send message. Please try again later.' },
         { status: 500 }
       )
     }
 
-    // 4. Send auto-reply to visitor
+    // ── 13. Auto-reply to visitor ───────────────────────────────────────────
     const visitorEmailPayload = {
       sender: { name: 'Sunil from Locitra', email: 'newsletter@locitra.com' },
-      to: [{ email: trimmedEmail, name: name }],
-      subject: "We've received your message",
+      to: [{ email: trimmedEmail, name: safeName }],
+      subject: "We've received your message — Locitra",
       htmlContent: `
-        <p>Thank you for contacting Locitra.</p>
-        <p>We have received your message and will respond as soon as possible.</p>
+        <p>Hi ${safeName},</p>
+        <p>Thank you for reaching out to Locitra. We have received your message and will respond as soon as possible.</p>
         <br />
-        <p>— Sunil<br />
-        Locitra<br />
+        <p>— Sunil Kumar<br />
+        Founder &amp; Editor, Locitra<br />
         <a href="https://locitra.com">https://locitra.com</a></p>
       `,
     }
 
-    const visitorResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+    // Auto-reply failure is non-fatal — log but don't block success response
+    fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
         'api-key': apiKey,
@@ -102,17 +211,17 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify(visitorEmailPayload),
     })
-
-    if (!visitorResponse.ok) {
-      const errorData = await visitorResponse.json()
-      console.error('Brevo API Error (Visitor Auto-reply):', errorData)
-      // We don't necessarily want to fail the whole request if the auto-reply fails,
-      // but we log it. The main message was sent successfully.
-    }
+      .then(async (r) => {
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}))
+          console.warn('[Contact API] Auto-reply failed (non-fatal):', d)
+        }
+      })
+      .catch((err) => console.warn('[Contact API] Auto-reply network error (non-fatal):', err))
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Contact API Error:', error)
+    console.error('[Contact API] Unhandled error:', error)
     return NextResponse.json({ success: false, message: 'Internal server error.' }, { status: 500 })
   }
 }

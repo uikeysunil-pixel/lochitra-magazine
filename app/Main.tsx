@@ -6,117 +6,121 @@ import ArticleCard from '@/components/ArticleCard'
 import { CATEGORIES, CATEGORY_MAP, CATEGORY_BADGE_CLASSES } from '@/data/categoryData'
 import { EDITORS_PICKS_SLUGS } from '@/data/editorsPicks'
 import Image from 'next/image'
+import { CoreContent } from 'pliny/utils/contentlayer'
+import type { Blog } from 'contentlayer/generated'
 
 const MAX_LATEST = 6
 
-// ── Trust panel stats ────────────────────────────────────────────────────────
-const TRUST_STATS = [
-  {
-    id: 'articles',
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
-    ),
-    label: '15+ Articles',
-    sub: 'Published',
-  },
-  {
-    id: 'categories',
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-        />
-      </svg>
-    ),
-    label: '6 Categories',
-    sub: 'Covered',
-  },
-  {
-    id: 'updated',
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-        />
-      </svg>
-    ),
-    label: 'Weekly',
-    sub: 'Updated',
-  },
-  {
-    id: 'resources',
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-        />
-      </svg>
-    ),
-    label: 'Free',
-    sub: 'Resources',
-  },
-  {
-    id: 'guides',
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-        />
-      </svg>
-    ),
-    label: 'Expert',
-    sub: 'Guides',
-  },
-]
+// ── Trust panel stats (injected from page.tsx at build time) ─────────────────
+function getTrustStats(postCount: number, categoryCount: number) {
+  return [
+    {
+      id: 'articles',
+      icon: (
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      ),
+      label: `${postCount}+ Articles`,
+      sub: 'Published',
+    },
+    {
+      id: 'categories',
+      icon: (
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+          />
+        </svg>
+      ),
+      label: `${categoryCount} Categories`,
+      sub: 'Covered',
+    },
+    {
+      id: 'updated',
+      icon: (
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
+        </svg>
+      ),
+      label: 'Weekly',
+      sub: 'Updated',
+    },
+    {
+      id: 'resources',
+      icon: (
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
+          />
+        </svg>
+      ),
+      label: 'Free',
+      sub: 'Resources',
+    },
+    {
+      id: 'guides',
+      icon: (
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          />
+        </svg>
+      ),
+      label: 'Expert',
+      sub: 'Guides',
+    },
+  ]
+}
 
 // ── Topic bar items ──────────────────────────────────────────────────────────
 const TOPICS = [
@@ -128,7 +132,15 @@ const TOPICS = [
   { slug: 'success-stories', label: 'Success Stories', icon: '⭐' },
 ]
 
-export default function Home({ posts }) {
+export default function Home({
+  posts,
+  postCount,
+  categoryCount,
+}: {
+  posts: CoreContent<Blog>[]
+  postCount: number
+  categoryCount: number
+}) {
   const heroPost = posts[0]
   const featuredPosts = posts.slice(1, 4)
   // Trending: top 3 by date (future: filter by `trending: true` frontmatter)
@@ -137,7 +149,7 @@ export default function Home({ posts }) {
 
   // Editor's Picks — resolve slugs to full post objects (maintain curation order)
   const editorsPicks = EDITORS_PICKS_SLUGS.map((slug) => posts.find((p) => p.slug === slug)).filter(
-    Boolean
+    (p): p is CoreContent<Blog> => !!p
   )
 
   const heroCat = heroPost?.category ? CATEGORY_MAP[heroPost.category] : undefined
@@ -289,7 +301,7 @@ export default function Home({ posts }) {
         className="border-b border-gray-100 py-6 dark:border-gray-800"
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {TRUST_STATS.map((stat) => (
+          {getTrustStats(postCount, categoryCount).map((stat) => (
             <div
               key={stat.id}
               className="from-primary-50 dark:from-primary-950/40 flex flex-col items-center rounded-xl border border-blue-100/80 bg-gradient-to-br to-cyan-50 px-3 py-4 text-center transition-shadow hover:shadow-md dark:border-blue-900/30 dark:to-cyan-950/30"

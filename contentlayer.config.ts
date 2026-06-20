@@ -128,6 +128,37 @@ export const Blog = defineDocumentType(() => ({
         image: doc.featuredImage || (doc.images ? doc.images[0] : siteMetadata.socialBanner),
         url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}`,
         ...(doc.category && { articleSection: doc.category }),
+        // ── Author (EEAT signal) ───────────────────────────────────────────
+        author: {
+          '@type': 'Person',
+          name: 'Sunil Kumar',
+          url: `${siteMetadata.siteUrl}/about`,
+          sameAs: [
+            'https://locitra.com/about',
+          ],
+        },
+        // ── Publisher (EEAT signal + rich results eligibility) ────────────
+        publisher: {
+          '@type': 'Organization',
+          name: 'Locitra',
+          url: siteMetadata.siteUrl,
+          logo: {
+            '@type': 'ImageObject',
+            url: `${siteMetadata.siteUrl}/static/images/logo.png`,
+            width: 200,
+            height: 50,
+          },
+          sameAs: [
+            siteMetadata.siteUrl,
+          ],
+        },
+        // ── Breadcrumb ────────────────────────────────────────────────────
+        isPartOf: {
+          '@type': 'Blog',
+          name: siteMetadata.title,
+          url: `${siteMetadata.siteUrl}/blog`,
+        },
+        inLanguage: siteMetadata.locale || 'en-US',
       }),
     },
   },

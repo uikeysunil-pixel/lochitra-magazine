@@ -5,7 +5,8 @@ import 'remark-github-blockquote-alert/alert.css'
 import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import { Analytics, AnalyticsConfig } from 'pliny/analytics'
-import { SearchProvider, SearchConfig } from 'pliny/search'
+import { SearchConfig } from 'pliny/search'
+import { SearchProvider } from 'pliny/search'
 import Header from '@/components/Header'
 import SectionContainer from '@/components/SectionContainer'
 import Footer from '@/components/Footer'
@@ -203,18 +204,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProviders>
         <NewsletterPopupWrapper />
         {/* ── Google Analytics 4 ──────────────────────────────────── */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-RKB3S7YXXE"
-          strategy="afterInteractive"
-        />
-        <Script id="ga4-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-RKB3S7YXXE');
-          `}
-        </Script>
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   )

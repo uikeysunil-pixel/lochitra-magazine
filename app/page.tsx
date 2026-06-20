@@ -3,6 +3,7 @@ import { allBlogs } from 'contentlayer/generated'
 import Main from './Main'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
+import { CATEGORIES } from '@/data/categoryData'
 
 // ── Homepage-specific metadata ────────────────────────────────────────────────
 // Explicit generateMetadata pins the exact title & description for the homepage.
@@ -39,6 +40,9 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const sortedPosts = sortPosts(allBlogs)
-  const posts = allCoreContent(sortedPosts)
-  return <Main posts={posts} />
+  const publishedPosts = sortedPosts.filter((p) => !p.draft)
+  const posts = allCoreContent(publishedPosts)
+  const postCount = publishedPosts.length
+  const categoryCount = Object.keys(CATEGORIES).length
+  return <Main posts={posts} postCount={postCount} categoryCount={categoryCount} />
 }

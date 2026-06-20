@@ -59,12 +59,14 @@ export default function NewsletterHubForm({ location }: Props) {
         localStorage.setItem(POPUP_SUBSCRIBED_KEY, 'true')
         trackEvent('newsletter_page_subscribe', { form_location: location })
       } else {
+        console.error('[NewsletterHubForm] Subscription error:', data)
         setStatus('error')
-        setMessage('Unable to subscribe right now. Please try again.')
+        setMessage(data.message || 'Unable to subscribe right now. Please try again later.')
       }
     } catch (err) {
+      console.error('[NewsletterHubForm] Network error:', err)
       setStatus('error')
-      setMessage('Unable to subscribe right now. Please try again.')
+      setMessage('Network error. Please check your connection and try again.')
     }
   }
 

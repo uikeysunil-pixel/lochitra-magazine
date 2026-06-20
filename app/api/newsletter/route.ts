@@ -30,10 +30,22 @@ export async function POST(req: NextRequest) {
 
     // ── 2. CSRF / Origin check ──────────────────────────────────────────────
     const origin = req.headers.get('origin') ?? ''
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://locitra.com'
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://locitra.com').replace(/\/$/, '')
     const isProd = process.env.NODE_ENV === 'production'
-    if (isProd && origin && !origin.startsWith(siteUrl)) {
-      return NextResponse.json({ success: false, message: 'Forbidden.' }, { status: 403 })
+    if (isProd && origin) {
+      // Normalize both to strip www so that www.locitra.com === locitra.com
+      const normalizeOrigin = (o: string) => o.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
+      const allowedHost = normalizeOrigin(siteUrl)
+      const requestHost = normalizeOrigin(origin)
+      if (requestHost !== allowedHost) {
+        console.warn(
+          `[Newsletter API] CSRF origin blocked — origin: "${origin}", expected host: "${allowedHost}"`
+        )
+        return NextResponse.json(
+          { success: false, message: 'Request origin not allowed.' },
+          { status: 403 }
+        )
+      }
     }
 
     // ── 3. IP rate limiting ─────────────────────────────────────────────────
@@ -134,15 +146,20 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const data = await response.json().catch(() => ({}))
 
-      // Brevo returns 'duplicate_parameter' when contact already exists
+      // Brevo returns 'duplicate_parameter' when contact already exists in the list
       if (data.code === 'duplicate_parameter') {
+        console.log(`[Newsletter API] Already subscribed: ${trimmedEmail}`)
         return NextResponse.json({ success: true, message: 'already_subscribed' })
       }
 
-      console.error('[Newsletter API] Brevo error:', data)
+      console.error('[Newsletter API] Brevo error:', JSON.stringify(data))
       return NextResponse.json(
-        { success: false, message: 'Subscription failed. Please try again.' },
-        { status: 400 }
+        {
+          success: false,
+          message:
+            data.message || `Subscription failed (Brevo ${response.status}). Please try again.`,
+        },
+        { status: 502 }
       )
     }
 

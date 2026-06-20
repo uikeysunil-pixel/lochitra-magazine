@@ -26,13 +26,14 @@ export default function NewsletterForm() {
       const data = await res.json()
 
       if (res.ok && data.success) {
-        if (data.message === 'already subscribed') {
+        if (data.message === 'already_subscribed') {
           setStatus('duplicate')
         } else {
           setStatus('success')
           setEmail('')
         }
       } else {
+        console.error('[NewsletterForm] Subscription error:', data)
         setStatus('error')
       }
     } catch (error) {

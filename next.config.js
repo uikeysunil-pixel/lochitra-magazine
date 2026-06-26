@@ -101,6 +101,19 @@ module.exports = () => {
         use: ['@svgr/webpack'],
       })
 
+      if (options.dev) {
+        config.watchOptions = {
+          ...config.watchOptions,
+          ignored: [
+            '**/node_modules/**',
+            '**/assets/image-source/**',
+            '**/assets/**/*.md',
+            '**/README.md',
+            '**/implementation_plan.md',
+          ],
+        }
+      }
+
       return config
     },
   })

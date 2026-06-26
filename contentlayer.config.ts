@@ -1,5 +1,5 @@
 import { defineDocumentType, ComputedFields, makeSource } from 'contentlayer2/source-files'
-import { writeFileSync } from 'fs'
+import { writeFileSync, existsSync, readFileSync } from 'fs'
 import readingTime from 'reading-time'
 import { slug } from 'github-slugger'
 import path from 'path'
@@ -77,7 +77,17 @@ async function createTagCount(allBlogs) {
     }
   })
   const formatted = await prettier.format(JSON.stringify(tagCount, null, 2), { parser: 'json' })
-  writeFileSync('./app/tag-data.json', formatted)
+  const tagDataPath = './app/tag-data.json'
+  let write = true
+  if (existsSync(tagDataPath)) {
+    const current = readFileSync(tagDataPath, 'utf8')
+    if (current === formatted) {
+      write = false
+    }
+  }
+  if (write) {
+    writeFileSync(tagDataPath, formatted)
+  }
 }
 
 function createSearchIndex(allBlogs) {
@@ -85,11 +95,19 @@ function createSearchIndex(allBlogs) {
     siteMetadata?.search?.provider === 'kbar' &&
     siteMetadata.search.kbarConfig.searchDocumentsPath
   ) {
-    writeFileSync(
-      `public/${path.basename(siteMetadata.search.kbarConfig.searchDocumentsPath)}`,
-      JSON.stringify(allCoreContent(sortPosts(allBlogs)))
-    )
-    console.log('Local search index generated...')
+    const searchPath = `public/${path.basename(siteMetadata.search.kbarConfig.searchDocumentsPath)}`
+    const newContent = JSON.stringify(allCoreContent(sortPosts(allBlogs)))
+    let write = true
+    if (existsSync(searchPath)) {
+      const current = readFileSync(searchPath, 'utf8')
+      if (current === newContent) {
+        write = false
+      }
+    }
+    if (write) {
+      writeFileSync(searchPath, newContent)
+      console.log('Local search index generated...')
+    }
   }
 }
 

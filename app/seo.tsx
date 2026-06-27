@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
+import { resolveAbsoluteUrl, resolvePostImage } from '@/lib/seo'
 
 interface PageSEOProps {
   title: string
@@ -18,13 +19,9 @@ export function genPageMetadata({
   ...rest
 }: PageSEOProps): Metadata {
   const desc = description || siteMetadata.description
-  const ogImage = image
-    ? image.startsWith('http')
-      ? image
-      : `${siteMetadata.siteUrl}${image}`
-    : `${siteMetadata.siteUrl}${siteMetadata.socialBanner}`
+  const ogImage = resolvePostImage(image)
 
-  const canonical = canonicalPath ? `${siteMetadata.siteUrl}${canonicalPath}` : undefined
+  const canonical = canonicalPath ? resolveAbsoluteUrl(canonicalPath) : undefined
 
   return {
     title,

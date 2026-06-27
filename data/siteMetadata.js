@@ -2,7 +2,7 @@
 
 const siteMetadata = {
   title: 'Locitra - AI Tools, Technology & Online Income Blog',
-  author: 'Sunil Kumar',
+  author: 'Sunil Kumar Uikey',
   headerTitle: 'Locitra',
   description:
     'Explore Locitra for expert guides on AI tools, technology trends, online income strategies, career growth tips, and real success stories from digital creators.',

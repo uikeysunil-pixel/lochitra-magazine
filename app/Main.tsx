@@ -3,6 +3,8 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import ArticleCard from '@/components/ArticleCard'
+import ArticleNewsletterBox from '@/components/ArticleNewsletterBox'
+import NewsletterSignup from '@/components/NewsletterSignup'
 import { CATEGORIES, CATEGORY_MAP, CATEGORY_BADGE_CLASSES } from '@/data/categoryData'
 import { EDITORS_PICKS_SLUGS } from '@/data/editorsPicks'
 import Image from 'next/image'
@@ -327,7 +329,7 @@ export default function Home({
             <div className="ring-primary-200 dark:ring-primary-800 relative h-16 w-16 overflow-hidden rounded-full shadow-md ring-2 sm:h-14 sm:w-14">
               <Image
                 src="/static/images/sunil-kumar.jpg"
-                alt="Sunil Kumar — Founder & Editor, Locitra"
+                alt="Sunil Kumar Uikey — Founder & Editor, Locitra"
                 fill
                 sizes="64px"
                 className="object-cover object-top"
@@ -340,7 +342,7 @@ export default function Home({
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-base font-bold text-gray-900 dark:text-gray-100">
-                Sunil Kumar
+                Sunil Kumar Uikey
               </span>
               {/* Verification badge */}
               <span
@@ -625,6 +627,11 @@ export default function Home({
           </div>
         </section>
       )}
+
+      {/* ── Newsletter Section ──────────────────────────────────────── */}
+      <section className="py-8">
+        <NewsletterSignup variant="homepage" />
+      </section>
 
       {/* ── CTA Strip ─────────────────────────────────────────────── */}
       <section className="py-12">

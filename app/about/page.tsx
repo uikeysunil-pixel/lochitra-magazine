@@ -1,10 +1,14 @@
 import Link from '@/components/Link'
 import { genPageMetadata } from 'app/seo'
+import { getPrimaryAuthor } from '@/lib/authors'
+import Image from 'next/image'
+import { MDXLayoutRenderer } from 'pliny/mdx-components'
+import { components } from '@/components/MDXComponents'
 
 export const metadata = genPageMetadata({
   title: 'About',
   description:
-    'Learn about Locitra — founded by Sunil Kumar to help readers discover practical AI tools, technology trends, online income strategies, career growth tips, and inspiring success stories.',
+    'Learn about Locitra — founded by Sunil Kumar Uikey to help readers discover practical AI tools, technology trends, online income strategies, career growth tips, and inspiring success stories.',
   canonicalPath: '/about',
 })
 
@@ -38,6 +42,8 @@ const TOPICS = [
 ]
 
 export default function AboutPage() {
+  const founder = getPrimaryAuthor()
+
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700">
       {/* ── Page header ──────────────────────────────────────────── */}
@@ -53,51 +59,55 @@ export default function AboutPage() {
       <div className="prose dark:prose-invert max-w-none pt-10 pb-12">
         {/* ── 1. Founder Introduction ──────────────────────────────── */}
         <section aria-labelledby="founder-heading">
-          <div className="not-prose mb-10 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-            {/* Avatar */}
-            <div className="ring-primary-200 dark:ring-primary-800 relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl shadow-md ring-2 sm:h-24 sm:w-24">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/static/images/sunil-kumar.jpg"
-                alt="Sunil Kumar — Founder & Editor, Locitra"
-                className="h-full w-full object-cover object-top"
-                loading="lazy"
-              />
+          {founder && (
+            <div className="not-prose mb-10 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+              {/* Avatar */}
+              <div className="ring-primary-200 dark:ring-primary-800 relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl shadow-md ring-2 sm:h-24 sm:w-24">
+                <Image
+                  src={founder.avatar || '/static/images/sunil-kumar.jpg'}
+                  alt={`${founder.name} — Founder & Editor, Locitra`}
+                  fill
+                  sizes="96px"
+                  className="object-cover object-top"
+                  loading="lazy"
+                />
+              </div>
+              {/* Identity */}
+              <div>
+                <p className="text-primary-600 dark:text-primary-400 mb-0.5 text-xs font-bold tracking-[0.15em] uppercase">
+                  {founder.occupation || 'Founder & Editor'}
+                </p>
+                <h2
+                  id="founder-heading"
+                  className="mb-1 text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100"
+                >
+                  <Link href={`/author/${founder.slug}`} className="hover:underline">
+                    {founder.name}
+                  </Link>
+                </h2>
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                  <svg
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Verified Author
+                </span>
+              </div>
             </div>
-            {/* Identity */}
-            <div>
-              <p className="text-primary-600 dark:text-primary-400 mb-0.5 text-xs font-bold tracking-[0.15em] uppercase">
-                Founder &amp; Editor
-              </p>
-              <h2
-                id="founder-heading"
-                className="mb-1 text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100"
-              >
-                Sunil Kumar
-              </h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path
-                    fillRule="evenodd"
-                    d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Verified Author
-              </span>
-            </div>
-          </div>
-
-          <p>Hi, I&apos;m Sunil Kumar, founder of Locitra.</p>
-          <p>
-            I created Locitra to help readers discover practical AI tools, technology trends, online
-            income opportunities, career growth strategies, and inspiring success stories.
-          </p>
-          <p>
-            My goal is to simplify complex topics and publish useful, actionable content that helps
-            people learn, grow, and make informed decisions — whether you&apos;re a student, a
-            professional, or an entrepreneur.
-          </p>
+          )}
+          {founder ? (
+            <MDXLayoutRenderer code={founder.body.code} components={components} />
+          ) : (
+            <p>Loading founder information...</p>
+          )}
         </section>
 
         <hr />

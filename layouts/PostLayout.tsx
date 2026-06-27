@@ -14,6 +14,8 @@ import TableOfContents, { DesktopToc } from '@/components/TableOfContents'
 import ShareBar from '@/components/ShareBar'
 import ArticleCard from '@/components/ArticleCard'
 import ArticleNewsletterBox from '@/components/ArticleNewsletterBox'
+import { formatReadingTime, shouldShowUpdateBadge, isRecentlyUpdated } from '@/lib/reading'
+import ReadingUtilities from '@/components/ReadingUtilities'
 
 const postDateTemplate: Intl.DateTimeFormatOptions = {
   year: 'numeric',
@@ -34,7 +36,7 @@ interface RelatedPost {
 
 interface LayoutProps {
   content: CoreContent<Blog>
-  authorDetails: CoreContent<Authors>[]
+  authorDetails: Authors[]
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
   relatedPosts?: RelatedPost[]
@@ -66,6 +68,7 @@ export default function PostLayout({
   return (
     <SectionContainer>
       <ScrollTopAndComment />
+      <ReadingUtilities />
       <article>
         {/* ── Premium Article Header ──────────────────────────────────── */}
         <header className="pt-8 pb-10">
@@ -164,13 +167,13 @@ export default function PostLayout({
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    {readingTime.text}
+                    {formatReadingTime(readingTime.text, (readingTime as { words: number }).words)}
                   </span>
                 </>
               )}
 
               {/* Updated date — shown only when different from publish date */}
-              {lastmod && lastmod !== date && (
+              {shouldShowUpdateBadge(lastmod, date) && (
                 <>
                   <span aria-hidden="true" className="text-gray-300 dark:text-gray-600">
                     ·
@@ -191,8 +194,13 @@ export default function PostLayout({
                       />
                     </svg>
                     Updated{' '}
-                    {new Date(lastmod).toLocaleDateString(siteMetadata.locale, postDateTemplate)}
+                    {new Date(lastmod!).toLocaleDateString(siteMetadata.locale, postDateTemplate)}
                   </span>
+                  {isRecentlyUpdated(lastmod, date) && (
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                      Recently Updated
+                    </span>
+                  )}
                 </>
               )}
 
@@ -273,20 +281,34 @@ export default function PostLayout({
             {/* Share bar */}
             <ShareBar url={articleUrl} title={title} />
 
+            {/* Author Cards */}
+            {authorDetails && authorDetails.length > 0 && (
+              <div className="space-y-8">
+                {authorDetails.map((author) => (
+                  <AuthorCard
+                    key={author.name}
+                    name={author.name}
+                    slug={author.slug || author.name.toLowerCase().replace(/\s+/g, '-')}
+                    avatar={author.avatar}
+                    occupation={author.occupation}
+                    bio={author.body?.raw || ''}
+                    email={author.email}
+                    twitter={author.twitter}
+                    linkedin={author.linkedin}
+                    bluesky={author.bluesky}
+                    github={author.github}
+                    expertise={Array.isArray(author.expertise) ? author.expertise : []}
+                    yearsExperience={author.yearsExperience}
+                    certifications={
+                      Array.isArray(author.certifications) ? author.certifications : []
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
             {/* ── Premium Newsletter CTA ────────────────────────────────── */}
             <ArticleNewsletterBox />
-
-            {/* Author Card */}
-            {primaryAuthor && (
-              <AuthorCard
-                name={primaryAuthor.name}
-                avatar={primaryAuthor.avatar}
-                occupation={primaryAuthor.occupation || 'Founder & Editor, Locitra'}
-                email={primaryAuthor.email}
-                twitter={primaryAuthor.twitter}
-                linkedin={primaryAuthor.linkedin}
-              />
-            )}
 
             {/* Comments */}
             {siteMetadata.comments && (
@@ -326,7 +348,7 @@ export default function PostLayout({
             </div>
 
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 [&_article]:flex [&_article]:h-full [&_article]:flex-col">
-              {relatedPosts.slice(0, 3).map((post) => (
+              {relatedPosts.map((post) => (
                 <ArticleCard
                   key={post.slug}
                   slug={post.slug}

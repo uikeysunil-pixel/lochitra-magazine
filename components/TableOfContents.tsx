@@ -74,8 +74,9 @@ function TocList({ items, activeId, onItemClick }: TocListProps) {
         {items.map((item) => {
           const id = item.url.replace('#', '')
           const isActive = activeId === id
+          const indentClass = item.depth === 3 ? 'ml-4' : item.depth === 4 ? 'ml-8' : ''
           return (
-            <li key={item.url}>
+            <li key={item.url} className={indentClass}>
               <button
                 onClick={() => {
                   scrollToHeading(item.url)
@@ -114,8 +115,8 @@ function TocList({ items, activeId, onItemClick }: TocListProps) {
 export default function TableOfContents({ toc }: TableOfContentsProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // H2s only
-  const filteredToc = toc.filter((item) => item.depth === 2)
+  // H2s and H3s
+  const filteredToc = toc.filter((item) => item.depth >= 2 && item.depth <= 3)
   const activeId = useActiveHeading(filteredToc)
 
   if (filteredToc.length < 2) return null
@@ -180,8 +181,8 @@ export default function TableOfContents({ toc }: TableOfContentsProps) {
  * Sticky within the sidebar column; no mobile markup at all.
  */
 export function DesktopToc({ toc }: TableOfContentsProps) {
-  // H2s only
-  const filteredToc = toc.filter((item) => item.depth === 2)
+  // H2s and H3s
+  const filteredToc = toc.filter((item) => item.depth >= 2 && item.depth <= 3)
   const activeId = useActiveHeading(filteredToc)
 
   if (filteredToc.length < 2) return null

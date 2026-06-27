@@ -1,4 +1,4 @@
-import { defineDocumentType, ComputedFields, makeSource } from 'contentlayer2/source-files'
+import { defineDocumentType, defineNestedType, ComputedFields, makeSource } from 'contentlayer2/source-files'
 import { writeFileSync, existsSync, readFileSync } from 'fs'
 import readingTime from 'reading-time'
 import { slug } from 'github-slugger'
@@ -110,6 +110,52 @@ function createSearchIndex(allBlogs) {
     }
   }
 }
+export const PricingData = defineNestedType(() => ({
+  name: 'PricingData',
+  fields: {
+    model: { type: 'string' },
+    startingPrice: { type: 'number' },
+    currency: { type: 'string' },
+    freePlan: { type: 'boolean' },
+  },
+}))
+
+export const ReviewData = defineNestedType(() => ({
+  name: 'ReviewData',
+  fields: {
+    productName: { type: 'string', required: true },
+    reviewRating: { type: 'number', required: true },
+    developer: { type: 'string' },
+    officialWebsite: { type: 'string' },
+    applicationCategory: { type: 'string' },
+    operatingSystem: { type: 'string' },
+    price: { type: 'string' },
+    pricingModel: { type: 'string' },
+    currentVersion: { type: 'string' },
+    reviewSummary: { type: 'string' },
+    pros: { type: 'list', of: { type: 'string' } },
+    cons: { type: 'list', of: { type: 'string' } },
+    testedVersion: { type: 'string' },
+    lastTested: { type: 'string' },
+    reviewedBy: { type: 'string' },
+    recommendedFor: { type: 'string' },
+    alternatives: { type: 'list', of: { type: 'string' } },
+    affiliateLink: { type: 'string' },
+    shortName: { type: 'string' },
+    logo: { type: 'string' },
+    screenshots: { type: 'list', of: { type: 'string' } },
+    primaryCategory: { type: 'string' },
+    supportedPlatforms: { type: 'list', of: { type: 'string' } },
+    website: { type: 'string' },
+    freeTrial: { type: 'boolean' },
+    pricing: { type: 'nested', of: PricingData },
+    releaseDate: { type: 'string' },
+    lastUpdated: { type: 'string' },
+    editorChoice: { type: 'boolean' },
+    featured: { type: 'boolean' },
+    verificationStatus: { type: 'string' },
+  },
+}))
 
 export const Blog = defineDocumentType(() => ({
   name: 'Blog',
@@ -131,54 +177,12 @@ export const Blog = defineDocumentType(() => ({
     category: { type: 'string' },
     /** URL to a featured/hero image for this article */
     featuredImage: { type: 'string' },
+    review: { type: 'nested', of: ReviewData },
+    isHub: { type: 'boolean' },
+    hubSlug: { type: 'string' },
   },
   computedFields: {
     ...computedFields,
-    structuredData: {
-      type: 'json',
-      resolve: (doc) => ({
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        headline: doc.title,
-        datePublished: doc.date,
-        dateModified: doc.lastmod || doc.date,
-        description: doc.summary,
-        image: doc.featuredImage || (doc.images ? doc.images[0] : siteMetadata.socialBanner),
-        url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}`,
-        ...(doc.category && { articleSection: doc.category }),
-        // ── Author (EEAT signal) ───────────────────────────────────────────
-        author: {
-          '@type': 'Person',
-          name: 'Sunil Kumar',
-          url: `${siteMetadata.siteUrl}/about`,
-          sameAs: [
-            'https://locitra.com/about',
-          ],
-        },
-        // ── Publisher (EEAT signal + rich results eligibility) ────────────
-        publisher: {
-          '@type': 'Organization',
-          name: 'Locitra',
-          url: siteMetadata.siteUrl,
-          logo: {
-            '@type': 'ImageObject',
-            url: `${siteMetadata.siteUrl}/static/images/logo.png`,
-            width: 200,
-            height: 50,
-          },
-          sameAs: [
-            siteMetadata.siteUrl,
-          ],
-        },
-        // ── Breadcrumb ────────────────────────────────────────────────────
-        isPartOf: {
-          '@type': 'Blog',
-          name: siteMetadata.title,
-          url: `${siteMetadata.siteUrl}/blog`,
-        },
-        inLanguage: siteMetadata.locale || 'en-US',
-      }),
-    },
   },
 }))
 
@@ -197,6 +201,11 @@ export const Authors = defineDocumentType(() => ({
     linkedin: { type: 'string' },
     github: { type: 'string' },
     layout: { type: 'string' },
+    expertise: { type: 'list', of: { type: 'string' } },
+    yearsExperience: { type: 'string' },
+    specialties: { type: 'list', of: { type: 'string' } },
+    certifications: { type: 'list', of: { type: 'string' } },
+    featuredQuote: { type: 'string' },
   },
   computedFields,
 }))

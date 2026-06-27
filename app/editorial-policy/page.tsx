@@ -204,7 +204,7 @@ export default function EditorialPolicyPage() {
           contact:
         </p>
         <p>
-          <strong>Sunil Kumar</strong> — Founder &amp; Editor, Locitra
+          <strong>Sunil Kumar Uikey</strong> — Founder &amp; Editor, Locitra
           <br />
           Email:{' '}
           <a

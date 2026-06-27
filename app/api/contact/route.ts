@@ -200,14 +200,14 @@ export async function POST(req: NextRequest) {
 
     // ── 13. Auto-reply to visitor ───────────────────────────────────────────
     const visitorEmailPayload = {
-      sender: { name: 'Sunil from Locitra', email: 'newsletter@locitra.com' },
+      sender: { name: 'Sunil Kumar Uikey from Locitra', email: 'newsletter@locitra.com' },
       to: [{ email: trimmedEmail, name: safeName }],
       subject: "We've received your message — Locitra",
       htmlContent: `
         <p>Hi ${safeName},</p>
         <p>Thank you for reaching out to Locitra. We have received your message and will respond as soon as possible.</p>
         <br />
-        <p>— Sunil Kumar<br />
+        <p>— Sunil Kumar Uikey<br />
         Founder &amp; Editor, Locitra<br />
         <a href="https://locitra.com">https://locitra.com</a></p>
       `,

@@ -5,6 +5,7 @@ import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import ArticleCard from '@/components/ArticleCard'
+import NewsletterSignup from '@/components/NewsletterSignup'
 import {
   type Category,
   CATEGORY_BADGE_CLASSES,
@@ -163,6 +164,11 @@ export default function CategoryListLayout({
           </Link>
         </div>
       )}
+
+      {/* ── Newsletter Section ──────────────────────────────────────── */}
+      <section className="mt-8 border-t border-gray-100 py-8 dark:border-gray-800">
+        <NewsletterSignup variant="category" />
+      </section>
     </div>
   )
 }

@@ -14,6 +14,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import { Metadata } from 'next'
 import NewsletterPopupWrapper from '@/components/NewsletterPopupWrapper'
+import { buildGraph, buildOrganization, buildWebsite, buildPerson } from '@/lib/schema'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -136,59 +137,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': [
-              {
-                '@type': 'Organization',
-                '@id': 'https://locitra.com/#organization',
-                name: 'Locitra',
-                url: 'https://locitra.com',
-                description:
-                  'Expert guides on AI tools, technology, online income, career growth, and success stories.',
-                logo: {
-                  '@type': 'ImageObject',
-                  url: 'https://locitra.com/static/images/logo.png',
-                  width: 512,
-                  height: 512,
-                },
-                contactPoint: {
-                  '@type': 'ContactPoint',
-                  email: 'contact@locitra.com',
-                  contactType: 'editorial',
-                },
-                sameAs: [],
-              },
-              {
-                '@type': 'WebSite',
-                '@id': 'https://locitra.com/#website',
-                name: 'Locitra',
-                url: 'https://locitra.com',
-                description:
-                  'Expert guides on AI tools, technology, online income, career growth, and success stories.',
-                publisher: { '@id': 'https://locitra.com/#organization' },
-                potentialAction: {
-                  '@type': 'SearchAction',
-                  target: {
-                    '@type': 'EntryPoint',
-                    urlTemplate: 'https://locitra.com/blog?q={search_term_string}',
-                  },
-                  'query-input': 'required name=search_term_string',
-                },
-              },
-              {
-                '@type': 'Person',
-                '@id': 'https://locitra.com/#founder',
-                name: 'Sunil Kumar',
-                jobTitle: 'Founder & Editor',
-                worksFor: {
-                  '@id': 'https://locitra.com/#organization',
-                },
-                url: 'https://locitra.com/about',
-                email: 'contact@locitra.com',
-              },
-            ],
-          }),
+          __html: JSON.stringify(
+            buildGraph([
+              buildOrganization(),
+              buildWebsite(),
+              buildPerson({
+                name: siteMetadata.author,
+                occupation: 'Founder & Editor',
+                email: siteMetadata.email,
+              }),
+            ])
+          ),
         }}
       />
       <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">

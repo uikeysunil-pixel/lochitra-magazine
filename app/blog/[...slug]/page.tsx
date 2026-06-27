@@ -13,6 +13,9 @@ import PostBanner from '@/layouts/PostBanner'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
+import { resolvePostImage } from '@/lib/seo'
+import { buildBlogPosting, buildReview, buildSoftwareApplication, buildGraph } from '@/lib/schema'
+import { calculateRelatedArticles } from '@/lib/related'
 
 const defaultLayout = 'PostLayout'
 const layouts = {
@@ -40,21 +43,16 @@ export async function generateMetadata(props: {
   const modifiedAt = new Date(post.lastmod || post.date).toISOString()
   const authors = authorDetails.map((author) => author.name)
 
-  // Build OG image list: prefer featuredImage → post.images → socialBanner
-  let imageList = [siteMetadata.socialBanner]
-  if (post.featuredImage) {
-    imageList = [post.featuredImage]
-  } else if (post.images) {
-    imageList = typeof post.images === 'string' ? [post.images] : post.images
-  }
-  const ogImages = imageList.map((img) => {
-    return {
-      url: img && img.includes('http') ? img : siteMetadata.siteUrl + img,
+  // Build OG image list using shared SEO helper
+  const postImageUrl = resolvePostImage(post.featuredImage, post.images)
+  const ogImages = [
+    {
+      url: postImageUrl,
       width: 1200,
       height: 630,
       alt: post.title,
-    }
-  })
+    },
+  ]
 
   return {
     title: post.title,
@@ -87,31 +85,6 @@ export const generateStaticParams = async () => {
   return allBlogs.map((p) => ({ slug: p.slug.split('/').map((name) => decodeURI(name)) }))
 }
 
-/**
- * Compute related posts for the current article.
- * Priority: 1) same category  2) shared tags  3) any recent articles
- * Returns up to 3 unique posts, never including the current one.
- */
-function getRelatedPosts(currentPost: Blog, allSorted: ReturnType<typeof allCoreContent>) {
-  const others = allSorted.filter((p) => p.slug !== currentPost.slug)
-  const currentTags = new Set((currentPost.tags || []).map((t) => t.toLowerCase()))
-  const currentCategory = currentPost.category
-
-  // Score each candidate
-  const scored = others.map((p) => {
-    let score = 0
-    if (currentCategory && p.category === currentCategory) score += 10
-    const sharedTags = (p.tags || []).filter((t) => currentTags.has(t.toLowerCase()))
-    score += sharedTags.length * 3
-    return { post: p, score }
-  })
-
-  // Sort by score desc, then by date desc (already sorted)
-  scored.sort((a, b) => b.score - a.score || 0)
-
-  return scored.slice(0, 3).map((s) => s.post)
-}
-
 export default async function Page(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params
   const slug = decodeURI(params.slug.join('/'))
@@ -128,19 +101,19 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)
-    return coreContent(authorResults as Authors)
+    return authorResults as Authors
   })
   const mainContent = coreContent(post)
-  const jsonLd = post.structuredData
-  jsonLd['author'] = authorDetails.map((author) => {
-    return {
-      '@type': 'Person',
-      name: author.name,
-    }
-  })
+  const blogPostingSchema = buildBlogPosting(post, authorDetails)
+  const reviewSchema = buildReview(post, authorDetails)
+  const softwareSchema = post.review ? buildSoftwareApplication(post.review, post.slug) : undefined
+  const jsonLd =
+    reviewSchema && softwareSchema
+      ? buildGraph([blogPostingSchema, reviewSchema, softwareSchema])
+      : blogPostingSchema
 
-  // Related posts (same category or shared tags)
-  const relatedPosts = getRelatedPosts(post, sortedCoreContents)
+  // Related posts using the Recommendation Engine 2.0
+  const relatedPosts = calculateRelatedArticles(post, sortedCoreContents)
 
   const Layout = layouts[post.layout || defaultLayout]
 

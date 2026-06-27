@@ -21,7 +21,7 @@ interface AffiliateDisclosureProps {
 }
 
 export default function AffiliateDisclosure({
-  reviewedBy = 'Sunil Kumar',
+  reviewedBy = 'Sunil Kumar Uikey',
   showReviewer = true,
 }: AffiliateDisclosureProps) {
   return (

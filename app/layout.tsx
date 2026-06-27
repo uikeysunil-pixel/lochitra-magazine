@@ -94,6 +94,9 @@ export const metadata: Metadata = {
       },
     ],
   },
+  other: {
+    'p:domain_verify': 'dcd569660286bafa5addd89a5c08749e',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

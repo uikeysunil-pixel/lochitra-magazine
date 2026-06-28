@@ -1,0 +1,417 @@
+{
+  "totalArticles": 102,
+  "missingImages": [
+    {
+      "file": "1password-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "5-career-growth-strategies-digital-age.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "affiliate-marketing-for-beginners-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "affiliate-marketing-for-bloggers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "ahrefs-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "ahrefs-vs-semrush-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "ai-skills-employers-are-looking-for-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "autonomous-vehicles-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-productivity-tools-for-professionals-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-resume-builders-for-job-seekers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-side-hustles-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-tools-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-tools-for-content-creators-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-tools-for-freelancers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-tools-for-marketers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-tools-for-small-businesses-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-tools-for-teachers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-writing-tools-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-writing-tools-for-bloggers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-writing-tools-for-content-marketing-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-writing-tools-for-small-businesses-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-writing-tools-for-students-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-blogging-platforms-for-beginners-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-password-managers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-seo-tools-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-vpn-services-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "bitwarden-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "blockchain-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "blogger-success-story-lessons.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "blogging-success-stories-2026.mdx",
+      "expectedImage": "C:\\Users\\uikey\\OneDrive\\Desktop\\Master Folder\\Lochitra\\public\\static\\images\\blog\\blogging-success-stories-2026.webp"
+    },
+    {
+      "file": "blogging-success-stories-and-lessons-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "build-personal-brand-online-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "career-change-strategies-for-the-ai-era.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "career-growth-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "chatgpt-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "chatgpt-vs-gemini-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "claude-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "claude-vs-chatgpt-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "claude-vs-gemini-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "common-blogging-mistakes-beginners-make-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "communication-skills-for-the-digital-workplace.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "content-creators-online-income.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "critical-thinking-in-the-age-of-artificial-intelligence.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "digital-collaboration-skills-for-modern-professionals.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "digital-creator-success-principles.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "digital-identity-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "digital-twins-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "edge-computing-explained.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "extended-reality-xr-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "freelancing-for-beginners-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "freelancing-success-stories.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "from-zero-to-10000-readers-digital-creator-story.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "future-of-work-technology-trends-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "gemini-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "get-promoted-faster-at-work-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "grammarly-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-5g-technology-works.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-bloggers-make-money-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-chatgpt-can-help-you-get-promoted-at-work.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-content-creators-use-ai-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-freelancers-use-ai-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-long-does-it-take-a-blog-to-make-money-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-small-businesses-can-use-ai-to-save-time-and-money-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-small-businesses-use-ai-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-become-a-high-value-employee-in-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-create-a-career-development-plan.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-make-money-online-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-start-a-blog-and-make-money-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-thrive-in-a-hybrid-work-environment.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-use-ai-for-resume-writing-and-interview-preparation.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-use-ai-to-advance-your-career-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "human-robot-collaboration-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "industrial-automation-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "jasper-ai-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "job-search-strategies-that-actually-work-in-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "leadership-skills-that-matter-in-the-ai-era.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "linkedin-optimization-guide-for-professionals-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "machine-vision-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "mangools-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "networking-strategies-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "nordvpn-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "nordvpn-vs-surfshark-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "proton-vpn-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "quantum-computing-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "quillbot-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "remote-work-skills-employers-want-in-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "robotics-and-automation-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "se-ranking-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "semrush-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "seo-for-new-bloggers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "small-business-success-stories-ai-automation.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "smart-cities-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "surfshark-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "top-10-free-ai-tools-for-students-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "top-in-demand-skills-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "top-technology-trends-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "ubersuggest-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "what-is-a-password-manager.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "what-is-artificial-general-intelligence-agi-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "what-is-cloud-computing.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "what-is-cybersecurity.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "what-is-iot.mdx",
+      "issue": "Image corrupt or unreadable"
+    }
+  ],
+  "brokenPaths": [],
+  "wrongExtensions": [],
+  "incorrectDimensions": [],
+  "missingWebP": []
+}

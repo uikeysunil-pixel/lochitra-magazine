@@ -136,24 +136,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
       <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
-      {/* ── Organization + WebSite + Person JSON-LD ───────────────────── */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            buildGraph([
-              buildOrganization(),
-              buildWebsite(),
-              buildPerson({
-                name: siteMetadata.author,
-                occupation: 'Founder & Editor',
-                email: siteMetadata.email,
-              }),
-            ])
-          ),
-        }}
-      />
       <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
+        {/* ── Organization + WebSite + Person JSON-LD ───────────────────── */}
+        <Script
+          id="organization-schema"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              buildGraph([
+                buildOrganization(),
+                buildWebsite(),
+                buildPerson({
+                  name: siteMetadata.author,
+                  occupation: 'Founder & Editor',
+                  email: siteMetadata.email,
+                }),
+              ])
+            ),
+          }}
+        />
         <ThemeProviders>
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
           <SectionContainer>

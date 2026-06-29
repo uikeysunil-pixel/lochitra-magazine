@@ -177,6 +177,10 @@ export const Blog = defineDocumentType(() => ({
     category: { type: 'string' },
     /** URL to a featured/hero image for this article */
     featuredImage: { type: 'string' },
+    imageAlt: { type: 'string' },
+    description: { type: 'string' },
+    keywords: { type: 'list', of: { type: 'string' } },
+    categories: { type: 'list', of: { type: 'string' } },
     review: { type: 'nested', of: ReviewData },
     isHub: { type: 'boolean' },
     hubSlug: { type: 'string' },

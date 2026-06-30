@@ -5,12 +5,14 @@
   "scripts": {
     "start": "next dev",
     "dev": "cross-env INIT_CWD=$PWD next dev",
-    "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
+    "build": "npm run validate-mdx && cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
     "serve": "next start",
     "analyze": "cross-env ANALYZE=true next build",
     "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
     "prepare": "husky",
-    "validate-images": "node scripts/validate-featured-images.js"
+    "validate-images": "node scripts/validate-featured-images.js",
+    "validate-mdx": "node scripts/validate-frontmatter.js",
+    "fix-mdx": "node scripts/fix-frontmatter.js"
   },
   "dependencies": {
     "@headlessui/react": "2.2.9",
@@ -69,10 +71,13 @@
   },
   "lint-staged": {
     "*.+(js|jsx|ts|tsx)": [
-      "yarn eslint --fix"
+      "eslint --fix"
     ],
     "*.+(js|jsx|ts|tsx|json|css|md|mdx)": [
-      "yarn prettier --write"
+      "prettier --write"
+    ],
+    "*.mdx": [
+      "node scripts/validate-frontmatter.js"
     ]
   },
   "packageManager": "yarn@3.6.1"

@@ -1,4 +1,9 @@
-import { defineDocumentType, defineNestedType, ComputedFields, makeSource } from 'contentlayer2/source-files'
+import {
+  defineDocumentType,
+  defineNestedType,
+  ComputedFields,
+  makeSource,
+} from 'contentlayer2/source-files'
 import { writeFileSync, existsSync, readFileSync } from 'fs'
 import readingTime from 'reading-time'
 import { slug } from 'github-slugger'
@@ -181,6 +186,7 @@ export const Blog = defineDocumentType(() => ({
     description: { type: 'string' },
     keywords: { type: 'list', of: { type: 'string' } },
     categories: { type: 'list', of: { type: 'string' } },
+    lastUpdated: { type: 'string' },
     review: { type: 'nested', of: ReviewData },
     isHub: { type: 'boolean' },
     hubSlug: { type: 'string' },

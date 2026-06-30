@@ -203,3 +203,14 @@ export type ReviewSchema = {
   datePublished?: string
   dateModified?: string
 }
+
+export type BreadcrumbListSchema = {
+  '@type': 'BreadcrumbList'
+  '@id': string
+  itemListElement: {
+    '@type': 'ListItem'
+    position: number
+    name: string
+    item?: string
+  }[]
+}

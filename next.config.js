@@ -95,6 +95,20 @@ module.exports = () => {
         },
       ]
     },
+    async redirects() {
+      return [
+        {
+          source: '/blog/blogging-success-stories-and-lessons-2026',
+          destination: '/blog/blogging-success-stories',
+          permanent: true,
+        },
+        {
+          source: '/blog/blogging-success-stories-2026',
+          destination: '/blog/blogging-success-stories',
+          permanent: true,
+        },
+      ]
+    },
     webpack: (config, options) => {
       config.module.rules.push({
         test: /\.svg$/,

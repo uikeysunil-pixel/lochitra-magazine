@@ -44,12 +44,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    ".next",
-    ".contentlayer",
-    "out",
-    "public/static/images",
-    ".git"
-  ]
+  "exclude": ["node_modules", ".next", ".contentlayer", "out", "public/static/images", ".git"]
 }

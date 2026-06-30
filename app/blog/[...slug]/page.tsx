@@ -14,7 +14,13 @@ import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { resolvePostImage } from '@/lib/seo'
-import { buildBlogPosting, buildReview, buildSoftwareApplication, buildGraph } from '@/lib/schema'
+import {
+  buildBlogPosting,
+  buildReview,
+  buildSoftwareApplication,
+  buildGraph,
+  buildBreadcrumbs,
+} from '@/lib/schema'
 import { calculateRelatedArticles } from '@/lib/related'
 
 const defaultLayout = 'PostLayout'
@@ -107,10 +113,25 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
   const blogPostingSchema = buildBlogPosting(post, authorDetails)
   const reviewSchema = buildReview(post, authorDetails)
   const softwareSchema = post.review ? buildSoftwareApplication(post.review, post.slug) : undefined
+
+  // BreadcrumbList — Home > Category (if set) > Article
+  const breadcrumbSchema = buildBreadcrumbs({
+    slug: post.slug,
+    title: post.title,
+    category: post.category,
+    categoryLabel: post.category
+      ? post.category
+          .split('-')
+          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ')
+      : undefined,
+  })
+
+  const baseNodes = [blogPostingSchema, breadcrumbSchema]
   const jsonLd =
     reviewSchema && softwareSchema
-      ? buildGraph([blogPostingSchema, reviewSchema, softwareSchema])
-      : blogPostingSchema
+      ? buildGraph([...baseNodes, reviewSchema, softwareSchema])
+      : buildGraph(baseNodes)
 
   // Related posts using the Recommendation Engine 2.0
   const relatedPosts = calculateRelatedArticles(post, sortedCoreContents)

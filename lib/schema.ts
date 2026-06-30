@@ -5,6 +5,7 @@ import type {
   WebsiteSchema,
   PersonSchema,
   BlogPostingSchema,
+  BreadcrumbListSchema,
   GraphSchema,
   JsonLd,
   ReviewSchema,
@@ -372,4 +373,61 @@ export function buildGraph(nodes: JsonLd[]): GraphSchema {
     '@context': 'https://schema.org',
     '@graph': nodes,
   }
+}
+
+/**
+ * Builds a BreadcrumbList schema for a blog post.
+ * Structure: Home > Category (optional) > Article Title
+ */
+export function buildBreadcrumbs({
+  slug,
+  title,
+  category,
+  categoryLabel,
+}: {
+  slug: string
+  title: string
+  category?: string
+  categoryLabel?: string
+}): BreadcrumbListSchema {
+  const siteUrl = siteMetadata.siteUrl
+
+  const items: BreadcrumbListSchema['itemListElement'] = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: siteUrl,
+    },
+  ]
+
+  if (category && categoryLabel) {
+    items.push({
+      '@type': 'ListItem',
+      position: 2,
+      name: categoryLabel,
+      item: `${siteUrl}/categories/${category}`,
+    })
+    items.push({
+      '@type': 'ListItem',
+      position: 3,
+      name: title,
+      item: `${siteUrl}/blog/${slug}`,
+    })
+  } else {
+    items.push({
+      '@type': 'ListItem',
+      position: 2,
+      name: title,
+      item: `${siteUrl}/blog/${slug}`,
+    })
+  }
+
+  const schema: BreadcrumbListSchema = {
+    '@type': 'BreadcrumbList',
+    '@id': `${siteUrl}/blog/${slug}#breadcrumb`,
+    itemListElement: items,
+  }
+
+  return schema
 }

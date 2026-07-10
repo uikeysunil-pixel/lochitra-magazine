@@ -1,5 +1,4 @@
 import 'css/prism.css'
-import 'katex/dist/katex.css'
 
 import PageTitle from '@/components/PageTitle'
 import { components } from '@/components/MDXComponents'

@@ -28,6 +28,14 @@ export const metadata: Metadata = {
     description: HOMEPAGE_DESCRIPTION,
     url: SITE_URL,
     siteName: 'Locitra',
+    images: [
+      {
+        url: siteMetadata.siteUrl + siteMetadata.socialBanner,
+        width: 1200,
+        height: 630,
+        alt: HOMEPAGE_TITLE,
+      },
+    ],
     locale: 'en_US',
     type: 'website',
   },
@@ -35,6 +43,12 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: HOMEPAGE_TITLE,
     description: HOMEPAGE_DESCRIPTION,
+    images: [
+      {
+        url: siteMetadata.siteUrl + siteMetadata.socialBanner,
+        alt: HOMEPAGE_TITLE,
+      },
+    ],
   },
 }
 

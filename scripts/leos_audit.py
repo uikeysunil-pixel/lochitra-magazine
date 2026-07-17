@@ -139,11 +139,70 @@ for filepath in mdx_files:
         deduct("Technical", 20)
         continue
         
-    # Required Fields Check
-    required = ['title', 'summary', 'date', 'category', 'authors', 'featuredImage']
-    for req in required:
+    # Platinum Frontmatter Auto-Generation
+    platinum_required = ['title', 'description', 'summary', 'date', 'lastUpdated', 'canonical', 'authors', 'categories', 'tags', 'keywords', 'featuredImage', 'imageAlt', 'draft']
+    
+    added_lines = []
+    
+    title = fm.get('title', '')
+    summary = fm.get('summary', '')
+    date = fm.get('date', '')
+    category = fm.get('category', '')
+    tags = fm.get('tags', [])
+    if not isinstance(tags, list):
+        tags = []
+        
+    if 'description' not in fm and summary:
+        safe_sum = summary.replace("'", "")
+        added_lines.append(f"description: '{safe_sum}'")
+        
+    if 'imageAlt' not in fm and title:
+        safe_title = title.replace("'", "")
+        added_lines.append(f"imageAlt: 'Featured image for {safe_title}'")
+        
+    if 'keywords' not in fm:
+        kw = list(tags)
+        if category and category not in kw:
+            kw.append(category)
+        
+        title_words = [w.lower() for w in re.findall(r'\\b\\w{4,}\\b', title)]
+        for w in title_words:
+            if w not in kw and len(kw) < 10:
+                kw.append(w)
+                
+        kw = kw[:10]
+        if kw:
+            kw_str = ", ".join([f"'{k}'" for k in kw])
+            added_lines.append(f"keywords: [{kw_str}]")
+        
+    if 'lastUpdated' not in fm and date:
+        added_lines.append(f"lastUpdated: '{date}'")
+        
+    if 'categories' not in fm and category:
+        added_lines.append(f"categories: ['{category}']")
+        
+    if 'canonical' not in fm and slug:
+        added_lines.append(f"canonical: 'https://locitra.com/blog/{slug}'")
+        
+    if 'draft' not in fm:
+        added_lines.append(f"draft: false")
+        
+    if added_lines:
+        new_fm = frontmatter_str.rstrip() + '\n' + '\n'.join(added_lines) + '\n'
+        content = parts[0] + '---' + new_fm + '---' + '---'.join(parts[2:])
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+        safe_fixes_applied += 1
+        
+        try:
+            fm = yaml.safe_load(new_fm)
+        except Exception:
+            pass
+
+    # Platinum Required Fields Enforcement
+    for req in platinum_required:
         if req not in fm:
-            add_error(f"{filename}: Missing required frontmatter field '{req}'.", True)
+            add_error(f"{filename}: Missing required Platinum frontmatter field '{req}'.", True)
             deduct("Technical", 5)
 
     if 'authors' in fm and fm['authors']:

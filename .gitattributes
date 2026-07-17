@@ -1,6 +1,17 @@
 # Normalize all text files
 * text=auto eol=lf
 
+# Explicitly enforce LF for all code and content
+*.md text eol=lf
+*.mdx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
 # Binary assets
 *.png binary
 *.jpg binary

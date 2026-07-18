@@ -41,9 +41,9 @@ To provide an objective, authoritative review, our evaluation of Keeper Security
 
 **Our evaluation criteria included:**
 
-- **Official Documentation:** Reviewing Keeper's published cryptographic architecture and whitepapers.
+- **Official Documentation:** Reviewing Keeper's [published cryptographic architecture and whitepapers](https://docs.keeper.io/enterprise-guide/).
 - **Security Architecture:** Analyzing the implementation of AES-256, PBKDF2, and its zero-knowledge zero-trust claims.
-- **Compliance Certifications:** Verifying the active status of FedRAMP Authorization, SOC 2 Type 2, and ISO 27001 compliance.
+- **Compliance Certifications:** Verifying the active status of [FedRAMP Authorization](https://marketplace.fedramp.gov/products/FR2116544598A), SOC 2 Type 2, and ISO 27001 compliance.
 - **Public Technical Information:** Aggregating data from third-party penetration testing (e.g., NCC Group) and bug bounty programs.
 
 _Note: This review focuses on verified functionality and factual technical capabilities to ensure complete commercial neutrality. We do not invent personal testing scenarios._
@@ -52,18 +52,18 @@ _Note: This review focuses on verified functionality and factual technical capab
 
 ## At a Glance
 
-| Feature                    | Details                                                    |
-| :------------------------- | :--------------------------------------------------------- |
-| **Developer**              | Keeper Security, Inc.                                      |
-| **Headquarters**           | Chicago, IL, United States                                 |
-| **Encryption Standard**    | AES-256 with PBKDF2                                        |
-| **Architecture**           | Zero-Knowledge, Zero-Trust                                 |
-| **Free Plan**              | Yes (Very limited, single device)                          |
-| **Premium Starting Price** | ~$35/year (Keeper Unlimited)                               |
-| **Passkey Support**        | Yes (Full creation, storage, and sync)                     |
-| **Biometric Login**        | Yes (Windows Hello, Touch ID, Face ID, Android Biometrics) |
-| **Notable Certifications** | SOC 2 Type 2, ISO 27001, FedRAMP Authorized                |
-| **Platforms Supported**    | Windows, macOS, Linux, iOS, Android, all major browsers    |
+| Feature                    | Details                                                       |
+| :------------------------- | :------------------------------------------------------------ |
+| **Developer**              | Keeper Security, Inc.                                         |
+| **Headquarters**           | Chicago, IL, United States                                    |
+| **Encryption Standard**    | AES-256 with PBKDF2                                           |
+| **Architecture**           | Zero-Knowledge, Zero-Trust                                    |
+| **Free Plan**              | Yes (Very limited, single device)                             |
+| **Premium Starting Price** | Starts at ~$35/year (Verify current pricing on official site) |
+| **Passkey Support**        | Yes (Full creation, storage, and sync)                        |
+| **Biometric Login**        | Yes (Windows Hello, Touch ID, Face ID, Android Biometrics)    |
+| **Notable Certifications** | SOC 2 Type 2, ISO 27001, FedRAMP Authorized                   |
+| **Platforms Supported**    | Windows, macOS, Linux, iOS, Android, all major browsers       |
 
 ---
 
@@ -124,6 +124,7 @@ The cryptographic primitives used by Keeper represent the industry gold standard
 
 - **Symmetric Encryption:** Your vault data is encrypted using AES-256 (Advanced Encryption Standard with a 256-bit key length). **Why This Matters:** This algorithm is trusted by the U.S. government to protect Top Secret classified information, ensuring your data is theoretically unbreakable by modern computers.
 - **Key Derivation:** To turn your human-readable master password into a cryptographically secure 256-bit key, Keeper uses PBKDF2-HMAC-SHA256 with 1,000,000 iterations. **Why This Matters:** This massive iteration count intentionally slows down the key generation process by a microscopic fraction of a second. It is unnoticeable to a human, but it makes automated brute-force attacks computationally infeasible.
+  > **Things to Consider:** While the 1,000,000 iteration count provides immense cryptographic security against brute-force attacks, the trade-off is performance. You may notice a slight delay when logging in on older, less powerful devices compared to less secure password managers.
 - **Data in Transit:** When the encrypted ciphertext is synced to the cloud, it is protected in transit using TLS 1.3 to prevent man-in-the-middle (MITM) attacks.
 
 ### Compliance & Certifications
@@ -207,6 +208,8 @@ When you register a Passkey on a supported website (like Google, Amazon, or GitH
 
 **Why This Matters:** Because the Passkey is stored in Keeper rather than locked to a specific hardware device (like your phone's secure enclave), it seamlessly syncs across all your devices. You can create a Passkey on your iPhone and instantly use it to log into the same service on your Windows PC.
 
+> **Common Mistake:** When transitioning to Passkeys for critical accounts, do not immediately delete your traditional passwords or backup recovery codes. Keep them securely in your Keeper vault until you have verified that the new Passkey authenticates successfully across all your primary devices.
+
 ---
 
 ## Secure File Storage
@@ -275,7 +278,11 @@ Migrating to Keeper from a browser-based manager or a competing password manager
 **Importing Workflow:**
 Keeper provides a dedicated import tool that accepts CSV files from almost every major competitor. Furthermore, the desktop application can often securely extract credentials directly from browser storage without requiring an intermediate CSV file.
 
-**Why This Matters:** Avoiding an intermediate CSV file significantly reduces the risk of accidentally leaving unencrypted passwords lying around in your Downloads folder. For full steps on secure transitions, see our guide on [How to Securely Migrate Your Passwords](/blog/how-to-securely-migrate-passwords).
+### Before You Migrate
+
+> **Security Tip:** If you must use an intermediate CSV file to transfer your passwords, ensure your computer is free of malware before exporting. Immediately after Keeper successfully imports your data, securely delete the unencrypted CSV file from your hard drive and empty your computer's trash bin to prevent exposure.
+
+**Why This Matters:** Avoiding an intermediate CSV file altogether significantly reduces the risk of accidentally leaving unencrypted passwords lying around in your Downloads folder. For full steps on secure transitions, see our guide on [How to Securely Migrate Your Passwords](/blog/how-to-securely-migrate-passwords).
 
 ---
 
@@ -286,12 +293,14 @@ Keeper’s pricing strategy is highly modular, which provides flexibility for bu
 ### Free vs Premium
 
 - **Keeper Free:** This tier is virtually obsolete for modern users. It restricts you to a single device (e.g., your phone OR your laptop). We recommend Bitwarden if you need a free password manager.
-- **Keeper Unlimited (~$35/year):** This is the core premium tier for individuals. It provides unlimited passwords, unlimited devices, biometric login, and passkey support. It is an excellent value for the core vault functionality.
+- **Keeper Unlimited (Starts at approximately $35/year):** This is the core premium tier for individuals. It provides unlimited passwords, unlimited devices, biometric login, and passkey support. It is an excellent value for the core vault functionality.
 - **The Add-On Problem:** Essential security features like BreachWatch (Dark Web Monitoring) and Secure File Storage are often sold as separate add-ons for an additional ~$20/year each. If you purchase the bundle, the total cost often exceeds the base price of competitors who include these features by default.
+
+> **Buying Mistake:** A common trap for individual users is purchasing the base Keeper Unlimited plan and then adding BreachWatch and Secure File Storage individually. If you need these features, strongly consider the Keeper Family plan instead—it bundles them at a much better overall value, even if you are only securing two people.
 
 ### Family and Business
 
-- **Keeper Family (~$75/year):** Includes 5 users and bundles in 10GB of Secure File Storage. This represents significantly better value than the individual plan.
+- **Keeper Family (Starts at approximately $75/year):** Includes 5 users and bundles in 10GB of Secure File Storage. This represents significantly better value than the individual plan.
 - **Keeper Business:** Pricing is per-user, per-month, heavily dependent on the specific modules required (Advanced Reporting, Secrets Manager, etc.).
 
 ---
@@ -304,12 +313,14 @@ To truly understand Keeper's position in the market, we must evaluate it against
 
 | Password Manager | Free Tier         | Dark Web Monitor | File Storage  | Target Audience              | Starting Price |
 | :--------------- | :---------------- | :--------------- | :------------ | :--------------------------- | :------------- |
-| **Keeper**       | 1 Device Only     | Add-on fee       | Add-on fee    | Enterprise, Security Purists | ~$35/yr        |
-| **Bitwarden**    | Unlimited Devices | Premium only     | 1GB (Premium) | Open-Source Enthusiasts      | ~$10/yr        |
-| **1Password**    | No Free Tier      | Included         | 1GB Included  | Families, Creatives          | ~$36/yr        |
-| **Proton Pass**  | Unlimited Devices | Premium only     | Not Included  | Privacy Ecosystem Users      | ~$24/yr        |
-| **NordPass**     | 1 Active Device   | Premium only     | Not Included  | General Consumers            | ~$24/yr        |
-| **Dashlane**     | 1 Device Only     | Included         | Included      | All-in-one seekers           | ~$60/yr        |
+| **Keeper**       | 1 Device Only     | Add-on fee       | Add-on fee    | Enterprise, Security Purists | ~$35/yr\*      |
+| **Bitwarden**    | Unlimited Devices | Premium only     | 1GB (Premium) | Open-Source Enthusiasts      | ~$10/yr\*      |
+| **1Password**    | No Free Tier      | Included         | 1GB Included  | Families, Creatives          | ~$36/yr\*      |
+| **Proton Pass**  | Unlimited Devices | Premium only     | Not Included  | Privacy Ecosystem Users      | ~$24/yr\*      |
+| **NordPass**     | 1 Active Device   | Premium only     | Not Included  | General Consumers            | ~$24/yr\*      |
+| **Dashlane**     | 1 Device Only     | Included         | Included      | All-in-one seekers           | ~$60/yr\*      |
+
+_\*Prices are approximate starting rates at the time of writing. Always verify current pricing on official websites._
 
 ### Deep Dive Comparisons
 

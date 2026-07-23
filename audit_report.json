@@ -1,12 +1,20 @@
 {
-  "totalArticles": 102,
+  "totalArticles": 142,
   "missingImages": [
     {
       "file": "1password-review-2026.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "1password-vs-bitwarden-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "5-career-growth-strategies-digital-age.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "affiliate-blogging-success-stories.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -30,7 +38,27 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "ai-video-generator-comparison-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "ai-video-pricing-comparison.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "autonomous-vehicles-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-affiliate-programs-for-bloggers.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-chatbots-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "best-ai-chatbots-for-everyday-use-2026.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -70,6 +98,10 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "best-ai-video-generators.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "best-ai-writing-tools-2026.mdx",
       "issue": "Image corrupt or unreadable"
     },
@@ -94,6 +126,10 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "best-free-ai-chatbots-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "best-password-managers-2026.mdx",
       "issue": "Image corrupt or unreadable"
     },
@@ -114,15 +150,23 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "blog-monetization-mistakes-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "blogger-success-story-lessons.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
-      "file": "blogging-success-stories-2026.mdx",
-      "expectedImage": "C:\\Users\\uikey\\OneDrive\\Desktop\\Master Folder\\Lochitra\\public\\static\\images\\blog\\blogging-success-stories-2026.webp"
+      "file": "bloggers-who-built-six-figure-websites.mdx",
+      "issue": "Image corrupt or unreadable"
     },
     {
-      "file": "blogging-success-stories-and-lessons-2026.mdx",
+      "file": "blogging-mistakes-successful-bloggers-avoid.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "blogging-success-stories.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -170,7 +214,15 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "content-strategies-behind-successful-blogs.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "critical-thinking-in-the-age-of-artificial-intelligence.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "dashlane-review-2026.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -190,7 +242,15 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "display-ads-for-bloggers.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "edge-computing-explained.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "email-marketing-for-bloggers.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -222,7 +282,19 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "google-veo-3-review.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "grammarly-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "grok-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "hailuo-ai-review.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -231,6 +303,10 @@
     },
     {
       "file": "how-bloggers-make-money-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-bloggers-turn-traffic-into-income.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -243,6 +319,10 @@
     },
     {
       "file": "how-freelancers-use-ai-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-long-does-it-really-take-to-build-a-profitable-blog.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -266,7 +346,19 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "how-to-create-youtube-videos-with-ai.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-increase-blog-revenue-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "how-to-make-money-online-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "how-to-securely-migrate-passwords.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -302,11 +394,23 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "keeper-security-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "kling-ai-review.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "leadership-skills-that-matter-in-the-ai-era.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
       "file": "linkedin-optimization-guide-for-professionals-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "luma-dream-machine-review.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -318,7 +422,27 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "microsoft-copilot-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "multiple-income-streams-for-bloggers-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "networking-strategies-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "niche-website-success-stories.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "nordpass-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "nordpass-vs-dashlane-2026.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -327,6 +451,26 @@
     },
     {
       "file": "nordvpn-vs-surfshark-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "password-manager-pricing-comparison.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "perplexity-ai-review.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "pika-review.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "poe-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "proton-pass-review-2026.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -350,7 +494,15 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "runway-review.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "se-ranking-review-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "selling-digital-products-from-a-blog.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
@@ -362,11 +514,19 @@
       "issue": "Image corrupt or unreadable"
     },
     {
+      "file": "seo-success-stories-from-real-bloggers.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
       "file": "small-business-success-stories-ai-automation.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {
       "file": "smart-cities-explained-2026.mdx",
+      "issue": "Image corrupt or unreadable"
+    },
+    {
+      "file": "sponsored-posts-guide.mdx",
       "issue": "Image corrupt or unreadable"
     },
     {

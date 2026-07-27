@@ -2,6 +2,7 @@ import Link from '@/components/Link'
 import { genPageMetadata } from 'app/seo'
 import { CATEGORIES, CATEGORY_BADGE_CLASSES, CATEGORY_GRADIENT_CLASSES } from '@/data/categoryData'
 import { allBlogs } from 'contentlayer/generated'
+import CategoryIcon from '@/components/CategoryIcon'
 
 export const metadata = genPageMetadata({
   title: 'Categories',
@@ -67,10 +68,12 @@ export default function CategoriesPage() {
               >
                 {/* Gradient banner */}
                 <div
-                  className={`flex h-24 items-center justify-center bg-gradient-to-br ${gradientClass}`}
+                  className={`flex h-24 items-center justify-center bg-gradient-to-br p-3 ${gradientClass}`}
                   aria-hidden="true"
                 >
-                  <span className="text-5xl">{cat.icon}</span>
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/10 p-2 backdrop-blur-xs transition-transform duration-300 group-hover:scale-110">
+                    <CategoryIcon slug={cat.slug} size={56} />
+                  </div>
                 </div>
 
                 {/* Card body */}

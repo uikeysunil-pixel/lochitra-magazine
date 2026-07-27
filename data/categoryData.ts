@@ -13,7 +13,6 @@
 export interface Category {
   slug: string
   name: string
-  icon: string
   description: string
   seoDescription: string
   /** Tailwind color token used for badge background/text — kept as a string
@@ -25,7 +24,6 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'ai-tools',
     name: 'AI Tools',
-    icon: '🤖',
     color: 'violet',
     description: 'Reviews & guides for AI productivity',
     seoDescription:
@@ -34,7 +32,6 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'technology',
     name: 'Technology',
-    icon: '💻',
     color: 'blue',
     description: 'Trends shaping the digital world',
     seoDescription:
@@ -43,7 +40,6 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'online-income',
     name: 'Online Income',
-    icon: '💰',
     color: 'green',
     description: 'Strategies to earn online',
     seoDescription:
@@ -52,7 +48,6 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'career-growth',
     name: 'Career Growth',
-    icon: '📈',
     color: 'amber',
     description: 'Level up your professional life',
     seoDescription:
@@ -61,7 +56,6 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'success-stories',
     name: 'Success Stories',
-    icon: '⭐',
     color: 'rose',
     description: 'Real journeys, real results',
     seoDescription:
@@ -70,7 +64,6 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'software-reviews',
     name: 'Software Reviews',
-    icon: '🛠️',
     color: 'green',
     description: 'In-depth analysis of the best software tools',
     seoDescription:

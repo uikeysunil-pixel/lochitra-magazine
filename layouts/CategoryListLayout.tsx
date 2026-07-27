@@ -11,6 +11,7 @@ import {
   CATEGORY_BADGE_CLASSES,
   CATEGORY_GRADIENT_CLASSES,
 } from '@/data/categoryData'
+import CategoryIcon from '@/components/CategoryIcon'
 
 interface PaginationProps {
   totalPages: number
@@ -42,7 +43,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
         <Link
           href={currentPage - 1 === 1 ? `/${basePath}/` : `/${basePath}/page/${currentPage - 1}`}
           rel="prev"
-          className="hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors dark:border-gray-700 dark:text-gray-300"
+          className="hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 inline-flex min-h-[44px] items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors dark:border-gray-700 dark:text-gray-300"
         >
           ← Previous
         </Link>
@@ -56,7 +57,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
         <Link
           href={`/${basePath}/page/${currentPage + 1}`}
           rel="next"
-          className="hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors dark:border-gray-700 dark:text-gray-300"
+          className="hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 inline-flex min-h-[44px] items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors dark:border-gray-700 dark:text-gray-300"
         >
           Next →
         </Link>
@@ -80,19 +81,19 @@ export default function CategoryListLayout({
   return (
     <div>
       {/* ── Category Hero Header ─────────────────────────────────── */}
-      <header className="border-b border-gray-100 py-12 dark:border-gray-800">
+      <header className="border-b border-gray-100 py-8 sm:py-12 dark:border-gray-800">
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
           {/* Icon circle */}
           <div
-            className={`flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-3xl shadow-md ${gradientClass}`}
+            className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br p-2 shadow-md sm:h-16 sm:w-16 ${gradientClass}`}
             aria-hidden="true"
           >
-            {category.icon}
+            <CategoryIcon slug={category.slug} size={48} />
           </div>
 
           <div className="flex-1">
             {/* Breadcrumb */}
-            <nav className="mb-2 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+            <nav className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
               <Link
                 href="/"
                 className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -111,17 +112,17 @@ export default function CategoryListLayout({
             </nav>
 
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
+              <h1 className="text-2xl font-extrabold tracking-tight break-words text-gray-900 sm:text-4xl dark:text-gray-100">
                 {category.name}
               </h1>
               <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${badgeClass}`}
+                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold sm:text-sm ${badgeClass}`}
               >
                 {posts.length} {posts.length === 1 ? 'article' : 'articles'}
               </span>
             </div>
 
-            <p className="mt-2 max-w-2xl text-base leading-relaxed text-gray-500 dark:text-gray-400">
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-500 sm:text-base dark:text-gray-400">
               {category.seoDescription}
             </p>
           </div>

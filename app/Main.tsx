@@ -8,6 +8,7 @@ import NewsletterSignup from '@/components/NewsletterSignup'
 import { CATEGORIES, CATEGORY_MAP, CATEGORY_BADGE_CLASSES } from '@/data/categoryData'
 import { EDITORS_PICKS_SLUGS } from '@/data/editorsPicks'
 import Image from 'next/image'
+import CategoryIcon from '@/components/CategoryIcon'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 
@@ -126,12 +127,12 @@ function getTrustStats(postCount: number, categoryCount: number) {
 
 // ── Topic bar items ──────────────────────────────────────────────────────────
 const TOPICS = [
-  { slug: 'ai-tools', label: 'AI Tools', icon: '🤖' },
-  { slug: 'technology', label: 'Technology', icon: '💻' },
-  { slug: 'software-reviews', label: 'Software Reviews', icon: '🛠️' },
-  { slug: 'online-income', label: 'Online Income', icon: '💰' },
-  { slug: 'career-growth', label: 'Career Growth', icon: '📈' },
-  { slug: 'success-stories', label: 'Success Stories', icon: '⭐' },
+  { slug: 'ai-tools', label: 'AI Tools' },
+  { slug: 'technology', label: 'Technology' },
+  { slug: 'software-reviews', label: 'Software Reviews' },
+  { slug: 'online-income', label: 'Online Income' },
+  { slug: 'career-growth', label: 'Career Growth' },
+  { slug: 'success-stories', label: 'Success Stories' },
 ]
 
 export default function Home({
@@ -168,18 +169,18 @@ export default function Home({
 
       {/* ── Hero Section ──────────────────────────────────────────── */}
       {heroPost && (
-        <section className="border-b border-gray-100 pt-10 pb-10 dark:border-gray-800">
-          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-5 lg:gap-10">
+        <section className="border-b border-gray-100 py-8 sm:py-12 dark:border-gray-800">
+          <div className="grid grid-cols-1 items-start gap-6 sm:gap-8 lg:grid-cols-5 lg:gap-10">
             {/* ── Left: Article content ────────────────────────────── */}
             <article className="flex flex-col justify-center lg:col-span-3">
               {/* Category badge + tags */}
-              <div className="mb-4 flex flex-wrap items-center gap-2">
+              <div className="mb-3.5 flex flex-wrap items-center gap-2">
                 {heroCat && (
                   <Link
                     href={`/categories/${heroCat.slug}`}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-opacity hover:opacity-80 ${heroBadgeClass}`}
+                    className={`inline-flex min-h-[32px] items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-opacity hover:opacity-80 sm:min-h-0 ${heroBadgeClass}`}
                   >
-                    <span aria-hidden="true">{heroCat.icon}</span>
+                    <CategoryIcon slug={heroCat.slug} size={20} />
                     {heroCat.name}
                   </Link>
                 )}
@@ -188,7 +189,7 @@ export default function Home({
                 ))}
               </div>
 
-              <h2 className="mb-4 text-3xl leading-tight font-extrabold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
+              <h2 className="mb-3.5 text-2xl leading-tight font-extrabold tracking-tight break-words text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
                 <Link
                   href={`/blog/${heroPost.slug}`}
                   className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -197,11 +198,11 @@ export default function Home({
                 </Link>
               </h2>
 
-              <p className="mb-5 text-lg leading-relaxed text-gray-600 dark:text-gray-400">
+              <p className="mb-4 text-base leading-relaxed text-gray-600 sm:text-lg dark:text-gray-400">
                 {heroPost.summary}
               </p>
 
-              <div className="mb-7 flex items-center gap-3 text-sm text-gray-400 dark:text-gray-500">
+              <div className="mb-6 flex items-center gap-3 text-xs text-gray-400 sm:text-sm dark:text-gray-500">
                 <time dateTime={heroPost.date}>
                   {formatDate(heroPost.date, siteMetadata.locale)}
                 </time>
@@ -212,7 +213,7 @@ export default function Home({
               <div>
                 <Link
                   href={`/blog/${heroPost.slug}`}
-                  className="bg-primary-600 hover:bg-primary-700 focus-visible:ring-primary-500 inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold text-white transition-all focus-visible:ring-2 focus-visible:ring-offset-2"
+                  className="bg-primary-600 hover:bg-primary-700 focus-visible:ring-primary-500 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold text-white transition-all focus-visible:ring-2 focus-visible:ring-offset-2"
                   aria-label={`Read article: ${heroPost.title}`}
                 >
                   Read Article
@@ -300,16 +301,18 @@ export default function Home({
       {/* ── Premium Trust Panel ───────────────────────────────────── */}
       <section
         aria-label="Locitra credibility statistics"
-        className="border-b border-gray-100 py-6 dark:border-gray-800"
+        className="border-b border-gray-100 py-7 sm:py-8 dark:border-gray-800"
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {getTrustStats(postCount, categoryCount).map((stat) => (
             <div
               key={stat.id}
-              className="from-primary-50 dark:from-primary-950/40 flex flex-col items-center rounded-xl border border-blue-100/80 bg-gradient-to-br to-cyan-50 px-3 py-4 text-center transition-shadow hover:shadow-md dark:border-blue-900/30 dark:to-cyan-950/30"
+              className={`from-primary-50 dark:from-primary-950/40 flex flex-col items-center rounded-xl border border-blue-100/80 bg-gradient-to-br to-cyan-50 px-3 py-3.5 text-center transition-shadow hover:shadow-md dark:border-blue-900/30 dark:to-cyan-950/30 ${
+                stat.id === 'guides' ? 'col-span-2 sm:col-span-1' : ''
+              }`}
             >
-              <span className="text-primary-600 dark:text-primary-400 mb-2">{stat.icon}</span>
-              <span className="text-primary-700 dark:text-primary-300 text-sm leading-tight font-bold">
+              <span className="text-primary-600 dark:text-primary-400 mb-1.5">{stat.icon}</span>
+              <span className="text-primary-700 dark:text-primary-300 text-xs leading-tight font-bold sm:text-sm">
                 {stat.label}
               </span>
               <span className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{stat.sub}</span>
@@ -321,7 +324,7 @@ export default function Home({
       {/* ── Author Identity ───────────────────────────────────────── */}
       <section
         aria-label="About the author"
-        className="border-b border-gray-100 py-7 dark:border-gray-800"
+        className="border-b border-gray-100 py-7 sm:py-8 dark:border-gray-800"
       >
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
           {/* Avatar */}
@@ -373,9 +376,9 @@ export default function Home({
       {/* ── Topic Bar ─────────────────────────────────────────────── */}
       <section
         aria-label="Topics covered on Locitra"
-        className="border-b border-gray-100 py-4 dark:border-gray-800"
+        className="border-b border-gray-100 py-4 sm:py-5 dark:border-gray-800"
       >
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 sm:gap-3">
           <span className="text-xs font-semibold tracking-wider text-gray-400 uppercase dark:text-gray-500">
             Covers:
           </span>
@@ -383,9 +386,9 @@ export default function Home({
             <Link
               key={topic.slug}
               href={`/categories/${topic.slug}`}
-              className="group inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 dark:hover:text-blue-300"
+              className="group inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 sm:min-h-0 sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-blue-800 dark:hover:bg-blue-950/30 dark:hover:text-blue-300"
             >
-              <span aria-hidden="true">{topic.icon}</span>
+              <CategoryIcon slug={topic.slug} size={20} />
               {topic.label}
             </Link>
           ))}
@@ -394,7 +397,7 @@ export default function Home({
 
       {/* ── Featured Stories ──────────────────────────────────────── */}
       {featuredPosts.length > 0 && (
-        <section className="border-b border-gray-100 py-12 dark:border-gray-800">
+        <section className="border-b border-gray-100 py-10 sm:py-12 dark:border-gray-800">
           <div className="mb-8 flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
               Featured Stories
@@ -425,39 +428,45 @@ export default function Home({
       )}
 
       {/* ── Categories Section ────────────────────────────────────── */}
-      <section className="border-b border-gray-100 py-12 dark:border-gray-800">
-        <div className="mb-8 flex items-center justify-between">
+      <section className="border-b border-gray-100 py-8 sm:py-12 dark:border-gray-800">
+        <div className="mb-6 flex items-center justify-between sm:mb-8">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            <h2 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl dark:text-gray-100">
               Explore Categories
             </h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-0.5 text-xs text-gray-500 sm:text-sm dark:text-gray-400">
               Deep dives into the topics that matter most
             </p>
           </div>
           <Link
             href="/categories"
-            className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium transition-colors"
+            className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-xs font-semibold transition-colors sm:text-sm"
           >
             All categories →
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
           {CATEGORIES.map((cat) => (
             <Link
               key={cat.slug}
               href={`/categories/${cat.slug}`}
-              className="group hover:border-primary-300 dark:hover:border-primary-700 flex flex-col items-start rounded-xl border border-gray-200 bg-white p-5 transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-900"
+              className="group hover:border-primary-300 dark:hover:border-primary-700 flex min-h-[44px] flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 transition-all duration-300 hover:shadow-md sm:p-5 dark:border-gray-700 dark:bg-gray-900"
             >
-              <span className="mb-3 text-3xl" aria-hidden="true">
-                {cat.icon}
-              </span>
-              <span className="group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-1 text-sm leading-tight font-bold text-gray-900 transition-colors dark:text-gray-100">
-                {cat.name}
-              </span>
-              <span className="text-xs leading-snug text-gray-500 dark:text-gray-400">
-                {cat.description}
-              </span>
+              <div>
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 p-2 shadow-xs transition-transform duration-300 group-hover:scale-105 sm:h-14 sm:w-14 dark:bg-gray-800/60">
+                  <CategoryIcon slug={cat.slug} size={56} />
+                </div>
+                <h3 className="group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-1 text-sm font-bold text-gray-900 transition-colors dark:text-gray-100">
+                  {cat.name}
+                </h3>
+                <p className="line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                  {cat.description}
+                </p>
+              </div>
+              <div className="text-primary-600 dark:text-primary-400 mt-3 flex items-center gap-1 text-xs font-semibold opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                <span>Explore</span>
+                <span aria-hidden="true">→</span>
+              </div>
             </Link>
           ))}
         </div>
@@ -465,7 +474,7 @@ export default function Home({
 
       {/* ── Trending Now ──────────────────────────────────────────── */}
       {trendingPosts.length > 0 && (
-        <section className="border-b border-gray-100 py-12 dark:border-gray-800">
+        <section className="border-b border-gray-100 py-10 sm:py-12 dark:border-gray-800">
           <div className="mb-8 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl" aria-hidden="true">
@@ -503,7 +512,7 @@ export default function Home({
 
       {/* ── Editor's Picks ────────────────────────────────────────── */}
       {editorsPicks.length > 0 && (
-        <section className="border-b border-gray-100 py-12 dark:border-gray-800">
+        <section className="border-b border-gray-100 py-10 sm:py-12 dark:border-gray-800">
           <div className="mb-8 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -568,7 +577,7 @@ export default function Home({
 
       {/* ── Latest Articles ───────────────────────────────────────── */}
       {latestPosts.length > 0 && (
-        <section className="border-b border-gray-100 py-12 dark:border-gray-800">
+        <section className="border-b border-gray-100 py-10 sm:py-12 dark:border-gray-800">
           <div className="mb-8 flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
               Latest Articles
@@ -600,7 +609,7 @@ export default function Home({
                             href={`/categories/${lCat.slug}`}
                             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold transition-opacity hover:opacity-80 ${lBadgeClass}`}
                           >
-                            <span aria-hidden="true">{lCat.icon}</span>
+                            <CategoryIcon slug={lCat.slug} size={20} />
                             {lCat.name}
                           </Link>
                         </div>
@@ -629,23 +638,23 @@ export default function Home({
       )}
 
       {/* ── Newsletter Section ──────────────────────────────────────── */}
-      <section className="py-8">
+      <section className="py-8 sm:py-10">
         <NewsletterSignup variant="homepage" />
       </section>
 
       {/* ── CTA Strip ─────────────────────────────────────────────── */}
-      <section className="py-12">
-        <div className="to-primary-900 dark:to-primary-950 rounded-2xl bg-gradient-to-br from-gray-900 px-8 py-10 text-center text-white shadow-lg dark:from-gray-950">
-          <h2 className="mb-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
+      <section className="py-8 sm:py-12">
+        <div className="to-primary-900 dark:to-primary-950 rounded-2xl bg-gradient-to-br from-gray-900 px-5 py-8 text-center text-white shadow-lg sm:px-8 sm:py-10 dark:from-gray-950">
+          <h2 className="mb-2.5 text-xl font-extrabold tracking-tight sm:text-3xl">
             Stay Ahead with Locitra
           </h2>
-          <p className="mb-7 text-base leading-relaxed text-gray-300 sm:text-lg">
+          <p className="mb-6 text-sm leading-relaxed text-gray-300 sm:text-lg">
             Covering AI Tools, Technology, Online Income, Career Growth, and Success Stories —
             updated regularly.
           </p>
           <Link
             href="/blog"
-            className="text-primary-700 inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3 text-sm font-bold shadow transition-all hover:bg-gray-100 hover:shadow-md"
+            className="text-primary-700 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-white px-7 py-3 text-sm font-bold shadow transition-all hover:bg-gray-100 hover:shadow-md"
             aria-label="Explore all Locitra articles"
           >
             Explore All Articles
@@ -680,10 +689,10 @@ function EditorPickFeatured({ post }) {
     : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
 
   return (
-    <article className="group hover:border-primary-200 dark:hover:border-primary-800 flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:shadow-xl dark:border-gray-700 dark:bg-gray-900">
+    <article className="group hover:border-primary-200 dark:hover:border-primary-800 flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:shadow-xl dark:border-gray-700 dark:bg-gray-900">
       {/* Image */}
       <Link href={`/${post.path}`} className="block flex-shrink-0" tabIndex={-1} aria-hidden="true">
-        <div className="relative h-64 w-full overflow-hidden sm:h-72 lg:h-80">
+        <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/9] lg:h-64 xl:h-72">
           {post.featuredImage ? (
             <Image
               src={post.featuredImage}
@@ -705,9 +714,14 @@ function EditorPickFeatured({ post }) {
             />
           ) : (
             <div className="from-primary-600 flex h-full w-full items-center justify-center bg-gradient-to-br to-cyan-500">
-              <span className="text-5xl opacity-80" aria-hidden="true">
-                ⭐
-              </span>
+              <svg
+                className="h-12 w-12 text-white/80"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
             </div>
           )}
           {/* Editor's Pick badge overlay */}
@@ -723,22 +737,22 @@ function EditorPickFeatured({ post }) {
       </Link>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col p-6">
+      <div className="flex flex-col p-5 sm:p-7">
         {/* Category badge */}
         {cat && (
-          <div className="mb-3">
+          <div className="mb-2.5">
             <Link
               href={`/categories/${cat.slug}`}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-opacity hover:opacity-80 ${badgeClass}`}
+              className={`inline-flex min-h-[32px] items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-opacity hover:opacity-80 sm:min-h-0 ${badgeClass}`}
             >
-              <span aria-hidden="true">{cat.icon}</span>
+              <CategoryIcon slug={cat.slug} size={20} />
               {cat.name}
             </Link>
           </div>
         )}
 
         {/* Title */}
-        <h3 className="mb-3 flex-1 text-xl leading-snug font-bold text-gray-900 sm:text-2xl dark:text-gray-100">
+        <h3 className="mb-2.5 text-lg leading-snug font-bold break-words text-gray-900 sm:text-2xl dark:text-gray-100">
           <Link
             href={`/${post.path}`}
             className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -749,13 +763,13 @@ function EditorPickFeatured({ post }) {
 
         {/* Summary */}
         {post.summary && (
-          <p className="mb-5 line-clamp-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
             {post.summary}
           </p>
         )}
 
         {/* Meta row */}
-        <div className="mt-auto flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4 text-xs text-gray-400 dark:border-gray-800 dark:text-gray-500">
           <time dateTime={post.date}>{formatDate(post.date, siteMetadata.locale)}</time>
           <span>{post.readingTime?.text ?? '5 min read'}</span>
         </div>

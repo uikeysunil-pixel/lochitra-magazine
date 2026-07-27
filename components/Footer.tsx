@@ -2,6 +2,7 @@ import Link from './Link'
 import siteMetadata from '@/data/siteMetadata'
 import SocialIcon from '@/components/social-icons'
 import NewsletterForm from './NewsletterForm'
+import CategoryIcon from '@/components/CategoryIcon'
 
 export default function Footer() {
   return (
@@ -46,17 +47,30 @@ export default function Footer() {
               </h3>
               <ul className="space-y-3 text-sm">
                 {[
-                  { href: '/categories/ai-tools', label: '🤖 AI Tools' },
-                  { href: '/categories/technology', label: '💻 Technology' },
-                  { href: '/categories/online-income', label: '💰 Online Income' },
-                  { href: '/categories/career-growth', label: '📈 Career Growth' },
-                  { href: '/categories/success-stories', label: '🌟 Success Stories' },
-                ].map(({ href, label }) => (
+                  { slug: 'ai-tools', href: '/categories/ai-tools', label: 'AI Tools' },
+                  { slug: 'technology', href: '/categories/technology', label: 'Technology' },
+                  {
+                    slug: 'online-income',
+                    href: '/categories/online-income',
+                    label: 'Online Income',
+                  },
+                  {
+                    slug: 'career-growth',
+                    href: '/categories/career-growth',
+                    label: 'Career Growth',
+                  },
+                  {
+                    slug: 'success-stories',
+                    href: '/categories/success-stories',
+                    label: 'Success Stories',
+                  },
+                ].map(({ slug, href, label }) => (
                   <li key={href}>
                     <Link
                       href={href}
-                      className="hover:text-primary-600 dark:hover:text-primary-400 text-gray-500 transition-colors dark:text-gray-400"
+                      className="hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2 text-gray-500 transition-colors dark:text-gray-400"
                     >
+                      <CategoryIcon slug={slug} size={18} />
                       {label}
                     </Link>
                   </li>
@@ -137,7 +151,7 @@ export default function Footer() {
             </Link>
             . All Rights Reserved. Made with ❤️ for curious minds.
           </p>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-gray-400 sm:justify-start dark:text-gray-500">
             <Link
               href="/privacy-policy"
               className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"

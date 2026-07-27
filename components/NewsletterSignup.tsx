@@ -90,7 +90,7 @@ export default function NewsletterSignup({
 
     return (
       <div
-        className={`mx-auto w-full max-w-[800px] overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.06)] sm:p-10 dark:border-gray-800 dark:bg-gray-900 ${variant === 'homepage' || variant === 'category' ? 'my-8' : 'my-12'}`}
+        className={`mx-auto w-full max-w-[800px] overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-6 text-center shadow-[0_8px_30px_rgb(0,0,0,0.06)] sm:p-10 dark:border-gray-800 dark:bg-gray-900 ${variant === 'homepage' || variant === 'category' ? 'my-6 sm:my-8' : 'my-8 sm:my-12'}`}
       >
         <div className="animate-in fade-in zoom-in py-4 duration-500">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
@@ -188,7 +188,7 @@ export default function NewsletterSignup({
 
   return (
     <div
-      className={`mx-auto w-full max-w-[800px] overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.06)] sm:p-10 dark:border-gray-800 dark:bg-gray-900 ${variant === 'homepage' || variant === 'category' ? 'my-8' : 'my-12'}`}
+      className={`mx-auto w-full max-w-[800px] overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.06)] sm:p-10 dark:border-gray-800 dark:bg-gray-900 ${variant === 'homepage' || variant === 'category' ? 'my-6 sm:my-8' : 'my-8 sm:my-12'}`}
     >
       <div className="flex flex-col items-center gap-8 md:flex-row lg:gap-12">
         <div className="flex-1">
@@ -236,7 +236,7 @@ export default function NewsletterSignup({
                 type="email"
                 required
                 placeholder="Email Address"
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-gray-900 shadow-sm transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-blue-400"
+                className="min-h-[44px] w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-blue-400"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value)
@@ -248,7 +248,7 @@ export default function NewsletterSignup({
             <button
               type="submit"
               disabled={status === 'loading'}
-              className="w-full rounded-xl bg-blue-600 px-4 py-3.5 font-bold text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
+              className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 font-bold text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {status === 'loading' ? (
                 <div className="flex items-center justify-center gap-2">

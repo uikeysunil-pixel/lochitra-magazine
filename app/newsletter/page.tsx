@@ -1,6 +1,7 @@
 import React from 'react'
 import { Metadata } from 'next'
 import Link from '@/components/Link'
+import CategoryIcon from '@/components/CategoryIcon'
 import NewsletterHubForm from '@/components/NewsletterHubForm'
 import NewsletterPageView from '@/components/NewsletterPageView'
 
@@ -97,8 +98,8 @@ export default function NewsletterPage() {
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-2xl text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                🤖
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 p-2 dark:bg-blue-900/30">
+                <CategoryIcon slug="ai-tools" size={48} />
               </div>
               <h3 className="mb-3 text-xl font-bold text-gray-900 dark:text-white">AI Tools</h3>
               <p className="leading-relaxed text-gray-600 dark:text-gray-400">
@@ -107,8 +108,8 @@ export default function NewsletterPage() {
             </div>
 
             <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-100 text-2xl text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                💻
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-100 p-2 dark:bg-purple-900/30">
+                <CategoryIcon slug="software-reviews" size={48} />
               </div>
               <h3 className="mb-3 text-xl font-bold text-gray-900 dark:text-white">
                 Software Reviews
@@ -119,8 +120,8 @@ export default function NewsletterPage() {
             </div>
 
             <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-2xl text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                💰
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 p-2 dark:bg-green-900/30">
+                <CategoryIcon slug="online-income" size={48} />
               </div>
               <h3 className="mb-3 text-xl font-bold text-gray-900 dark:text-white">
                 Online Income
@@ -132,8 +133,8 @@ export default function NewsletterPage() {
             </div>
 
             <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-2xl text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-                📈
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 p-2 dark:bg-orange-900/30">
+                <CategoryIcon slug="technology" size={48} />
               </div>
               <h3 className="mb-3 text-xl font-bold text-gray-900 dark:text-white">
                 Technology Trends
@@ -273,9 +274,9 @@ export default function NewsletterPage() {
               href="/categories/ai-tools"
               className="group flex flex-col items-center justify-center rounded-3xl border border-gray-100 bg-gray-50 p-10 text-center transition-all hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-blue-900 dark:hover:bg-blue-900/20"
             >
-              <span className="mb-4 transform text-4xl transition-transform group-hover:scale-110">
-                🤖
-              </span>
+              <div className="mb-4 transform transition-transform group-hover:scale-110">
+                <CategoryIcon slug="ai-tools" size={56} />
+              </div>
               <span className="text-lg font-bold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                 AI Tools Hub
               </span>
@@ -284,9 +285,9 @@ export default function NewsletterPage() {
               href="/categories/software-reviews"
               className="group flex flex-col items-center justify-center rounded-3xl border border-gray-100 bg-gray-50 p-10 text-center transition-all hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-blue-900 dark:hover:bg-blue-900/20"
             >
-              <span className="mb-4 transform text-4xl transition-transform group-hover:scale-110">
-                💻
-              </span>
+              <div className="mb-4 transform transition-transform group-hover:scale-110">
+                <CategoryIcon slug="software-reviews" size={56} />
+              </div>
               <span className="text-lg font-bold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                 Software Reviews
               </span>
@@ -295,9 +296,9 @@ export default function NewsletterPage() {
               href="/categories/online-income"
               className="group flex flex-col items-center justify-center rounded-3xl border border-gray-100 bg-gray-50 p-10 text-center transition-all hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-blue-900 dark:hover:bg-blue-900/20"
             >
-              <span className="mb-4 transform text-4xl transition-transform group-hover:scale-110">
-                💰
-              </span>
+              <div className="mb-4 transform transition-transform group-hover:scale-110">
+                <CategoryIcon slug="online-income" size={56} />
+              </div>
               <span className="text-lg font-bold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                 Online Income
               </span>
@@ -306,9 +307,9 @@ export default function NewsletterPage() {
               href="/categories/career-growth"
               className="group flex flex-col items-center justify-center rounded-3xl border border-gray-100 bg-gray-50 p-10 text-center transition-all hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-blue-900 dark:hover:bg-blue-900/20"
             >
-              <span className="mb-4 transform text-4xl transition-transform group-hover:scale-110">
-                📈
-              </span>
+              <div className="mb-4 transform transition-transform group-hover:scale-110">
+                <CategoryIcon slug="career-growth" size={56} />
+              </div>
               <span className="text-lg font-bold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                 Career Growth
               </span>

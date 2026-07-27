@@ -9,6 +9,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { CATEGORY_MAP, CATEGORY_BADGE_CLASSES } from '@/data/categoryData'
+import CategoryIcon from '@/components/CategoryIcon'
 import AuthorCard from '@/components/AuthorCard'
 import TableOfContents, { DesktopToc } from '@/components/TableOfContents'
 import ShareBar from '@/components/ShareBar'
@@ -71,22 +72,22 @@ export default function PostLayout({
       <ReadingUtilities />
       <article>
         {/* ── Premium Article Header ──────────────────────────────────── */}
-        <header className="pt-8 pb-10">
+        <header className="pt-6 pb-8 sm:pt-8 sm:pb-10">
           {/* Category badge */}
           {cat && (
-            <div className="mb-5">
+            <div className="mb-4 sm:mb-5">
               <Link
                 href={`/categories/${cat.slug}`}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-80 ${catBadgeClass}`}
+                className={`inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-80 sm:min-h-0 ${catBadgeClass}`}
               >
-                <span aria-hidden="true">{cat.icon}</span>
+                <CategoryIcon slug={cat.slug} size={20} />
                 {cat.name}
               </Link>
             </div>
           )}
 
           {/* Article title */}
-          <h1 className="mb-6 text-3xl leading-tight font-extrabold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-gray-100">
+          <h1 className="mb-5 text-2xl leading-tight font-extrabold tracking-tight break-words text-gray-900 sm:text-4xl sm:leading-tight lg:text-5xl dark:text-gray-100">
             {title}
           </h1>
 

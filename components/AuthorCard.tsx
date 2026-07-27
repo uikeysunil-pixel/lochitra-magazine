@@ -19,10 +19,32 @@ interface AuthorCardProps {
   certifications?: string[]
 }
 
+const CONCISE_DEFAULT_BIO =
+  'Sunil Kumar Uikey is the Founder and Editor-in-Chief of Locitra, dedicated to publishing practical, evidence-based guides for digital professionals and creators. With over a decade of hands-on experience in artificial intelligence, software evaluation, and digital strategy, Sunil cuts through market hype to deliver actionable insights. He systematically tests emerging AI tools, productivity platforms, cybersecurity software, and online business models to ensure every guide is grounded in real-world utility, strict commercial independence, and rigorous verification.'
+
+function formatCardBio(rawBio?: string): string {
+  if (!rawBio) return CONCISE_DEFAULT_BIO
+
+  // Remove decorative stars, markdown headers/formatting
+  const cleaned = rawBio
+    .replace(/★/g, '')
+    .replace(/^[#*-\s]+/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .trim()
+
+  // Extract the lead paragraph
+  const firstParagraph = cleaned.split('\n\n')[0] || cleaned
+  const words = firstParagraph.split(/\s+/)
+  if (words.length > 115) {
+    return words.slice(0, 115).join(' ') + '...'
+  }
+  return firstParagraph || CONCISE_DEFAULT_BIO
+}
+
 /**
- * Premium author bio block displayed at the bottom of every article.
- * Includes: avatar, "Written by" label, name, verified badge, role,
- * expertise tags, bio, social links.
+ * Premium editorial author bio block displayed at the bottom of every Locitra article.
+ * Final Editorial Polish: 110-word bio optimization, subtle blue accent chips, micro-typography, and compact mobile rhythm.
  */
 export default function AuthorCard({
   name,
@@ -39,16 +61,15 @@ export default function AuthorCard({
   yearsExperience,
   certifications,
 }: AuthorCardProps) {
-  const defaultBio =
-    'Sunil Kumar Uikey writes about AI tools, technology trends, online income opportunities, career growth, and digital success stories. With years of experience in the digital space, he helps readers navigate the fast-changing world of technology and build meaningful careers online.'
-
   const expertiseAreas = expertise || []
-  const verifiedBadge = certifications?.includes('Verified Author') || name === 'Sunil Kumar Uikey'
+  const isVerified = certifications?.includes('Verified Author') || name === 'Sunil Kumar Uikey'
+  const authorSlug = slug || name.toLowerCase().replace(/\s+/g, '-')
+  const displayBio = formatCardBio(bio)
 
   return (
     <aside
       aria-label={`About the author, ${name}`}
-      className="mt-14 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-900"
+      className="mt-12 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900/90"
     >
       {/* Top accent gradient bar */}
       <div
@@ -56,99 +77,85 @@ export default function AuthorCard({
         aria-hidden="true"
       />
 
-      <div className="p-7 sm:p-9">
+      <div className="p-6 sm:p-7">
         {/* Label */}
-        <p className="text-primary-600 dark:text-primary-400 mb-5 text-[10px] font-bold tracking-[0.18em] uppercase">
+        <p className="text-primary-600 dark:text-primary-400 mb-3.5 text-[10px] font-bold tracking-[0.18em] uppercase">
           About the Author
         </p>
 
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
           {/* Avatar column */}
           <div className="flex-shrink-0">
-            {slug ? (
-              <Link href={`/author/${slug}`}>
-                <div className="ring-primary-200 dark:ring-primary-700 relative h-24 w-24 overflow-hidden rounded-2xl shadow-lg ring-2 transition-transform hover:scale-105 sm:h-28 sm:w-28">
-                  {avatar ? (
-                    <Image
-                      src={avatar}
-                      alt={`${name} — author photo`}
-                      fill
-                      sizes="112px"
-                      className="object-cover object-top"
-                    />
-                  ) : (
-                    <div className="from-primary-600 flex h-full w-full items-center justify-center bg-gradient-to-br to-cyan-500 text-4xl font-bold text-white">
-                      {name?.charAt(0) ?? 'A'}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ) : (
-              <div className="ring-primary-200 dark:ring-primary-700 relative h-24 w-24 overflow-hidden rounded-2xl shadow-lg ring-2 sm:h-28 sm:w-28">
+            <Link
+              href={`/author/${authorSlug}`}
+              className="group block"
+              aria-label={`View ${name}'s full editorial profile`}
+            >
+              <div className="ring-primary-200 dark:ring-primary-800 relative h-20 w-20 overflow-hidden rounded-2xl shadow-md ring-2 transition-transform group-hover:scale-105 sm:h-24 sm:w-24">
                 {avatar ? (
                   <Image
                     src={avatar}
                     alt={`${name} — author photo`}
                     fill
-                    sizes="112px"
+                    sizes="96px"
                     className="object-cover object-top"
                   />
                 ) : (
-                  <div className="from-primary-600 flex h-full w-full items-center justify-center bg-gradient-to-br to-cyan-500 text-4xl font-bold text-white">
+                  <div className="from-primary-600 flex h-full w-full items-center justify-center bg-gradient-to-br to-cyan-500 text-3xl font-bold text-white">
                     {name?.charAt(0) ?? 'A'}
                   </div>
                 )}
               </div>
-            )}
+            </Link>
           </div>
 
           {/* Content column */}
           <div className="min-w-0 flex-1">
-            {/* Name + verified badge */}
+            {/* Header: Name + Verified Badge */}
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <h3 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
-                {slug ? (
-                  <Link href={`/author/${slug}`} className="hover:underline">
-                    {name}
-                  </Link>
-                ) : (
-                  name
-                )}
+              <h3 className="text-lg font-extrabold text-gray-900 sm:text-xl dark:text-gray-100">
+                <Link
+                  href={`/author/${authorSlug}`}
+                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                >
+                  {name}
+                </Link>
               </h3>
-              {verifiedBadge && (
+              {isVerified && (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                  aria-label="Verified author"
+                  className="inline-flex items-center gap-1 rounded-full border border-blue-200/80 bg-blue-50/80 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300"
+                  aria-label="Verified author badge"
                 >
                   <svg
-                    className="h-3 w-3"
+                    className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     aria-hidden="true"
                   >
                     <path
                       fillRule="evenodd"
-                      d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                       clipRule="evenodd"
                     />
                   </svg>
-                  Verified
+                  Verified Author
                 </span>
               )}
             </div>
 
-            {/* Role */}
-            <p className="mb-1 text-sm font-semibold text-gray-500 dark:text-gray-400">
-              {occupation || 'Author, Locitra'} {yearsExperience && `· ${yearsExperience} Exp`}
+            {/* Role & Experience */}
+            <p className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+              {occupation || 'Founder & Editor-in-Chief'}
+              {yearsExperience && ` · ${yearsExperience} Experience`}
             </p>
 
             {/* Expertise tags */}
             {expertiseAreas.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-1.5">
+              <div className="mb-3 flex flex-wrap gap-1.5">
                 {expertiseAreas.map((area) => (
                   <span
                     key={area}
-                    className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                    className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50/70 px-2.5 py-0.5 text-[11px] font-medium text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300"
                   >
                     {area}
                   </span>
@@ -156,15 +163,41 @@ export default function AuthorCard({
               </div>
             )}
 
-            {/* Bio */}
-            <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-              {bio || defaultBio}
+            {/* Bio text */}
+            <p className="text-xs leading-relaxed text-gray-600 sm:text-sm dark:text-gray-300">
+              {displayBio}
             </p>
 
-            {/* Social links */}
+            {/* Read Full Author Profile Link */}
+            <div className="mt-3">
+              <Link
+                href={`/author/${authorSlug}`}
+                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 inline-flex items-center gap-1 text-xs font-bold transition-colors hover:underline"
+              >
+                <span>Read Full Author Profile</span>
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14 5l7 7m0 0l-7 7m7-7H3"
+                  />
+                </svg>
+              </Link>
+            </div>
+
+            {/* Social links bar */}
             {(email || twitter || linkedin || github || bluesky) && (
-              <div className="mt-5 flex items-center gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-                <span className="text-xs text-gray-400 dark:text-gray-500">Follow:</span>
+              <div className="mt-3.5 flex items-center gap-3 border-t border-gray-100 pt-3 dark:border-gray-800/80">
+                <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">
+                  Follow:
+                </span>
                 {email && <SocialIcon kind="mail" href={`mailto:${email}`} size={4} />}
                 {linkedin && <SocialIcon kind="linkedin" href={linkedin} size={4} />}
                 {twitter && <SocialIcon kind="x" href={twitter} size={4} />}

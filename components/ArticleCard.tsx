@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from '@/components/Link'
 import { formatDate } from 'pliny/utils/formatDate'
 import siteMetadata from '@/data/siteMetadata'
+import CategoryIcon from '@/components/CategoryIcon'
 import {
   CATEGORY_MAP,
   CATEGORY_BADGE_CLASSES,
@@ -51,8 +52,8 @@ export default function ArticleCard({
     ? CATEGORY_GRADIENT_CLASSES[cat.color]
     : 'from-primary-600 to-primary-800'
 
-  // Consistent image heights — large variant gets more height for visual punch on desktop
-  const imageHeight = size === 'large' ? 'h-56 sm:h-64' : 'h-44 sm:h-48'
+  // Consistent image heights — large variant gets proportional height for mobile & desktop
+  const imageHeight = size === 'large' ? 'h-48 sm:h-64' : 'h-44 sm:h-48'
   // Summary line clamp — large cards show 3 lines for more context
   const summaryClamp = size === 'large' ? 'line-clamp-3' : 'line-clamp-2'
 
@@ -96,15 +97,15 @@ export default function ArticleCard({
       </Link>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
         {/* Category badge */}
         {cat && (
-          <div className="mb-3">
+          <div className="mb-2.5">
             <Link
               href={`/categories/${cat.slug}`}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-opacity hover:opacity-80 ${badgeClass}`}
+              className={`inline-flex min-h-[32px] items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-opacity hover:opacity-80 sm:min-h-0 ${badgeClass}`}
             >
-              <span aria-hidden="true">{cat.icon}</span>
+              <CategoryIcon slug={cat.slug} size={20} />
               {cat.name}
             </Link>
           </div>
@@ -112,7 +113,7 @@ export default function ArticleCard({
 
         {/* Title */}
         <h3
-          className={`mb-2 leading-snug font-bold text-gray-900 dark:text-gray-100 ${
+          className={`mb-2 leading-snug font-bold break-words text-gray-900 dark:text-gray-100 ${
             size === 'large' ? 'text-lg sm:text-xl' : 'text-base'
           }`}
         >
@@ -138,7 +139,7 @@ export default function ArticleCard({
           <time dateTime={date}>{formatDate(date, siteMetadata.locale)}</time>
           <span className="inline-flex items-center gap-1">
             <svg
-              className="h-3 w-3"
+              className="h-3.5 w-3.5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

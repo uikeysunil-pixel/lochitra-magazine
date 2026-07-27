@@ -28,7 +28,7 @@ const Header = () => {
         </div>
       </Link>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1 sm:gap-2">
         {/* Desktop nav */}
         <nav className="no-scrollbar hidden items-center gap-x-1 overflow-x-auto sm:flex lg:gap-x-2">
           {headerNavLinks
@@ -37,15 +37,19 @@ const Header = () => {
               <Link
                 key={link.title}
                 href={link.href}
-                className="hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-primary-950 dark:hover:text-primary-400 rounded-md px-2 py-1 text-sm font-medium whitespace-nowrap text-gray-700 transition-colors dark:text-gray-300"
+                className="hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-primary-950 dark:hover:text-primary-400 rounded-md px-2.5 py-1.5 text-sm font-medium whitespace-nowrap text-gray-700 transition-colors dark:text-gray-300"
               >
                 {link.title}
               </Link>
             ))}
         </nav>
 
-        <SearchButton />
-        <ThemeSwitch />
+        <div className="flex min-h-[44px] min-w-[44px] items-center justify-center p-1">
+          <SearchButton />
+        </div>
+        <div className="flex min-h-[44px] min-w-[44px] items-center justify-center p-1">
+          <ThemeSwitch />
+        </div>
         <MobileNav />
       </div>
     </header>

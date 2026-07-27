@@ -74,4 +74,11 @@ export default [
       '@typescript-eslint/ban-ts-comment': 'off',
     },
   },
+  {
+    files: ['scripts/**/*.js', 'scripts/**/*.mjs', 'audit_images.js', '*.js', '*.mjs'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+    },
+  },
 ]

@@ -38,7 +38,7 @@ allMdx.forEach((mdxPath) => {
   const content = fs.readFileSync(mdxPath, 'utf8')
 
   // Find featuredImage
-  const match = content.match(/^featuredImage:\s*[\"'](.*?)[\"']/m)
+  const match = content.match(/^featuredImage:\s*["'](.*?)["']/m)
   if (!match) return // Some posts might not have a featured image
 
   const featuredImagePath = match[1]

@@ -152,12 +152,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, message: 'already_subscribed' })
       }
 
-      console.error('[Newsletter API] Brevo error:', JSON.stringify(data))
+      console.error(`[Newsletter API] Brevo ${response.status}:`, JSON.stringify(data))
       return NextResponse.json(
         {
           success: false,
           message:
-            data.message || `Subscription failed (Brevo ${response.status}). Please try again.`,
+            'We are unable to process newsletter subscriptions at the moment. Please try again later.',
         },
         { status: 502 }
       )

@@ -30,7 +30,10 @@ export async function POST(req: NextRequest) {
 
     // ── 2. CSRF / Origin check ──────────────────────────────────────────────
     const origin = req.headers.get('origin') ?? ''
-    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://locitra.com').replace(/\/$/, '')
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.locitra.com').replace(
+      /\/$/,
+      ''
+    )
     const isProd = process.env.NODE_ENV === 'production'
     if (isProd && origin) {
       // Normalize both to strip www so that www.locitra.com === locitra.com

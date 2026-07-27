@@ -4,7 +4,7 @@
  * IndexNow lets search engines (Bing, Yandex, etc.) know about new or updated
  * URLs instantly, without waiting for the next crawl cycle.
  *
- * Key file: https://locitra.com/ad4703f4d7314cefb4f019617a45d45e.txt
+ * Key file: https://www.locitra.com/ad4703f4d7314cefb4f019617a45d45e.txt
  * API spec:  https://www.indexnow.org/documentation
  */
 
@@ -17,7 +17,7 @@ const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/indexnow'
  * Trailing slash is always stripped.
  */
 export function getSiteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://locitra.com'
+  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://www.locitra.com'
 }
 
 export interface IndexNowResult {

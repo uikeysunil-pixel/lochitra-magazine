@@ -9,7 +9,7 @@ const siteMetadata = {
   shortTitle: 'Locitra',
   language: 'en-us',
   theme: 'system',
-  siteUrl: 'https://locitra.com',
+  siteUrl: 'https://www.locitra.com',
   siteRepo: 'https://github.com/locitra',
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
   socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.png`,

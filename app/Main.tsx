@@ -7,6 +7,7 @@ import ArticleNewsletterBox from '@/components/ArticleNewsletterBox'
 import NewsletterSignup from '@/components/NewsletterSignup'
 import { CATEGORIES, CATEGORY_MAP, CATEGORY_BADGE_CLASSES } from '@/data/categoryData'
 import { EDITORS_PICKS_SLUGS } from '@/data/editorsPicks'
+import { ESSENTIAL_GUIDES_SLUGS } from '@/data/homepage-essential-guides'
 import Image from 'next/image'
 import CategoryIcon from '@/components/CategoryIcon'
 import { CoreContent } from 'pliny/utils/contentlayer'
@@ -150,10 +151,24 @@ export default function Home({
   const trendingPosts = posts.slice(0, 3)
   const latestPosts = posts.slice(4, 4 + MAX_LATEST)
 
+  // Create O(1) post lookup map for fast, efficient slug resolution
+  const postMap = new Map(posts.map((p) => [p.slug, p]))
+
   // Editor's Picks — resolve slugs to full post objects (maintain curation order)
-  const editorsPicks = EDITORS_PICKS_SLUGS.map((slug) => posts.find((p) => p.slug === slug)).filter(
+  const editorsPicks = EDITORS_PICKS_SLUGS.map((slug) => postMap.get(slug)).filter(
     (p): p is CoreContent<Blog> => !!p
   )
+
+  // Essential Guides — permanent cornerstone content, order from homepage-essential-guides.ts
+  const essentialGuides = ESSENTIAL_GUIDES_SLUGS.map((slug) => {
+    const post = postMap.get(slug)
+    if (!post && process.env.NODE_ENV === 'development') {
+      console.warn(
+        `[Essential Guides] Configured slug "${slug}" was not found in published articles.`
+      )
+    }
+    return post
+  }).filter((p): p is CoreContent<Blog> => !!p)
 
   const heroCat = heroPost?.category ? CATEGORY_MAP[heroPost.category] : undefined
   const heroBadgeClass = heroCat
@@ -394,6 +409,46 @@ export default function Home({
           ))}
         </div>
       </section>
+
+      {/* ── Essential Guides ───────────────────────────────────────── */}
+      {essentialGuides.length > 0 && (
+        <section
+          aria-label="Essential guides on Locitra"
+          className="border-b border-gray-100 py-10 sm:py-12 dark:border-gray-800"
+        >
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                Essential Guides
+              </h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Start with Locitra&apos;s most comprehensive guides and explore each topic in depth.
+              </p>
+            </div>
+            <Link
+              href="/blog"
+              className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium transition-colors"
+            >
+              All articles →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {essentialGuides.map((post) => (
+              <ArticleCard
+                key={post.slug}
+                slug={post.slug}
+                path={post.path}
+                title={post.title}
+                summary={post.summary}
+                date={post.date}
+                readingTime={post.readingTime}
+                featuredImage={post.featuredImage}
+                category={post.category}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Featured Stories ──────────────────────────────────────── */}
       {featuredPosts.length > 0 && (

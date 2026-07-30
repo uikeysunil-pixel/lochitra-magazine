@@ -24,8 +24,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteMetadata.siteUrl),
+  applicationName: 'Locitra',
   title: {
-    default: siteMetadata.title,
+    default: 'Locitra',
     template: `%s | Locitra`,
   },
   description: siteMetadata.description,
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: siteMetadata.author }],
   creator: siteMetadata.author,
-  publisher: siteMetadata.title,
+  publisher: 'Locitra',
   icons: {
     icon: [
       { url: '/static/favicons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

@@ -18,7 +18,7 @@ The Locitra Editorial Operating System (LEOS) is a specialized AI framework desi
 
 ## Governance
 
-All LEOS agents inherit global governance from `.agents/AGENTS.md`. The operational behavior, workflow coordination, and system architecture is defined by `LEOS/MASTER_PROMPT.md`. Global configuration and certified benchmarks are handled via `LEOS/CONFIG.md` and `LEOS/REFERENCE_IMPLEMENTATIONS.md`.
+All LEOS agents inherit global governance from `.agents/AGENTS.md`. The operational behavior, workflow coordination, and system architecture is defined by `LEOS/core/MASTER_PROMPT.md`. Global configuration and certified benchmarks are handled via `LEOS/core/CONFIG.md` and `LEOS/REFERENCE_IMPLEMENTATIONS.md`.
 
 ## Workflow & Architecture
 
@@ -30,15 +30,15 @@ The system is coordinated by the **Workflow Orchestrator**, which interprets use
 4. Platinum Editor
 5. Publishing Agent
 
-For more, see [Architecture](ARCHITECTURE.md) and [Pipeline](PIPELINE.md).
+For more, see [Architecture](../architecture/ARCHITECTURE.md) and [Pipeline](../operations/PIPELINE.md).
 
 ## Knowledge Repository
 
-LEOS relies on a centralized repository (`knowledge/`) containing subdirectories for research, seo, editorial, and publishing. This acts as the stateless memory for the Orchestrator. See [Directory Structure](DIRECTORY_STRUCTURE.md).
+LEOS relies on a centralized repository (`knowledge/`) containing subdirectories for research, seo, editorial, and publishing. This acts as the stateless memory for the Orchestrator. See [Directory Structure](../architecture/DIRECTORY_STRUCTURE.md).
 
 ## Artifact Lifecycle
 
-Every agent produces standardized markdown artifacts (e.g., `RESEARCH_REPORT.md`, `SEO_PATCH.md`). These artifacts dictate the data flow and act as the permanent record of the editorial decisions. See [Artifacts](ARTIFACTS.md).
+Every agent produces standardized markdown artifacts (e.g., `RESEARCH_REPORT.md`, `SEO_PATCH.md`). These artifacts dictate the data flow and act as the permanent record of the editorial decisions. See [Artifacts](../ARTIFACTS.md).
 
 ## Release Process & Versioning
 
@@ -51,4 +51,4 @@ As of v1.0, the Core Pipeline (Governance, Orchestrator, Research, Writing, SEO,
 
 ## Future Evolution
 
-Future development is restricted to the **LEOS Strategic Layer**, which will introduce the Master Architect, Analytics Agent, and Maintenance Agent. See the [Roadmap](ROADMAP.md).
+Future development is restricted to the **LEOS Strategic Layer**, which will introduce the Master Architect, Analytics Agent, and Maintenance Agent. See the [Roadmap](../management/ROADMAP.md).

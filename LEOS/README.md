@@ -15,24 +15,28 @@ LEOS is a highly structured, agentic AI editorial framework designed specificall
 
 LEOS operates on a linear, highly controlled pipeline.
 `Prompt → Orchestrator → Research → Writing → SEO → Editorial → Publishing → Git`
-For full details, read the [Architecture Guide](ARCHITECTURE.md).
+For full details, read the [Architecture Guide](architecture/ARCHITECTURE.md).
 
 ## Documentation Index
 
-- [Official LEOS Manual](LEOS.md)
-- [Architecture & Boundaries](ARCHITECTURE.md)
+- [Official LEOS Manual](core/LEOS.md)
+- [Architecture & Boundaries](architecture/ARCHITECTURE.md)
 - [Agent Index](AGENT_INDEX.md)
-- [Pipeline Execution](PIPELINE.md)
-- [Supported Workflows](WORKFLOWS.md)
+- [Pipeline Execution](operations/PIPELINE.md)
+- [Supported Workflows](operations/WORKFLOWS.md)
 - [Artifact Lifecycle](ARTIFACTS.md)
-- [Directory Structure](DIRECTORY_STRUCTURE.md)
-- [Version History](VERSION_HISTORY.md)
-- [Changelog](CHANGELOG.md)
-- [Future Roadmap](ROADMAP.md)
+- [Directory Structure](architecture/DIRECTORY_STRUCTURE.md)
+- [Version History](management/VERSION_HISTORY.md)
+- [Changelog](management/CHANGELOG.md)
+- [Future Roadmap](management/ROADMAP.md)
 
 ## Quick Start
 
-New to LEOS? Start with our [15-Minute Quick Start Guide](QUICK_START.md) or learn how to contribute via the [Contributing Guidelines](CONTRIBUTING.md).
+New to LEOS? Start with our [15-Minute Quick Start Guide](operations/QUICK_START.md) or learn how to contribute via the [Contributing Guidelines](governance/CONTRIBUTING.md).
+
+## Deferred Documents
+
+Some documents intentionally remain at the LEOS root until their long-term architectural ownership has been approved. For details and architectural justifications, see the [Deferred Document Register](management/DEFERRED_DOCUMENT_REGISTER.md).
 
 ## Current Version
 

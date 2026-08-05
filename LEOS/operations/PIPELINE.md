@@ -1,6 +1,6 @@
 # LEOS Execution Pipeline
 
-The standard LEOS execution pipeline ensures articles are researched, written, vetted, and deployed in a fail-safe, predictable manner. The automated execution logic is centrally defined in `LEOS/MASTER_PROMPT.md`.
+The standard LEOS execution pipeline ensures articles are researched, written, vetted, and deployed in a fail-safe, predictable manner. The automated execution logic is centrally defined in `LEOS/core/MASTER_PROMPT.md`.
 
 ## Phase 1: Research
 

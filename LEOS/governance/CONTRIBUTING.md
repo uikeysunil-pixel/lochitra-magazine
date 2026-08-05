@@ -45,4 +45,4 @@ Contentlayer is highly sensitive to line endings and requires Unix LF format.
 
 - **Why LF is required:** Windows CRLF line endings break Contentlayer's strict YAML frontmatter parser.
 - **Symptoms of CRLF problems:** Build failures with `Unexpected scalar at node end` errors, and Contentlayer skipping documents ("Invalid markdown").
-- **Standard recovery procedure:** If errors occur, verify files use LF. You can usually fix them by running `git add --renormalize .`. See [CHANGELOG.md](./CHANGELOG.md) for when this standard was implemented, and [DIRECTORY_STRUCTURE.md](./DIRECTORY_STRUCTURE.md) for where content lives.
+- **Standard recovery procedure:** If errors occur, verify files use LF. You can usually fix them by running `git add --renormalize .`. See [CHANGELOG.md](../management/CHANGELOG.md) for when this standard was implemented, and [DIRECTORY_STRUCTURE.md](../architecture/DIRECTORY_STRUCTURE.md) for where content lives.

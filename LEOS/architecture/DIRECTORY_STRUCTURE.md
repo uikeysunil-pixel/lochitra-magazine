@@ -22,11 +22,14 @@ The production content directory. All generated `.mdx` files are saved here for 
 
 ## `LEOS/`
 
-This directory. Contains the official operating manual, architecture specifications, configuration, and contributor guides.
+This directory. Contains the official operating manual, architecture specifications, configuration, governance, operations, management, and contributor guides.
 
-- `MASTER_PROMPT.md`: The constitutional execution document for the Workflow Orchestrator.
-- `CONFIG.md`: Global repository configuration and defaults.
-- `REFERENCE_IMPLEMENTATIONS.md`: The permanent registry of certified editorial benchmarks.
+- Deferred files at root: `REFERENCE_IMPLEMENTATIONS.md`, `AGENT_INDEX.md`, `ARTIFACTS.md`, `LEOS_DOCUMENTATION_REPORT.md`.
+- `core/`: Contains `LEOS.md` (Operating Manual), `MASTER_PROMPT.md` (Constitutional Execution Core), and `CONFIG.md` (Global Configuration).
+- `governance/`: Contains `CONTRIBUTING.md`.
+- `architecture/`: Contains `ARCHITECTURE.md` and `DIRECTORY_STRUCTURE.md`.
+- `operations/`: Contains `PIPELINE.md`, `WORKFLOWS.md`, and `QUICK_START.md`.
+- `management/`: Contains `ROADMAP.md`, `VERSION_HISTORY.md`, and `CHANGELOG.md`.
 
 ## `public/static/images/blog/`
 

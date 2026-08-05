@@ -5,8 +5,8 @@ This document catalogs every component currently implemented in LEOS v1.0. All p
 ## 1. Global Governance & Configuration
 
 - **Governance:** `.agents/AGENTS.md` (Permissions, boundaries, frozen policies)
-- **Execution:** `LEOS/MASTER_PROMPT.md` (Workflow orchestration, automation rules)
-- **Configuration:** `LEOS/CONFIG.md` (Global settings)
+- **Execution:** `LEOS/core/MASTER_PROMPT.md` (Workflow orchestration, automation rules)
+- **Configuration:** `LEOS/core/CONFIG.md` (Global settings)
 - **Benchmarks:** `LEOS/REFERENCE_IMPLEMENTATIONS.md` (Certified archetypes)
 
 ## 2. Workflow Orchestrator

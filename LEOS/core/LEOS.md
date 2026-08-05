@@ -1,54 +1,113 @@
-# LEOS Official Operating Manual
+# LEOS: Editorial Operating Manual
 
-## Executive Summary
+## Purpose
 
-The Locitra Editorial Operating System (LEOS) is a specialized AI framework designed to consistently produce Platinum-quality editorial content. By dividing the publishing process into strictly bound, single-responsibility AI agents, LEOS guarantees factual accuracy, commercial neutrality, and technical excellence.
+The Locitra Editorial Operating System (LEOS) is the constitutional operating framework governing content production, quality evaluation, and publishing workflows across the Locitra publication ecosystem. LEOS establishes the operational boundaries, core principles, decision hierarchies, and human-AI collaboration models required to deliver Platinum-quality editorial content with total consistency and technical integrity.
 
-## Vision & Mission
+## Vision
 
-**Vision:** To build an autonomous editorial pipeline capable of competing with world-class human-led technology publications.
-**Mission:** To enable Locitra to publish Platinum-quality content consistently across hundreds of articles and multiple commercial clusters by prioritizing reader value over raw word count.
+To build a world-class, autonomous editorial operating subsystem capable of producing authoritative technology and digital business publications that compete with leading human-led industry journals.
 
-## Design Philosophy & Core Principles
+## Mission
 
-1. **Read-Only by Default:** Audit stages never modify project files automatically.
-2. **Explicit Apply Mode:** Modifications require explicit approval and human-in-the-loop oversight.
-3. **Single Responsibility:** No agent may perform the duties of another.
-4. **Stability First:** Editorial quality always takes precedence over software novelty.
+To enable Locitra to consistently publish Platinum-quality, deeply researched, and commercially neutral content across hundreds of articles and commercial clusters by prioritizing reader value, factual rigor, and E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) standards over raw publication volume.
 
-## Governance
+## Constitutional Scope
 
-All LEOS agents inherit global governance from `.agents/AGENTS.md`. The operational behavior, workflow coordination, and system architecture is defined by `LEOS/core/MASTER_PROMPT.md`. Global configuration and certified benchmarks are handled via `LEOS/core/CONFIG.md` and `LEOS/REFERENCE_IMPLEMENTATIONS.md`.
+This manual serves as the supreme constitutional document governing all editorial operations within LEOS. It defines the core authority, operating philosophy, decision hierarchy, and high-level governance model of the Editorial Operating System. Low-level technical specifications, execution pipelines, contribution workflows, and directory structures are intentionally delegated to specialized Architecture, Pipeline, Governance, and Operations documents.
 
-## Workflow & Architecture
+## Operating Philosophy
 
-The system is coordinated by the **Workflow Orchestrator**, which interprets user prompts and invokes the necessary specialists:
+LEOS operates under five foundational philosophical tenets:
 
-1. Research Validation Agent
-2. Writing Agent
-3. SEO Optimization Agent
-4. Platinum Editor
-5. Publishing Agent
+- **Quality Over Quantity:** Editorial performance is measured by information density, technical accuracy, and reader value rather than arbitrary word counts or output velocity.
+- **Evidence Before Opinion:** Every technical assertion, benchmark rating, and product comparison must originate from verified empirical evidence compiled prior to content generation.
+- **Editorial Integrity:** Commercial neutrality, objective evaluation, and strict E-E-A-T standards are non-negotiable across all publication categories.
+- **Human Oversight:** Automation assists and accelerates editorial workflows, but final publishing authority and state-changing file modifications remain strictly under human control.
+- **Automation with Accountability:** AI agents execute within bounded, single-responsibility domains where every stage produces transparent, auditable markdown artifacts.
 
-For more, see [Architecture](../architecture/ARCHITECTURE.md) and [Pipeline](../operations/PIPELINE.md).
+## Core Principles
 
-## Knowledge Repository
+LEOS governance inherits four constitutional principles that dictate all system behavior:
 
-LEOS relies on a centralized repository (`knowledge/`) containing subdirectories for research, seo, editorial, and publishing. This acts as the stateless memory for the Orchestrator. See [Directory Structure](../architecture/DIRECTORY_STRUCTURE.md).
+- **Read-Only by Default:** Audit, evaluation, and quality review stages execute exclusively in read-only mode, generating analytical reports without mutating repository files.
+- **Explicit Apply Mode:** State modifications, file updates, and patch applications require explicit editorial authorization and multi-pass verification.
+- **Single Responsibility:** Every agent owns exactly one domain (Research, Writing, SEO, Editorial Review, Publishing). No component may absorb the duties of another.
+- **Stability First:** System reliability, publication safety, and editorial quality permanently take precedence over software novelty or experimental features.
 
-## Artifact Lifecycle
+## Editorial Operating Model
 
-Every agent produces standardized markdown artifacts (e.g., `RESEARCH_REPORT.md`, `SEO_PATCH.md`). These artifacts dictate the data flow and act as the permanent record of the editorial decisions. See [Artifacts](../ARTIFACTS.md).
+The editorial lifecycle within LEOS progresses conceptually through six distinct operational phases:
 
-## Release Process & Versioning
+1. **Intent & Topic Definition:** High-level editorial goals and cluster targets are established.
+2. **Factual Research & Validation:** Independent research compilation produces an immutable foundation of verified empirical data.
+3. **Structured Content Generation:** Factual research is transformed into Platinum-standard MDX article content.
+4. **Technical & SEO Intelligence Audit:** Content undergoes automated keyword optimization, structure audits, and metadata verification.
+5. **Platinum Editorial Review:** Multi-dimensional quality inspection evaluates writing rhythm, tone, readability, and editorial compliance.
+6. **Fail-Safe Release Verification:** Final build integrity, asset existence, and technical compliance are verified prior to deployment.
 
-Articles only reach the release phase if all upstream artifacts exist and no fatal blockers are raised by the Platinum Editor or Publishing Agent.
-LEOS adheres to semantic versioning for its own architecture.
+## AI Editorial Model
 
-## Frozen Components
+LEOS implements a multi-agent AI architecture based on stateless execution and strict domain separation:
 
-As of v1.0, the Core Pipeline (Governance, Orchestrator, Research, Writing, SEO, Editorial, Publishing) is officially **FROZEN**. Minor maintenance updates are allowed, but major architectural redesigns require explicit approval.
+- **Specialized AI Agents:** Autonomous agents execute dedicated roles (Research Validation, Writing, SEO Optimization, Platinum Editor, Publishing).
+- **Stateless Orchestration:** The Workflow Orchestrator acts purely as a stateless coordinator, routing artifacts and task contexts without retaining persistent state or performing specialist work.
+- **Bounded Responsibilities:** Agents operate strictly within pre-defined functional perimeters, preventing domain spillover and unintended system modifications.
+- **Immutable Research Dependencies:** Content generation depends entirely on pre-compiled factual research artifacts, eliminating hallucinations and unverified claims.
 
-## Future Evolution
+## Human Oversight Model
 
-Future development is restricted to the **LEOS Strategic Layer**, which will introduce the Master Architect, Analytics Agent, and Maintenance Agent. See the [Roadmap](../management/ROADMAP.md).
+Human editorial judgment represents the supreme authority within the LEOS operational model:
+
+- **Approval Responsibilities:** Humans hold exclusive authority to approve transition into Apply Mode, authorize release gate deployment, and accept metadata patches.
+- **Review & Validation Responsibilities:** Human editors review lower-confidence AI recommendations, evaluate edge cases, and inspect audit reports.
+- **Final Authority:** In any conflict between automated recommendations and human editorial expertise, human judgment prevails unconditionally.
+
+## Decision Hierarchy
+
+Operational and editorial decisions within LEOS strictly follow a seven-tier decision flow:
+
+```
+Human Editorial Authority
+ ↓
+LEOS Constitution
+ ↓
+Repository Governance
+ ↓
+System Architecture
+ ↓
+Operational Pipelines
+ ↓
+AI Agents
+ ↓
+Generated Editorial Artifacts
+```
+
+## Constitutional Relationships
+
+All downstream LEOS documentation and operational specifications derive their authority and functional responsibilities from this constitutional manual:
+
+- **[README](../README.md):** Subsystem entry point, homepage, and navigation hub for orientation.
+- **[Architecture](../architecture/ARCHITECTURE.md):** Subsystem boundaries, module structures, and component interaction rules.
+- **[Pipeline](../operations/PIPELINE.md):** Detailed technical specification of linear execution pipelines and release gates.
+- **[Governance](../governance/CONTRIBUTING.md):** Operational rules, developer contribution standards, and modification policies.
+- **[Roadmap](../management/ROADMAP.md):** Strategic evolution plan and future subsystem feature pipeline.
+- **[Quick Start](../operations/QUICK_START.md):** Practical 15-minute onboarding guide for editors and developers.
+- **[Version History](../management/VERSION_HISTORY.md):** Formal release history and semantic version tracking log.
+- **[Change Log](../management/CHANGELOG.md):** Historical record of structural modifications and patch releases.
+
+## Version Information
+
+| Metadata Field      | Value               |
+| :------------------ | :------------------ |
+| **Current Version** | 1.0.1               |
+| **Last Updated**    | 2026-08-05          |
+| **Document Path**   | `LEOS/core/LEOS.md` |
+| **Current Package** | Package 1           |
+| **Document Status** | Authoritative       |
+
+---
+
+**LEOS Constitution**  
+**Document:** LEOS.md | **Version:** 1.0.1 | **Status:** Authoritative  
+_Maintained under the LEOS Governance Foundation._

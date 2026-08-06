@@ -227,10 +227,10 @@ The LEOS documentation framework maintains strict domain boundaries across its c
 | **Version**         | 2.0                                   |
 | **Last Updated**    | 2026-08-05                            |
 | **Current Package** | Package 2                             |
-| **Document Status** | Authoritative                         |
+| **Document Status** | Authoritative / Frozen                |
 
 ---
 
 **LEOS Execution Pipeline Specification**  
-**Document:** PIPELINE.md | **Version:** 2.0 | **Status:** Authoritative  
+**Document:** PIPELINE.md | **Version:** 2.0 | **Status:** Authoritative / Frozen  
 _Maintained under the LEOS Governance Foundation._

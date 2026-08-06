@@ -255,9 +255,9 @@ This specification operates within the broader LEOS documentation framework. It 
 | **LEOS Framework Package** | Package 2 (Operational Intelligence & Agent Framework) |
 | **Governance Standard**    | ADR-001 Compliant                                      |
 | **Last Updated**           | 2026-08-06                                             |
-| **Document Status**        | Authoritative (Freeze Pending)                         |
+| **Document Status**        | Authoritative / Frozen                                 |
 
-> **Freeze Governance Note:** This specification becomes immutable only after explicit human approval, successful technical validation, Git commit, Git push, final repository verification, and formal freeze authorization under LEOS governance.
+> **Freeze Governance Note:** This specification is formally frozen under LEOS governance and becomes immutable following explicit human approval, successful technical validation, Git commit, Git push, final repository verification, and formal freeze authorization.
 
 ---
 
@@ -268,6 +268,6 @@ This specification operates within the broader LEOS documentation framework. It 
 LOCITRA EDITORIAL OPERATING SYSTEM (LEOS)
 Package 2 – Operational Intelligence & Agent Framework
 Document ID: LEOS-SPEC-CFG-2.0 | Canonical Path: LEOS/operations/RUNTIME_CONFIGURATION.md
-Governance: ADR-001 Compliant | Status: Authoritative (Freeze Pending)
+Governance: ADR-001 Compliant | Status: Authoritative / Frozen
 ===================================================================================
 ```

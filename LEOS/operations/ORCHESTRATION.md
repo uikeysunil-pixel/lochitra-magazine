@@ -257,7 +257,7 @@ This specification operates within the broader LEOS documentation framework. It 
 | **LEOS Framework Package** | Package 2 (Operational Intelligence & Agent Framework) |
 | **Governance Standard**    | ADR-001 Compliant                                      |
 | **Last Updated**           | 2026-08-06                                             |
-| **Document Status**        | Authoritative (Freeze Pending)                         |
+| **Document Status**        | Authoritative / Frozen                                 |
 
 ---
 
@@ -268,6 +268,6 @@ This specification operates within the broader LEOS documentation framework. It 
 LOCITRA EDITORIAL OPERATING SYSTEM (LEOS)
 Package 2 – Operational Intelligence & Agent Framework
 Document ID: LEOS-SPEC-ORCH-2.0 | Canonical Path: LEOS/operations/ORCHESTRATION.md
-Governance: ADR-001 Compliant | Status: Authoritative (Freeze Pending)
+Governance: ADR-001 Compliant | Status: Authoritative / Frozen
 ===================================================================================
 ```

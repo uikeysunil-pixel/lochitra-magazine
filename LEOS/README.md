@@ -42,16 +42,24 @@ LEOS coordinates the end-to-end editorial publishing process across six core fun
 
 ## Quick Navigation
 
-| Document              | Target Location                                                                      | Description                                              |
-| :-------------------- | :----------------------------------------------------------------------------------- | :------------------------------------------------------- |
-| **README**            | `README.md`                                                                          | Subsystem homepage and central navigation gateway.       |
-| **LEOS Manual**       | [core/LEOS.md](core/LEOS.md)                                                         | Official operating manual and framework specification.   |
-| **Architecture**      | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)                         | Subsystem boundaries and execution model.                |
-| **Pipeline**          | [operations/PIPELINE.md](operations/PIPELINE.md)                                     | Linear execution pipeline and release gate standards.    |
-| **Roadmap**           | [management/ROADMAP.md](management/ROADMAP.md)                                       | Strategic evolution plan and future subsystem features.  |
-| **Contributing**      | [governance/CONTRIBUTING.md](governance/CONTRIBUTING.md)                             | Guidelines and rules for contributing to LEOS.           |
-| **Quick Start**       | [operations/QUICK_START.md](operations/QUICK_START.md)                               | 15-minute onboarding guide for developers and editors.   |
-| **Deferred Register** | [management/DEFERRED_DOCUMENT_REGISTER.md](management/DEFERRED_DOCUMENT_REGISTER.md) | Authoritative tracking of root-level deferred documents. |
+| Document                   | Target Location                                                                      | Description                                               |
+| :------------------------- | :----------------------------------------------------------------------------------- | :-------------------------------------------------------- |
+| **README**                 | `README.md`                                                                          | Subsystem homepage and central navigation gateway.        |
+| **LEOS Manual**            | [core/LEOS.md](core/LEOS.md)                                                         | Official operating manual and framework specification.    |
+| **Architecture**           | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)                         | Subsystem boundaries and execution model.                 |
+| **Execution Pipeline**     | [operations/PIPELINE.md](operations/PIPELINE.md)                                     | Linear 6-stage execution sequence and release gates.      |
+| **Workflow Catalog**       | [operations/WORKFLOWS.md](operations/WORKFLOWS.md)                                   | Supported editorial workflow catalog and intent rules.    |
+| **Agent Index**            | [operations/AGENT_INDEX.md](operations/AGENT_INDEX.md)                               | Authoritative catalogue of runtime agents & directories.  |
+| **Artifact Specification** | [operations/ARTIFACTS.md](operations/ARTIFACTS.md)                                   | Authoritative artifact contracts, schemas, & states.      |
+| **Orchestration**          | [operations/ORCHESTRATION.md](operations/ORCHESTRATION.md)                           | Operational routing coordination & recovery policies.     |
+| **Execution Context**      | [operations/EXECUTION_CONTEXT.md](operations/EXECUTION_CONTEXT.md)                   | Session boundaries, contextual metadata, & state tracing. |
+| **Communication Protocol** | [operations/COMMUNICATION_PROTOCOL.md](operations/COMMUNICATION_PROTOCOL.md)         | Permitted communication channels, isolation, & integrity. |
+| **Runtime Configuration**  | [operations/RUNTIME_CONFIGURATION.md](operations/RUNTIME_CONFIGURATION.md)           | Operational execution defaults, safety, & precedence.     |
+| **Integration Spec**       | [operations/INTEGRATION.md](operations/INTEGRATION.md)                               | Architectural integration matrix & framework invariants.  |
+| **Roadmap**                | [management/ROADMAP.md](management/ROADMAP.md)                                       | Strategic evolution plan and future subsystem features.   |
+| **Contributing**           | [governance/CONTRIBUTING.md](governance/CONTRIBUTING.md)                             | Guidelines and rules for contributing to LEOS.            |
+| **Quick Start**            | [operations/QUICK_START.md](operations/QUICK_START.md)                               | 15-minute onboarding guide for developers and editors.    |
+| **Deferred Register**      | [management/DEFERRED_DOCUMENT_REGISTER.md](management/DEFERRED_DOCUMENT_REGISTER.md) | Authoritative tracking of root-level deferred documents.  |
 
 ## Getting Started
 

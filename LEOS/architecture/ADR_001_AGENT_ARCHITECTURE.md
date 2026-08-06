@@ -14,7 +14,7 @@ The review covered:
 
 - `.agents/AGENTS.md` — runtime governance bootstrap
 - `.agents/skills/` — executable skill implementations (Workflow Orchestrator, Writing Agent, Research Validation Agent, SEO Optimization Agent, Platinum Editor Agent, Publishing Agent)
-- `LEOS/AGENT_INDEX.md` — documentation catalogue of agents
+- `LEOS/operations/AGENT_INDEX.md` — documentation catalogue of agents
 - `LEOS/architecture/ARCHITECTURE.md` — structural topology and layer hierarchy
 - `LEOS/core/LEOS.md` — constitutional authority
 - `LEOS/operations/WORKFLOWS.md` — workflow-to-intent documentation mapping
@@ -68,7 +68,7 @@ The `LEOS/` directory owns all human-readable specifications, catalogues, archit
 | **Governance**     | Change control policies, freeze protocols, contribution standards   |
 | **Workflows**      | Workflow-to-intent mapping and selection contracts                  |
 | **Pipeline**       | Stage-to-agent execution sequence documentation                     |
-| **Catalogues**     | `AGENT_INDEX.md` — documentation catalogue of all agents            |
+| **Catalogues**     | `operations/AGENT_INDEX.md` — documentation catalogue of all agents |
 | **Specifications** | Constitutional authority, operational standards, management ledgers |
 
 ---
@@ -79,7 +79,7 @@ The `LEOS/` directory owns all human-readable specifications, catalogues, archit
 | :-------------------------- | :---------------------------------- | :----------------- | :----------------- | :---------------------------------------------------------------------------- |
 | **Runtime Bootstrap**       | `.agents/AGENTS.md`                 | Governance Layer   | Runtime System     | Inject editorial governance rules into every AI session                       |
 | **Skill Library**           | `.agents/skills/<agent>/SKILL.md`   | Execution Layer    | Runtime System     | Executable agent implementation — instructions, constraints, behavior         |
-| **Documentation Catalogue** | `LEOS/AGENT_INDEX.md`               | Subsystem Gateway  | LEOS Documentation | Human-readable catalogue of agent names, versions, I/O, and runtime locations |
+| **Documentation Catalogue** | `LEOS/operations/AGENT_INDEX.md`    | Operations Layer   | LEOS Documentation | Human-readable catalogue of agent names, versions, I/O, and runtime locations |
 | **Workflow Mapping**        | `LEOS/operations/WORKFLOWS.md`      | Operations Layer   | LEOS Documentation | Document workflow-to-intent selection contracts                               |
 | **Pipeline Mapping**        | `LEOS/operations/PIPELINE.md`       | Operations Layer   | LEOS Documentation | Document stage-to-agent execution sequence and release gates                  |
 | **Architecture**            | `LEOS/architecture/ARCHITECTURE.md` | Architecture Layer | LEOS Documentation | Define structural topology, boundaries, and dependency rules                  |
@@ -99,7 +99,7 @@ LEOS Constitution (core/LEOS.md)
           ↓
     Operations (operations/PIPELINE.md + WORKFLOWS.md)
           ↓
-    Documentation Catalogue (AGENT_INDEX.md)
+    Documentation Catalogue (operations/AGENT_INDEX.md)
           ↓
     Runtime Bootstrap (.agents/AGENTS.md)
           ↓
@@ -112,7 +112,7 @@ LEOS Constitution (core/LEOS.md)
 - Lower layers derive authority and configuration from higher layers.
 - Runtime skills must never reference or modify LEOS documentation artifacts.
 - Documentation must describe runtime behavior; it must never implement it.
-- `AGENT_INDEX.md` is a documentation artifact; it reads from but does not direct skill implementations.
+- `LEOS/operations/AGENT_INDEX.md` is a documentation artifact; it reads from but does not direct skill implementations.
 
 ---
 
@@ -120,7 +120,7 @@ LEOS Constitution (core/LEOS.md)
 
 ### Single Source of Truth
 
-Every agent's executable behavior lives in exactly one place: its `SKILL.md` file in `.agents/skills/`. Every agent's documentary description lives in exactly one place: its entry in `LEOS/AGENT_INDEX.md`. This prevents the documentation and implementation from diverging into conflicting versions of the same truth.
+Every agent's executable behavior lives in exactly one place: its `SKILL.md` file in `.agents/skills/`. Every agent's documentary description lives in exactly one place: its entry in `LEOS/operations/AGENT_INDEX.md`. This prevents the documentation and implementation from diverging into conflicting versions of the same truth.
 
 ### Separation of Concerns
 
@@ -136,7 +136,7 @@ Separating runtime from documentation enables independent evolution. Runtime ski
 
 ### Future Scalability
 
-As LEOS grows to Package 10 and beyond, the number of agents, workflows, and editorial patterns will increase significantly. A clear runtime-documentation boundary ensures that this growth does not produce architectural debt — each new agent produces one implementation artifact (in `.agents/`) and one documentation entry (in `LEOS/AGENT_INDEX.md`), never more.
+As LEOS grows to Package 10 and beyond, the number of agents, workflows, and editorial patterns will increase significantly. A clear runtime-documentation boundary ensures that this growth does not produce architectural debt — each new agent produces one implementation artifact (in `.agents/`) and one documentation entry (in `LEOS/operations/AGENT_INDEX.md`), never more.
 
 ---
 
@@ -148,9 +148,9 @@ Every future LEOS package must adhere to the following rules derived from this d
 
 2. **No governance documents in `.agents/`.** `.agents/` must not accumulate human-readable governance specifications. `AGENTS.md` is the sole governance artifact in `.agents/`, and its purpose is runtime injection only.
 
-3. **Documentation catalogues are summaries, not implementations.** `AGENT_INDEX.md` entries must remain summary-level. If a future package is tempted to add prompt instructions to `AGENT_INDEX.md`, those instructions belong in a `SKILL.md` file instead.
+3. **Documentation catalogues are summaries, not implementations.** `LEOS/operations/AGENT_INDEX.md` entries must remain summary-level. If a future package is tempted to add prompt instructions to `LEOS/operations/AGENT_INDEX.md`, those instructions belong in a `SKILL.md` file instead.
 
-4. **One agent, two artifacts.** Every new agent added to LEOS produces exactly two artifacts: a `SKILL.md` in `.agents/skills/<agent>/` and a catalogue entry in `LEOS/AGENT_INDEX.md`. No more, no less.
+4. **One agent, two artifacts.** Every new agent added to LEOS produces exactly two artifacts: a `SKILL.md` in `.agents/skills/<agent>/` and a catalogue entry in `LEOS/operations/AGENT_INDEX.md`. No more, no less.
 
 5. **Cross-layer references are permitted; cross-layer implementation is not.** Documentation may link to the runtime layer. Documentation may describe the runtime layer. Documentation must never duplicate or implement the runtime layer.
 
@@ -167,7 +167,7 @@ Every future LEOS package must adhere to the following rules derived from this d
 | **[Architecture Specification](ARCHITECTURE.md)**                     | `LEOS/architecture/ARCHITECTURE.md`         | Primary structural specification; this ADR supplements `ARCHITECTURE.md` with an explicit runtime boundary decision. It does NOT replace `ARCHITECTURE.md`. Architecture remains the authoritative structural specification; ADR-001 records a permanent design decision within that structure. |
 | **[Execution Pipeline](../operations/PIPELINE.md)**                   | `LEOS/operations/PIPELINE.md`               | Documents stage-to-agent mapping; implementation lives in skills                                                                                                                                                                                                                                |
 | **[Workflow Catalog](../operations/WORKFLOWS.md)**                    | `LEOS/operations/WORKFLOWS.md`              | Documents workflow-to-intent mapping; selection logic lives in Orchestrator skill                                                                                                                                                                                                               |
-| **[Agent Index](../AGENT_INDEX.md)**                                  | `LEOS/AGENT_INDEX.md`                       | Documentation catalogue; the primary LEOS artifact that cross-references runtime skills                                                                                                                                                                                                         |
+| **[Agent Index](../operations/AGENT_INDEX.md)**                       | `LEOS/operations/AGENT_INDEX.md`            | Documentation catalogue; the primary LEOS artifact that cross-references runtime skills                                                                                                                                                                                                         |
 | **[AGENTS.md](../../.agents/AGENTS.md)**                              | `.agents/AGENTS.md`                         | Runtime bootstrap; the primary runtime artifact that enforces governance rules                                                                                                                                                                                                                  |
 | **[Master Package Roadmap](../management/MASTER_PACKAGE_ROADMAP.md)** | `LEOS/management/MASTER_PACKAGE_ROADMAP.md` | Governs the package sequence in which this ADR's rules will be operationalized                                                                                                                                                                                                                  |
 

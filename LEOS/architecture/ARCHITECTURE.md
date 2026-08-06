@@ -170,10 +170,10 @@ The architectural structure maps directly to the physical directory structure of
 | **Governance Layer**   | `LEOS/governance/`, `.agents/` | `CONTRIBUTING.md`, `AGENTS.md`                                                      |
 | **Core Layer**         | `LEOS/core/`                   | `LEOS.md`, `CONFIG.md`, `MASTER_PROMPT.md`                                          |
 | **Architecture Layer** | `LEOS/architecture/`           | `ARCHITECTURE.md`, `DIRECTORY_STRUCTURE.md`                                         |
-| **Operations Layer**   | `LEOS/operations/`             | `PIPELINE.md`, `WORKFLOWS.md`, `QUICK_START.md`                                     |
+| **Operations Layer**   | `LEOS/operations/`             | `PIPELINE.md`, `WORKFLOWS.md`, `QUICK_START.md`, `AGENT_INDEX.md`                   |
 | **Management Layer**   | `LEOS/management/`             | `ROADMAP.md`, `CHANGELOG.md`, `VERSION_HISTORY.md`, `DEFERRED_DOCUMENT_REGISTER.md` |
 | **Execution Layer**    | `.agents/`                     | Specialist skill prompts, execution tools, reference implementations                |
-| **Subsystem Gateway**  | `LEOS/` (Root)                 | `README.md`, `AGENT_INDEX.md`, `ARTIFACTS.md`                                       |
+| **Subsystem Gateway**  | `LEOS/` (Root)                 | `README.md`, `ARTIFACTS.md`                                                         |
 
 For detailed directory layout rules and file placement guidelines, refer to [DIRECTORY_STRUCTURE.md](DIRECTORY_STRUCTURE.md).
 

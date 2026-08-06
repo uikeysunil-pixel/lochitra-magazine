@@ -382,9 +382,10 @@ This registry operates within the broader LEOS documentation framework. It cross
 
 | Property                   | Value                                                  |
 | :------------------------- | :----------------------------------------------------- |
-| **Document Status**        | Authoritative (Freeze Pending)                         |
+| **Document Status**        | Authoritative / Frozen                                 |
 | **Specification Version**  | 2.0                                                    |
 | **LEOS Framework Package** | Package 2 (Operational Intelligence & Agent Framework) |
 | **Canonical File Path**    | `LEOS/operations/AGENT_INDEX.md`                       |
-| **Governance Standard**    | ADR-001 Compliant                                      |
-| **Last Updated**           | 2026-08-06                                             |
+
+| **Governance Standard** | ADR-001 Compliant |
+| **Last Updated** | 2026-08-06 |

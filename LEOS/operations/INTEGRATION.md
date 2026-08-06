@@ -53,6 +53,8 @@ The LEOS operational architecture operates as a cohesive ecosystem of specialize
 
 Rather than operating in isolation, the specifications form a layered operational topology where constitutional principles ([LEOS.md](../core/LEOS.md), [ADR-001](../architecture/ADR_001_AGENT_ARCHITECTURE.md)) govern operational standards, which in turn regulate stateless runtime agent execution (`.agents/skills/`).
 
+> **Integration Narrative:** `INTEGRATION.md` serves as the architectural bridge between the independent operational specifications. It explains how the specifications collectively form a unified operational system while preserving the individual ownership of every operational concern.
+
 ### 4.1 Specification Responsibility Matrix
 
 | Specification                   | Primary Responsibility                                                      | Depends On                     |
@@ -68,6 +70,8 @@ Rather than operating in isolation, the specifications form a layered operationa
 | **`INTEGRATION.md`**            | **Governs cross-specification integration, relationships, and invariants.** | **All Operational Specs**      |
 
 > **Integration Ownership Principle:** Every LEOS specification has one authoritative responsibility. `INTEGRATION.md` owns only the relationships between specifications and shall never duplicate or replace the responsibilities of any operational or architectural document.
+
+> **Specification Ownership Rule:** Every specification listed in this matrix owns one exclusive operational responsibility. Integration coordinates these responsibilities but never assumes ownership of them.
 
 ---
 
@@ -153,6 +157,8 @@ Runtime Implementation Layer (.agents/skills/ / .agents/AGENTS.md)
 
 > **Dependency Rule:** Integration relationships shall remain forward-only. Higher-level architectural specifications may reference lower operational specifications conceptually, but operational specifications shall never introduce circular dependencies or redefine architectural governance.
 
+> **Dependency Integrity Rule:** Cross-specification references exist solely to describe architectural relationships. They must never create implementation coupling, circular ownership, or duplicated governance.
+
 ---
 
 ## 9. Human Governance
@@ -184,14 +190,14 @@ Integration integrity ensures that the LEOS operational documentation suite rema
 As LEOS evolves in future packages, new operational specifications or capability modules must integrate strictly through this architecture:
 
 - **Non-Disruptive Expansion**: Future specifications shall integrate by establishing clear responsibility boundaries without modifying existing specification contracts.
-- **Invariant Preservation**: New integration modules must satisfy all eleven permanent integration invariants.
+- **Invariant Preservation**: New integration modules must satisfy all permanent integration invariants defined in Section 12.
 - **Governance Board Review**: Any proposed architectural integration change requires explicit human editorial approval.
 
 ---
 
 ## 12. Integration Invariants
 
-Regardless of future system expansion, the following eleven architectural properties must remain permanently invariant:
+Regardless of future system expansion, the following twelve architectural properties must remain permanently invariant:
 
 1. **ADR-001 Authority**: `ADR-001` remains the supreme architectural decision governing runtime vs. documentation separation.
 2. **Single Source of Truth**: Every operational concern has exactly one authoritative governing specification.
@@ -204,6 +210,7 @@ Regardless of future system expansion, the following eleven architectural proper
 9. **Enterprise Maintainability**: Specification integration must remain modular, clean, and easily auditable.
 10. **Backward Compatibility**: New integration capabilities must not invalidate existing frozen specifications.
 11. **Integration Consistency**: The complete LEOS documentation architecture shall maintain a consistent operational model where every responsibility is owned exactly once, every dependency remains unambiguous, and every specification integrates without architectural overlap.
+12. **Architectural Stability**: Future operational specifications shall integrate by extension rather than modification, preserving the integrity of previously approved specifications and maintaining backward compatibility across the LEOS architecture.
 
 ---
 

@@ -8,8 +8,15 @@ Downstream agents should use this index to verify the availability of approved r
 
 ## APPROVED RESEARCH CATALOG
 
-| Cluster           | Topic       | Status   | Current Version | Last Verified | Reviewer                          |
-| :---------------- | :---------- | :------- | :-------------- | :------------ | :-------------------------------- |
-| password-managers | proton-pass | Approved | 1.0             | 2026-07-16    | Locitra Research Validation Agent |
+| Cluster           | Topic                                            | Status   | Current Version | Last Verified | Reviewer                          |
+| :---------------- | :----------------------------------------------- | :------- | :-------------- | :------------ | :-------------------------------- |
+| password-managers | proton-pass                                      | Approved | 1.0             | 2026-07-16    | Locitra Research Validation Agent |
+| career-growth     | how-to-negotiate-salary-using-ai-2026            | Approved | 1.0             | 2026-08-07    | Locitra Research Validation Agent |
+| career-growth     | ai-leadership-for-managers-2026                  | Approved | 1.0             | 2026-08-07    | Locitra Research Validation Agent |
+| career-growth     | ai-productivity-stack-for-knowledge-workers-2026 | Approved | 1.0             | 2026-08-07    | Locitra Research Validation Agent |
+| career-growth     | ats-resume-optimization-guide-2026               | Approved | 1.0             | 2026-08-07    | Locitra Research Validation Agent |
+| career-growth     | corporate-to-consulting-transition-guide-2026    | Approved | 1.0             | 2026-08-07    | Locitra Research Validation Agent |
+| career-growth     | build-a-portfolio-that-gets-you-hired-2026       | Approved | 1.0             | 2026-08-08    | Locitra Research Validation Agent |
+| career-growth     | fractional-executive-career-roadmap-2026         | Approved | 1.0             | 2026-08-08    | Locitra Research Validation Agent |
 
 _This index is updated automatically by the Research Validation Agent when new approved research is added to the repository._

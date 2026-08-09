@@ -4,7 +4,25 @@ import { notFound } from 'next/navigation'
 import CategoryListLayout from '@/layouts/CategoryListLayout'
 import { CATEGORIES, CATEGORY_MAP } from '@/data/categoryData'
 
+import { Metadata } from 'next'
+import { genPageMetadata } from 'app/seo'
+
 const POSTS_PER_PAGE = 9
+
+export async function generateMetadata(props: {
+  params: Promise<{ category: string; page: string }>
+}): Promise<Metadata> {
+  const params = await props.params
+  const cat = CATEGORY_MAP[params.category]
+  if (!cat) return {}
+
+  const pageNumber = params.page
+  return genPageMetadata({
+    title: `${cat.name} - Page ${pageNumber}`,
+    description: `Browse page ${pageNumber} of ${cat.name} articles and resources on Locitra.`,
+    canonicalPath: `/categories/${params.category}/page/${pageNumber}`,
+  })
+}
 
 export const generateStaticParams = async () => {
   return CATEGORIES.flatMap((cat) => {

@@ -3,7 +3,22 @@ import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
 import { notFound } from 'next/navigation'
 
+import { Metadata } from 'next'
+import { genPageMetadata } from 'app/seo'
+
 const POSTS_PER_PAGE = 5
+
+export async function generateMetadata(props: {
+  params: Promise<{ page: string }>
+}): Promise<Metadata> {
+  const params = await props.params
+  const pageNumber = params.page
+  return genPageMetadata({
+    title: `All Posts - Page ${pageNumber}`,
+    description: `Browse page ${pageNumber} of published technology articles, AI guides, and digital business tutorials on Locitra.`,
+    canonicalPath: `/blog/page/${pageNumber}`,
+  })
+}
 
 export const generateStaticParams = async () => {
   const totalPages = Math.ceil(allBlogs.length / POSTS_PER_PAGE)

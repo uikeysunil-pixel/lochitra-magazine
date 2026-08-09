@@ -75,9 +75,18 @@ const TRUST_PAGES = [
   },
 ]
 
+import { buildContactPage, buildGraph } from '@/lib/schema'
+
 export default function ContactPage() {
+  const contactSchema = buildContactPage()
+  const jsonLd = buildGraph([contactSchema])
+
   return (
     <div className="mx-auto max-w-4xl divide-y divide-gray-200 pt-10 dark:divide-gray-700">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* SECTION A: Hero Introduction */}
       <div className="space-y-4 pb-12 text-center md:space-y-6 md:pb-16">
         <h1 className="text-4xl leading-9 font-extrabold tracking-tight text-gray-900 sm:text-5xl sm:leading-10 md:text-6xl md:leading-14 dark:text-gray-100">

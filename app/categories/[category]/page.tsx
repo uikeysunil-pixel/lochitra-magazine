@@ -6,6 +6,8 @@ import { genPageMetadata } from 'app/seo'
 import CategoryListLayout from '@/layouts/CategoryListLayout'
 import { CATEGORIES, CATEGORY_MAP } from '@/data/categoryData'
 
+import { buildGraph, buildCollectionPage, buildCategoryBreadcrumbs } from '@/lib/schema'
+
 const POSTS_PER_PAGE = 9
 
 export async function generateStaticParams() {
@@ -22,9 +24,7 @@ export async function generateMetadata(props: {
   return genPageMetadata({
     title: cat.name,
     description: cat.seoDescription,
-    alternates: {
-      canonical: `./`,
-    },
+    canonicalPath: `/categories/${params.category}`,
   })
 }
 
@@ -42,12 +42,31 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
   const totalPages = Math.ceil(allCategoryPosts.length / POSTS_PER_PAGE)
   const initialDisplayPosts = allCategoryPosts.slice(0, POSTS_PER_PAGE)
 
+  const collectionPageSchema = buildCollectionPage({
+    slug: cat.slug,
+    name: cat.name,
+    description: cat.seoDescription,
+  })
+
+  const breadcrumbSchema = buildCategoryBreadcrumbs({
+    slug: cat.slug,
+    name: cat.name,
+  })
+
+  const jsonLd = buildGraph([collectionPageSchema, breadcrumbSchema])
+
   return (
-    <CategoryListLayout
-      posts={allCategoryPosts}
-      category={cat}
-      initialDisplayPosts={initialDisplayPosts}
-      pagination={{ currentPage: 1, totalPages }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <CategoryListLayout
+        posts={allCategoryPosts}
+        category={cat}
+        initialDisplayPosts={initialDisplayPosts}
+        pagination={{ currentPage: 1, totalPages }}
+      />
+    </>
   )
 }

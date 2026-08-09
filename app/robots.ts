@@ -11,7 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: [
           '/api/', // Never crawl API routes — prevents scraping and quota abuse
-          '/tags/', // Tag archive pages are thin content; exclude from index
           '/_next/', // Next.js internals
         ],
       },

@@ -214,3 +214,51 @@ export type BreadcrumbListSchema = {
     item?: string
   }[]
 }
+
+export type CollectionPageSchema = {
+  '@type': 'CollectionPage'
+  '@id': string
+  name: string
+  description?: string
+  url: string
+  isPartOf?: {
+    '@id': string
+  }
+  publisher?: {
+    '@id': string
+  }
+  inLanguage?: string
+}
+
+export type AboutPageSchema = {
+  '@type': 'AboutPage'
+  '@id': string
+  name: string
+  description?: string
+  url: string
+  isPartOf?: {
+    '@id': string
+  }
+  publisher?: {
+    '@id': string
+  }
+  about?: {
+    '@id': string
+  }
+  inLanguage?: string
+}
+
+export type ContactPageSchema = {
+  '@type': 'ContactPage'
+  '@id': string
+  name: string
+  description?: string
+  url: string
+  isPartOf?: {
+    '@id': string
+  }
+  publisher?: {
+    '@id': string
+  }
+  inLanguage?: string
+}

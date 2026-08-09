@@ -13,6 +13,9 @@ import type {
   SoftwareApplicationSchema,
   OfferSchema,
   PricingData,
+  CollectionPageSchema,
+  AboutPageSchema,
+  ContactPageSchema,
 } from './schema-types'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog, Authors } from 'contentlayer/generated'
@@ -24,6 +27,7 @@ export const getPersonId = (slug: string) => `${siteMetadata.siteUrl}/author/${s
 export const getArticleId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}#article`
 export const getReviewId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}#review`
 export const getSoftwareId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}#software`
+export const getCategoryId = (slug: string) => `${siteMetadata.siteUrl}/categories/${slug}#category`
 
 // ── Validation Utility (Dev Only) ────────────────────────────────────────
 function validateSchemaNode(node: JsonLd) {
@@ -429,5 +433,131 @@ export function buildBreadcrumbs({
     itemListElement: items,
   }
 
+  return schema
+}
+
+/**
+ * Builds a CollectionPage schema for a Category Hub page.
+ */
+export function buildCollectionPage({
+  slug,
+  name,
+  description,
+}: {
+  slug: string
+  name: string
+  description?: string
+}): CollectionPageSchema {
+  const url = resolveAbsoluteUrl(`/categories/${slug}`)
+
+  const schema: CollectionPageSchema = {
+    '@type': 'CollectionPage',
+    '@id': getCategoryId(slug),
+    name: name,
+    description: description || `${name} articles, tutorials, and practical guides on Locitra.`,
+    url,
+    isPartOf: { '@id': WEBSITE_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+    inLanguage: siteMetadata.locale || 'en-US',
+  }
+
+  validateSchemaNode(schema as unknown as JsonLd)
+  return schema
+}
+
+/**
+ * Builds a BreadcrumbList schema for a Category Hub page.
+ * Structure: Home > Categories > Category Name
+ */
+export function buildCategoryBreadcrumbs({
+  slug,
+  name,
+}: {
+  slug: string
+  name: string
+}): BreadcrumbListSchema {
+  const siteUrl = siteMetadata.siteUrl
+
+  const schema: BreadcrumbListSchema = {
+    '@type': 'BreadcrumbList',
+    '@id': `${siteUrl}/categories/${slug}#breadcrumb`,
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: siteUrl,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Categories',
+        item: `${siteUrl}/categories`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: name,
+        item: `${siteUrl}/categories/${slug}`,
+      },
+    ],
+  }
+
+  validateSchemaNode(schema as unknown as JsonLd)
+  return schema
+}
+
+/**
+ * Builds an AboutPage schema for the /about page.
+ */
+export function buildAboutPage({
+  name = 'About Locitra',
+  description = siteMetadata.description,
+}: {
+  name?: string
+  description?: string
+} = {}): AboutPageSchema {
+  const url = resolveAbsoluteUrl('/about')
+
+  const schema: AboutPageSchema = {
+    '@type': 'AboutPage',
+    '@id': `${url}#webpage`,
+    name,
+    description,
+    url,
+    isPartOf: { '@id': WEBSITE_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+    about: { '@id': ORGANIZATION_ID },
+    inLanguage: siteMetadata.locale || 'en-US',
+  }
+
+  validateSchemaNode(schema as unknown as JsonLd)
+  return schema
+}
+
+/**
+ * Builds a ContactPage schema for the /contact page.
+ */
+export function buildContactPage({
+  name = 'Contact Locitra',
+  description = 'Get in touch with the Locitra editorial and administrative team.',
+}: {
+  name?: string
+  description?: string
+} = {}): ContactPageSchema {
+  const url = resolveAbsoluteUrl('/contact')
+
+  const schema: ContactPageSchema = {
+    '@type': 'ContactPage',
+    '@id': `${url}#webpage`,
+    name,
+    description,
+    url,
+    isPartOf: { '@id': WEBSITE_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+    inLanguage: siteMetadata.locale || 'en-US',
+  }
+
+  validateSchemaNode(schema as unknown as JsonLd)
   return schema
 }

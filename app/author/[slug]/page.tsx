@@ -27,7 +27,7 @@ export async function generateMetadata(props: {
   }
 
   return genPageMetadata({
-    title: `${author.name} | Editorial Profile & Published Articles | Locitra`,
+    title: `${author.name} — Editorial Profile & Published Articles`,
     description: `Read AI tools, technology trends, online income strategies, and software reviews written by ${author.name} on Locitra.`,
     canonicalPath: `/author/${params.slug}`,
   })

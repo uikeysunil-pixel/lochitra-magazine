@@ -267,7 +267,7 @@ export default function Home({
                       alt={heroPost.title}
                       fill
                       priority
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 45vw"
+                      sizes="(max-width: 640px) 94vw, (max-width: 1024px) 90vw, 45vw"
                       className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : heroCat ? (

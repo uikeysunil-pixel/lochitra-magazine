@@ -244,7 +244,7 @@ export default function PostLayout({
                 alt={title}
                 fill
                 priority
-                sizes="(max-width: 1280px) 100vw, 1280px"
+                sizes="(max-width: 640px) 94vw, (max-width: 1024px) 90vw, 1000px"
                 className="object-cover object-center"
               />
             </div>

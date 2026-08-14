@@ -1,27 +1,53 @@
-# Normalize all text files
+# ---------------------------------------------------
+# Locitra Repository Line Ending Policy
+# ---------------------------------------------------
+# LF line endings are strictly required across all source files,
+# Markdown, and MDX documents to maintain Contentlayer, Gray-Matter,
+# and Next.js compiler compatibility across POSIX and Windows environments.
+# MDX files must NEVER use CRLF endings; Windows CRLF line breaks cause
+# YAML frontmatter scalar parse errors (YAMLParseError) during build.
+# ---------------------------------------------------
+
+# Default
 * text=auto eol=lf
 
-# Explicitly enforce LF for all code and content
+# Markdown
 *.md text eol=lf
 *.mdx text eol=lf
+
+# Source code
 *.js text eol=lf
 *.jsx text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
+
+# Configuration
 *.json text eol=lf
-*.yaml text eol=lf
 *.yml text eol=lf
+*.yaml text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
 
 # Binary assets
 *.png binary
 *.jpg binary
 *.jpeg binary
-*.webp binary
 *.gif binary
+*.webp binary
+*.svg binary
 *.ico binary
-*.pdf binary
 *.woff binary
 *.woff2 binary
 *.ttf binary
-*.eot binary
+*.pdf binary
 *.zip binary

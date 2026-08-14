@@ -19,5 +19,8 @@ Downstream agents should use this index to verify the availability of approved r
 | career-growth     | build-a-portfolio-that-gets-you-hired-2026       | Approved | 1.0             | 2026-08-08    | Locitra Research Validation Agent |
 | career-growth     | fractional-executive-career-roadmap-2026         | Approved | 1.0             | 2026-08-08    | Locitra Research Validation Agent |
 | career-growth     | ai-interview-preparation-guide-2026              | Approved | 1.0             | 2026-08-09    | Locitra Research Validation Agent |
+| career-growth     | ai-upskilling-playbook-mid-career-2026           | Approved | 1.0             | 2026-08-10    | Locitra Research Validation Agent |
+| career-growth     | tech-compensation-equity-negotiation-2026        | Approved | 1.0             | 2026-08-11    | Locitra Research Validation Agent |
+| career-growth     | global-compensation-arbitrage-remote-2026        | Approved | 1.0             | 2026-08-12    | Locitra Research Validation Agent |
 
 _This index is updated automatically by the Research Validation Agent when new approved research is added to the repository._

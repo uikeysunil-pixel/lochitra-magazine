@@ -24,7 +24,7 @@ export async function generateMetadata(props: {
   return genPageMetadata({
     title: cat.name,
     description: cat.seoDescription,
-    canonicalPath: `/categories/${params.category}`,
+    canonicalPath: `/categories/${params.category}/`,
   })
 }
 

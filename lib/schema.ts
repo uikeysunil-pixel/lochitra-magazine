@@ -23,11 +23,12 @@ import type { Blog, Authors } from 'contentlayer/generated'
 // ── Standardized @id Constants ─────────────────────────────────────────────
 export const ORGANIZATION_ID = `${siteMetadata.siteUrl}/#organization`
 export const WEBSITE_ID = `${siteMetadata.siteUrl}/#website`
-export const getPersonId = (slug: string) => `${siteMetadata.siteUrl}/author/${slug}#person`
-export const getArticleId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}#article`
-export const getReviewId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}#review`
-export const getSoftwareId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}#software`
-export const getCategoryId = (slug: string) => `${siteMetadata.siteUrl}/categories/${slug}#category`
+export const getPersonId = (slug: string) => `${siteMetadata.siteUrl}/author/${slug}/#person`
+export const getArticleId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}/#article`
+export const getReviewId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}/#review`
+export const getSoftwareId = (slug: string) => `${siteMetadata.siteUrl}/blog/${slug}/#software`
+export const getCategoryId = (slug: string) =>
+  `${siteMetadata.siteUrl}/categories/${slug}/#category`
 
 // ── Validation Utility (Dev Only) ────────────────────────────────────────
 function validateSchemaNode(node: JsonLd) {
@@ -156,7 +157,7 @@ export function buildPerson(
     '@type': 'Person',
     '@id': getPersonId(slug),
     name: author.name,
-    url: resolveAbsoluteUrl(`/author/${slug}`),
+    url: resolveAbsoluteUrl(`/author/${slug}/`),
     worksFor: { '@id': ORGANIZATION_ID },
   }
 
@@ -185,7 +186,7 @@ export function buildBlogPosting(
   post: Blog | CoreContent<Blog>,
   authorDetails: CoreContent<Authors>[]
 ): BlogPostingSchema {
-  const articleUrl = resolveAbsoluteUrl(`/${post.path}`)
+  const articleUrl = resolveAbsoluteUrl(`/${post.path}/`)
 
   const schema: BlogPostingSchema = {
     '@type': 'BlogPosting',
@@ -199,9 +200,9 @@ export function buildBlogPosting(
     publisher: { '@id': ORGANIZATION_ID },
     isPartOf: {
       '@type': 'Blog',
-      '@id': `${siteMetadata.siteUrl}/blog#blog`,
+      '@id': `${siteMetadata.siteUrl}/blog/#blog`,
       name: siteMetadata.title,
-      url: resolveAbsoluteUrl('/blog'),
+      url: resolveAbsoluteUrl('/blog/'),
     },
     inLanguage: siteMetadata.locale || 'en-US',
   }
@@ -394,7 +395,9 @@ export function buildBreadcrumbs({
   category?: string
   categoryLabel?: string
 }): BreadcrumbListSchema {
-  const siteUrl = siteMetadata.siteUrl
+  const siteUrl = siteMetadata.siteUrl.endsWith('/')
+    ? siteMetadata.siteUrl
+    : `${siteMetadata.siteUrl}/`
 
   const items: BreadcrumbListSchema['itemListElement'] = [
     {
@@ -410,26 +413,26 @@ export function buildBreadcrumbs({
       '@type': 'ListItem',
       position: 2,
       name: categoryLabel,
-      item: `${siteUrl}/categories/${category}`,
+      item: `${siteUrl}categories/${category}/`,
     })
     items.push({
       '@type': 'ListItem',
       position: 3,
       name: title,
-      item: `${siteUrl}/blog/${slug}`,
+      item: `${siteUrl}blog/${slug}/`,
     })
   } else {
     items.push({
       '@type': 'ListItem',
       position: 2,
       name: title,
-      item: `${siteUrl}/blog/${slug}`,
+      item: `${siteUrl}blog/${slug}/`,
     })
   }
 
   const schema: BreadcrumbListSchema = {
     '@type': 'BreadcrumbList',
-    '@id': `${siteUrl}/blog/${slug}#breadcrumb`,
+    '@id': `${siteUrl}blog/${slug}/#breadcrumb`,
     itemListElement: items,
   }
 
@@ -448,7 +451,7 @@ export function buildCollectionPage({
   name: string
   description?: string
 }): CollectionPageSchema {
-  const url = resolveAbsoluteUrl(`/categories/${slug}`)
+  const url = resolveAbsoluteUrl(`/categories/${slug}/`)
 
   const schema: CollectionPageSchema = {
     '@type': 'CollectionPage',
@@ -476,11 +479,13 @@ export function buildCategoryBreadcrumbs({
   slug: string
   name: string
 }): BreadcrumbListSchema {
-  const siteUrl = siteMetadata.siteUrl
+  const siteUrl = siteMetadata.siteUrl.endsWith('/')
+    ? siteMetadata.siteUrl
+    : `${siteMetadata.siteUrl}/`
 
   const schema: BreadcrumbListSchema = {
     '@type': 'BreadcrumbList',
-    '@id': `${siteUrl}/categories/${slug}#breadcrumb`,
+    '@id': `${siteUrl}categories/${slug}/#breadcrumb`,
     itemListElement: [
       {
         '@type': 'ListItem',
@@ -492,13 +497,13 @@ export function buildCategoryBreadcrumbs({
         '@type': 'ListItem',
         position: 2,
         name: 'Categories',
-        item: `${siteUrl}/categories`,
+        item: `${siteUrl}categories/`,
       },
       {
         '@type': 'ListItem',
         position: 3,
         name: name,
-        item: `${siteUrl}/categories/${slug}`,
+        item: `${siteUrl}categories/${slug}/`,
       },
     ],
   }
@@ -517,7 +522,7 @@ export function buildAboutPage({
   name?: string
   description?: string
 } = {}): AboutPageSchema {
-  const url = resolveAbsoluteUrl('/about')
+  const url = resolveAbsoluteUrl('/about/')
 
   const schema: AboutPageSchema = {
     '@type': 'AboutPage',
@@ -545,7 +550,7 @@ export function buildContactPage({
   name?: string
   description?: string
 } = {}): ContactPageSchema {
-  const url = resolveAbsoluteUrl('/contact')
+  const url = resolveAbsoluteUrl('/contact/')
 
   const schema: ContactPageSchema = {
     '@type': 'ContactPage',

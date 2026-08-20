@@ -24,14 +24,14 @@ export async function submitIndexNow() {
 
     // 3. Always submit Homepage and Priority Category pages
     urlsToSubmit.add(`${siteUrl}/`)
-    urlsToSubmit.add(`${siteUrl}/categories`)
+    urlsToSubmit.add(`${siteUrl}/categories/`)
 
     // Discover unique categories from the actual blog posts
     const activeCategories = new Set(allBlogs.map((post) => post.category).filter(Boolean))
     for (const category of activeCategories) {
       // Basic slugification (lowercase, replace spaces with hyphens)
       const slug = category.toLowerCase().replace(/\s+/g, '-')
-      urlsToSubmit.add(`${siteUrl}/categories/${slug}`)
+      urlsToSubmit.add(`${siteUrl}/categories/${slug}/`)
     }
 
     // 4. Smart URL Discovery: Find recently created or modified articles
@@ -48,7 +48,7 @@ export async function submitIndexNow() {
       const modifiedDate = new Date(post.lastmod || post.date).getTime()
 
       if (now - modifiedDate <= SEVEN_DAYS_MS) {
-        urlsToSubmit.add(`${siteUrl}/blog/${post.slug}`)
+        urlsToSubmit.add(`${siteUrl}/blog/${post.slug}/`)
         recentArticlesCount++
       }
     }

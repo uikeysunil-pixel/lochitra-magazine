@@ -60,6 +60,11 @@ export default function Footer() {
                     label: 'Career Growth',
                   },
                   {
+                    slug: 'software-reviews',
+                    href: '/categories/software-reviews',
+                    label: 'Software Reviews',
+                  },
+                  {
                     slug: 'success-stories',
                     href: '/categories/success-stories',
                     label: 'Success Stories',

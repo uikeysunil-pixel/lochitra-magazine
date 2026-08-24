@@ -24,6 +24,8 @@ export async function generateMetadata(props: {
   })
 }
 
+export const dynamicParams = false
+
 export const generateStaticParams = async () => {
   return CATEGORIES.flatMap((cat) => {
     const allCategoryPosts = allBlogs.filter((post) => !post.draft && post.category === cat.slug)

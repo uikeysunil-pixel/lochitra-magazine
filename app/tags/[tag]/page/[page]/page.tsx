@@ -22,6 +22,8 @@ export async function generateMetadata(props: {
   })
 }
 
+export const dynamicParams = false
+
 export const generateStaticParams = async () => {
   const tagCounts = tagData as Record<string, number>
   return Object.keys(tagCounts).flatMap((tag) => {

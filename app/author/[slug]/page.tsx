@@ -11,6 +11,8 @@ import ArticleCard from '@/components/ArticleCard'
 import { MDXLayoutRenderer } from 'pliny/mdx-components'
 import { components } from '@/components/MDXComponents'
 
+export const dynamicParams = false
+
 export const generateStaticParams = async () => {
   return allAuthors.map((author) => ({
     slug: author.slug,

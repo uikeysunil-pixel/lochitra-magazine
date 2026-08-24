@@ -10,6 +10,8 @@ import { buildGraph, buildCollectionPage, buildCategoryBreadcrumbs } from '@/lib
 
 const POSTS_PER_PAGE = 9
 
+export const dynamicParams = false
+
 export async function generateStaticParams() {
   return CATEGORIES.map((cat) => ({ category: cat.slug }))
 }

@@ -48,7 +48,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { submitToIndexNow, getSiteUrl } from '@/lib/indexnow'
 
 export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-static'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 1. Authenticate ──────────────────────────────────────────────────────

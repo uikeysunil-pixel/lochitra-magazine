@@ -1,0 +1,109 @@
+name: Generate & Validate Linux Lockfile
+
+on:
+  push:
+    branches:
+      - experiment/cloudflare-static-export
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Environment Information
+        run: |
+          echo "=== Node & npm Versions ==="
+          node --version
+          npm --version
+          echo "OS: $(uname -a)"
+
+      - name: Regenerate Lockfile on Linux
+        run: |
+          echo "=== Running npm install --package-lock-only on Linux ==="
+          npm install --package-lock-only
+
+      - name: Verify package.json Integrity
+        run: |
+          echo "=== Checking package.json has ZERO modifications ==="
+          git diff --exit-code package.json || (echo "ERROR: package.json was modified!" && exit 1)
+          echo "SUCCESS: package.json is completely untouched."
+
+      - name: Inspect Lockfile for emnapi & wasm dependencies
+        run: |
+          node -e "
+          const fs = require('fs');
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          
+          console.log('=== Inspecting emnapi packages in Linux package-lock.json ===');
+          const emnapiPkgs = Object.keys(lock.packages || {}).filter(k => k.includes('emnapi'));
+          console.log('Total emnapi entries found:', emnapiPkgs.length);
+          emnapiPkgs.forEach(k => console.log(' -', k, lock.packages[k].version, 'inBundle:', lock.packages[k].inBundle));
+          
+          const hasRuntime = !!lock.packages['node_modules/@emnapi/runtime'];
+          const hasCore = !!lock.packages['node_modules/@emnapi/core'];
+          console.log('\nTop-level node_modules/@emnapi/runtime present?:', hasRuntime);
+          if (hasRuntime) console.log(' -> @emnapi/runtime version:', lock.packages['node_modules/@emnapi/runtime'].version);
+          console.log('Top-level node_modules/@emnapi/core present?:', hasCore);
+          if (hasCore) console.log(' -> @emnapi/core version:', lock.packages['node_modules/@emnapi/core'].version);
+          
+          console.log('\n=== Checking dependencies of @tailwindcss/oxide-wasm32-wasi ===');
+          console.log(lock.packages['node_modules/@tailwindcss/oxide-wasm32-wasi']);
+          
+          console.log('\n=== Checking dependencies of @img/sharp-wasm32 ===');
+          console.log(lock.packages['node_modules/@img/sharp-wasm32']);
+          
+          console.log('\n=== Checking dependencies of @napi-rs/wasm-runtime ===');
+          console.log(lock.packages['node_modules/@napi-rs/wasm-runtime']);
+          "
+
+      - name: Test Clean Linux npm ci
+        run: |
+          echo "=== Running clean npm ci on Linux ==="
+          npm ci
+          echo "=== npm ci completed successfully ==="
+
+      - name: Test Production Export Build
+        run: |
+          echo "=== Running npx cross-env EXPORT=true npm run build on Linux ==="
+          npx cross-env EXPORT=true npm run build
+          echo "=== Build completed successfully ==="
+
+      - name: Verify Export Artifacts
+        run: |
+          echo "=== Verifying static export artifacts ==="
+          test -f out/index.html && echo "✓ out/index.html exists"
+          test -f out/404.html && echo "✓ out/404.html exists"
+          test -f out/sitemap.xml && echo "✓ out/sitemap.xml exists"
+          test -f out/robots.txt && echo "✓ out/robots.txt exists"
+          test -f out/feed.xml && echo "✓ out/feed.xml exists"
+          
+          PAGE_COUNT=$(find out -name "*.html" | wc -l)
+          echo "Total exported HTML pages: $PAGE_COUNT"
+
+      - name: Display package-lock.json diff
+        run: |
+          echo "=== package-lock.json Diff Stat ==="
+          git diff --stat package-lock.json
+          echo "=== package-lock.json Numstat ==="
+          git diff --numstat package-lock.json
+          echo "=== package-lock.json Full Diff ==="
+          git diff package-lock.json
+
+      - name: Upload Generated Linux package-lock.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-package-lock
+          path: package-lock.json
+          if-no-files-found: error

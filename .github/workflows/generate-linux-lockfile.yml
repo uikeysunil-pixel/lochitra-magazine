@@ -32,7 +32,7 @@ jobs:
       - name: Regenerate Lockfile on Linux
         run: |
           echo "=== Running npm install --package-lock-only on Linux ==="
-          npm install --package-lock-only
+          npm install --package-lock-only --ignore-scripts
 
       - name: Verify package.json Integrity
         run: |

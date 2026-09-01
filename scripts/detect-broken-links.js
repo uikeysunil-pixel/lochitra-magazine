@@ -27,7 +27,7 @@ for (const file of files) {
 
   let match
   while ((match = regex.exec(content)) !== null) {
-    const slug = match[2]
+    const slug = match[2].replace(/\/$/, '')
     const targetFile = path.join(blogDir, slug + '.mdx')
     if (!fs.existsSync(targetFile)) {
       console.error(`❌ Broken link in ${path.basename(file)}: /blog/${slug}`)

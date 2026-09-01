@@ -15,11 +15,11 @@ const siteMetadata = {
   socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.webp`,
 
   email: 'contact@locitra.com',
-  github: '',
+  github: 'https://github.com/locitra',
   x: '',
   facebook: '',
   youtube: '',
-  linkedin: '',
+  linkedin: 'https://www.linkedin.com/in/sunilkumar-locitra',
   threads: '',
   instagram: '',
   medium: '',

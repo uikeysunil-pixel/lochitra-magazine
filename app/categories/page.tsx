@@ -8,6 +8,7 @@ export const metadata = genPageMetadata({
   title: 'Categories',
   description:
     'Browse all Locitra content categories — AI Tools, Technology, Online Income, Career Growth, and Success Stories.',
+  canonicalPath: '/categories/',
 })
 
 /** Count articles per category slug */

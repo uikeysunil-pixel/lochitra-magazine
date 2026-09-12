@@ -137,7 +137,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
       <meta
         name="impact-site-verification"
-        {...{ value: '11172166-26e0-4dc5-a44f-dc8f46b1fc37' }}
+        {...{ value: '2a21861b-e09a-4d4e-8946-4f57ce6b3b7c' }}
       />
       <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
       <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">

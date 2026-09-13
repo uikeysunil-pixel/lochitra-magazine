@@ -1,14 +1,14 @@
 /**
  * AffiliateDisclosure
  * ──────────────────────────────────────────────────────────────────────────────
- * FTC-compliant affiliate disclosure component for Locitra software review
- * articles. Place at the very top of any article that contains affiliate links.
+ * Affiliate disclosure component for Locitra.
+ * Outlines commercial transparency and editorial research methodology.
  *
  * Usage in MDX:
  *   <AffiliateDisclosure />
  *
  * Or with custom reviewer name:
- *   <AffiliateDisclosure reviewedBy="Sunil Kumar" />
+ *   <AffiliateDisclosure reviewedBy="Sunil Kumar Uikey" />
  */
 
 import Link from '@/components/Link'
@@ -49,9 +49,9 @@ export default function AffiliateDisclosure({
       {/* Text */}
       <div className="leading-relaxed">
         <span className="font-semibold">Disclosure:</span> This article may contain affiliate links.
-        If you purchase a product through our links, we may earn a small commission at{' '}
-        <strong>no additional cost to you</strong>. We only recommend products we have personally
-        evaluated and genuinely believe will benefit our readers.{' '}
+        If you purchase through our links, we may earn a referral commission at no additional cost
+        to you. Recommendations are based on editorial research, vendor documentation, and objective
+        evaluation criteria.{' '}
         <Link
           href="/disclaimer"
           className="underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-200"

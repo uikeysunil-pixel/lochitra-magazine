@@ -4,15 +4,14 @@ import Link from '@/components/Link'
 import CategoryIcon from '@/components/CategoryIcon'
 import NewsletterHubForm from '@/components/NewsletterHubForm'
 import NewsletterPageView from '@/components/NewsletterPageView'
+import { genPageMetadata } from 'app/seo'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = genPageMetadata({
   title: 'Locitra Newsletter | AI Tools, Software Reviews & Online Income Insights',
   description:
     'Join the Locitra newsletter and get weekly AI tools, software reviews, online income strategies, technology trends, and exclusive resources delivered to your inbox.',
-  alternates: {
-    canonical: './',
-  },
-}
+  canonicalPath: '/newsletter/',
+})
 
 export default function NewsletterPage() {
   return (

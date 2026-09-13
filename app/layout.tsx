@@ -14,6 +14,7 @@ import { ThemeProviders } from './theme-providers'
 import { Metadata } from 'next'
 import NewsletterPopupWrapper from '@/components/NewsletterPopupWrapper'
 import { buildGraph, buildOrganization, buildWebsite, buildPerson } from '@/lib/schema'
+import { getPrimaryAuthor } from '@/lib/authors'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Locitra',
     description: siteMetadata.description,
-    url: siteMetadata.siteUrl,
+    url: `${siteMetadata.siteUrl.replace(/\/$/, '')}/`,
     siteName: 'Locitra',
     images: [
       {
@@ -67,7 +68,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   alternates: {
-    canonical: siteMetadata.siteUrl,
+    canonical: `${siteMetadata.siteUrl.replace(/\/$/, '')}/`,
     types: {
       'application/rss+xml': `${siteMetadata.siteUrl}/feed.xml`,
     },
@@ -149,11 +150,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               buildGraph([
                 buildOrganization(),
                 buildWebsite(),
-                buildPerson({
-                  name: siteMetadata.author,
-                  occupation: 'Founder & Editor',
-                  email: siteMetadata.email,
-                }),
+                buildPerson(
+                  getPrimaryAuthor() || {
+                    name: siteMetadata.author,
+                    occupation: 'Founder & Editor',
+                    email: siteMetadata.email,
+                  }
+                ),
               ])
             ),
           }}

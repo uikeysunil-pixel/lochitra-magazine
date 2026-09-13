@@ -1,5 +1,5 @@
 /**
- * Single source of truth for Locitra's 5 primary categories.
+ * Single source of truth for Locitra's 6 primary categories.
  *
  * Used by:
  * - app/categories/page.tsx       (index page)
@@ -17,7 +17,7 @@ export interface Category {
   seoDescription: string
   /** Tailwind color token used for badge background/text — kept as a string
    *  so components can use template literals safely (avoids purge issues). */
-  color: 'violet' | 'blue' | 'green' | 'amber' | 'rose'
+  color: 'violet' | 'blue' | 'green' | 'amber' | 'rose' | 'indigo'
 }
 
 export const CATEGORIES: Category[] = [
@@ -64,7 +64,7 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'software-reviews',
     name: 'Software Reviews',
-    color: 'green',
+    color: 'indigo',
     description: 'In-depth analysis of the best software tools',
     seoDescription:
       'Comprehensive, hands-on reviews of the best software tools for productivity, security, and growth in 2026.',
@@ -83,6 +83,7 @@ export const CATEGORY_BADGE_CLASSES: Record<Category['color'], string> = {
   green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
   amber: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
   rose: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+  indigo: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
 }
 
 export const CATEGORY_GRADIENT_CLASSES: Record<Category['color'], string> = {
@@ -91,4 +92,5 @@ export const CATEGORY_GRADIENT_CLASSES: Record<Category['color'], string> = {
   green: 'from-green-600 to-green-800',
   amber: 'from-amber-500 to-amber-700',
   rose: 'from-rose-500 to-rose-700',
+  indigo: 'from-indigo-600 to-indigo-800',
 }

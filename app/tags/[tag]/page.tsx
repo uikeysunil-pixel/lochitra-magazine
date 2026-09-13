@@ -18,8 +18,9 @@ export async function generateMetadata(props: {
     title: tag,
     description: `${siteMetadata.title} ${tag} tagged content`,
     robots: { index: false, follow: true },
+    canonicalPath: `/tags/${params.tag}/`,
     alternates: {
-      canonical: './',
+      canonical: `${siteMetadata.siteUrl.replace(/\/$/, '')}/tags/${encodeURI(tag)}/`,
       types: {
         'application/rss+xml': `${siteMetadata.siteUrl}/tags/${tag}/feed.xml`,
       },

@@ -20,7 +20,7 @@ export async function generateMetadata(props: {
   return genPageMetadata({
     title: `${cat.name} - Page ${pageNumber}`,
     description: `Browse page ${pageNumber} of ${cat.name} articles and resources on Locitra.`,
-    canonicalPath: `/categories/${params.category}/page/${pageNumber}`,
+    canonicalPath: `/categories/${params.category}/page/${pageNumber}/`,
   })
 }
 

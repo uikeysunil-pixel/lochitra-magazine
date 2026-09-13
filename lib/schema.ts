@@ -215,9 +215,17 @@ export function buildBlogPosting(
     schema.keywords = post.tags
   }
 
-  // Handle authors mapping
+  // Handle authors mapping - reference canonical Person entity by @id to prevent duplicate conflicting nodes
   if (authorDetails && authorDetails.length > 0) {
-    const persons = authorDetails.map((author) => buildPerson(author))
+    const persons = authorDetails.map((author) => {
+      const slug = author.slug || author.name.toLowerCase().replace(/\s+/g, '-')
+      return {
+        '@type': 'Person' as const,
+        '@id': getPersonId(slug),
+        name: author.name,
+        url: resolveAbsoluteUrl(`/author/${slug}/`),
+      }
+    })
     schema.author = persons.length === 1 ? persons[0] : persons
   } else {
     // Fallback if no authors passed

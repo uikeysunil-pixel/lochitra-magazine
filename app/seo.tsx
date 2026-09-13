@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
-import { resolveAbsoluteUrl, resolvePostImage } from '@/lib/seo'
+import { getCanonicalUrl, resolvePostImage } from '@/lib/seo'
 
 interface PageSEOProps {
   title: string
@@ -21,7 +21,8 @@ export function genPageMetadata({
   const desc = description || siteMetadata.description
   const ogImage = resolvePostImage(image)
 
-  const canonical = canonicalPath ? resolveAbsoluteUrl(canonicalPath) : undefined
+  const canonical = canonicalPath ? getCanonicalUrl(canonicalPath) : undefined
+  const defaultUrl = `${siteMetadata.siteUrl.replace(/\/$/, '')}/`
 
   return {
     title,
@@ -30,7 +31,7 @@ export function genPageMetadata({
     openGraph: {
       title: `${title} | Locitra`,
       description: desc,
-      url: canonical || siteMetadata.siteUrl,
+      url: canonical || defaultUrl,
       siteName: 'Locitra',
       images: [
         {

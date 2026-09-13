@@ -7,7 +7,7 @@ import CategoryIcon from '@/components/CategoryIcon'
 export const metadata = genPageMetadata({
   title: 'Categories',
   description:
-    'Browse all Locitra content categories — AI Tools, Technology, Online Income, Career Growth, and Success Stories.',
+    'Browse all Locitra content categories — AI Tools, Technology, Online Income, Career Growth, Success Stories, and Software Reviews.',
   canonicalPath: '/categories/',
 })
 

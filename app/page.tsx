@@ -20,13 +20,13 @@ export const metadata: Metadata = {
   title: HOMEPAGE_TITLE,
   description: HOMEPAGE_DESCRIPTION,
   alternates: {
-    canonical: SITE_URL,
+    canonical: `${SITE_URL}/`,
     types: { 'application/rss+xml': `${SITE_URL}/feed.xml` },
   },
   openGraph: {
     title: HOMEPAGE_TITLE,
     description: HOMEPAGE_DESCRIPTION,
-    url: SITE_URL,
+    url: `${SITE_URL}/`,
     siteName: 'Locitra',
     images: [
       {

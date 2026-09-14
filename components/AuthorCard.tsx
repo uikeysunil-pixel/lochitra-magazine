@@ -59,10 +59,8 @@ export default function AuthorCard({
   github,
   expertise,
   yearsExperience,
-  certifications,
 }: AuthorCardProps) {
   const expertiseAreas = expertise || []
-  const isVerified = certifications?.includes('Verified Author') || name === 'Sunil Kumar Uikey'
   const authorSlug = slug || name.toLowerCase().replace(/\s+/g, '-')
   const displayBio = formatCardBio(bio)
 
@@ -111,7 +109,7 @@ export default function AuthorCard({
 
           {/* Content column */}
           <div className="min-w-0 flex-1">
-            {/* Header: Name + Verified Badge */}
+            {/* Header: Name */}
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <h3 className="text-lg font-extrabold text-gray-900 sm:text-xl dark:text-gray-100">
                 <Link
@@ -121,26 +119,6 @@ export default function AuthorCard({
                   {name}
                 </Link>
               </h3>
-              {isVerified && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full border border-blue-200/80 bg-blue-50/80 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300"
-                  aria-label="Verified author badge"
-                >
-                  <svg
-                    className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Verified Author
-                </span>
-              )}
             </div>
 
             {/* Role & Experience */}

@@ -11,13 +11,7 @@ export default function KasperskyBanner() {
         className="inline-block transition-opacity hover:opacity-90"
         aria-label="Kaspersky security solutions"
       >
-        <img
-          src="https://www.ttqklg.com/image-101881933-17338597"
-          width={150}
-          height={40}
-          alt=""
-          border={0}
-        />
+        <img src="https://www.ttqklg.com/image-101881933-17338597" width={150} height={40} alt="" />
       </a>
     </div>
   )

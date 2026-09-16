@@ -6,6 +6,7 @@ import Image from './Image'
 import CustomLink from './Link'
 import TableWrapper from './TableWrapper'
 import AffiliateDisclosure from './AffiliateDisclosure'
+import KasperskyBanner from './KasperskyBanner'
 
 export const components: MDXComponents = {
   Image,
@@ -16,4 +17,5 @@ export const components: MDXComponents = {
   BlogNewsletterForm,
   // ── Custom Locitra components ────────────────────────────────────────────
   AffiliateDisclosure,
+  KasperskyBanner,
 }

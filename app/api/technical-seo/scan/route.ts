@@ -104,6 +104,7 @@ export async function POST(request: Request) {
       {
         scanId,
         status: 'queued',
+        statusUrl: `/technical-seo/scan/${scanId}/`,
         productStage: 'mvp-background-scan',
         message: 'Your Technical SEO scan has been queued.',
       },

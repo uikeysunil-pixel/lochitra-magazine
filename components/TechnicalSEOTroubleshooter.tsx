@@ -13,6 +13,7 @@ type ScanStatusPayload = {
   crawlErrors: number
   urlsBlockedByRobots: number
   errorMessage?: string | null
+  reportUrl?: string | null
   result?: ScanResult
 }
 
@@ -131,7 +132,10 @@ export default function TechnicalSEOTroubleshooter() {
       setScanProgress(Math.max(0, Math.min(100, data.progressPercent || 0)))
 
       if (data.status === 'complete' && data.result) {
-        setResult(data.result)
+        setResult({
+          ...data.result,
+          reportUrl: data.reportUrl || data.result.reportUrl,
+        })
         setScanProgress(100)
         return
       }
@@ -347,6 +351,14 @@ export default function TechnicalSEOTroubleshooter() {
               <p className="text-center text-xs text-gray-500 dark:text-gray-400">
                 Diagnostic path: <span className="font-semibold">{selectedProblem.label}</span>
               </p>
+            )}
+            {result?.reportUrl && (
+              <a
+                href={result.reportUrl}
+                className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-900"
+              >
+                View permanent report
+              </a>
             )}
           </div>
 

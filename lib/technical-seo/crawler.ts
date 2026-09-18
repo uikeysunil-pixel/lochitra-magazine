@@ -189,6 +189,19 @@ export async function runCrawl(
     mixedContentCount: pageResults.reduce((sum, page) => sum + page.metrics.mixedContentCount, 0),
   }
 
+  const robotsFound = pageResults.some((page) => page.robotsTxt.found)
+  const disallowsRoot = pageResults.some((page) => page.robotsTxt.disallowsRoot)
+  const sitemapUrls = [
+    ...new Set(
+      pageResults.flatMap((page) => [
+        ...page.robotsTxt.sitemapUrls,
+        ...(page.sitemap.url ? [page.sitemap.url] : []),
+      ])
+    ),
+  ]
+  const firstSitemap = pageResults.find((page) => page.sitemap.found && page.sitemap.url)
+  const firstRobots = pageResults.find((page) => page.robotsTxt.found)
+
   return {
     scanId: randomUUID(),
     url: rootUrl,
@@ -203,6 +216,17 @@ export async function runCrawl(
     durationMs: Date.now() - startedAt,
     summary: summarize(findings),
     metrics: aggregatedMetrics,
+    robotsTxt: {
+      status: firstRobots?.robotsTxt.status ?? null,
+      found: robotsFound,
+      disallowsRoot,
+      sitemapUrls,
+    },
+    sitemap: {
+      url: firstSitemap?.sitemap.url ?? sitemapUrls[0] ?? null,
+      status: firstSitemap?.sitemap.status ?? null,
+      found: Boolean(firstSitemap || sitemapUrls.length > 0),
+    },
     findings,
   }
 }

@@ -87,6 +87,14 @@ export interface ScanResult {
   findings: Finding[]
 }
 
+export interface CrawlPage {
+  url: string
+  finalUrl: string
+  httpStatus: number
+  durationMs: number
+  state: 'complete' | 'failed'
+}
+
 export interface CrawlResult {
   scanId: string
   url: string
@@ -104,5 +112,6 @@ export interface CrawlResult {
   metrics: ScanResult['metrics']
   robotsTxt: ScanResult['robotsTxt']
   sitemap: ScanResult['sitemap']
+  pages: CrawlPage[]
   findings: Finding[]
 }

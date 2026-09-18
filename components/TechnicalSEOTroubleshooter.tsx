@@ -186,6 +186,7 @@ export default function TechnicalSEOTroubleshooter() {
       const data = (await response.json()) as {
         scanId?: string
         status?: ScanStatusPayload['status']
+        statusUrl?: string
         error?: string
       }
 

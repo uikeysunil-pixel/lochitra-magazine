@@ -3,6 +3,19 @@
 import { useMemo, useState } from 'react'
 import type { DiagnosticProblem, PlanId, ScanResult } from '@/lib/technical-seo/types'
 
+type ScanStatusPayload = {
+  scanId: string
+  status: 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
+  progressPercent: number
+  pagesChecked: number
+  pagesDiscovered: number
+  pagesNotCrawled: number
+  crawlErrors: number
+  urlsBlockedByRobots: number
+  errorMessage?: string | null
+  result?: ScanResult
+}
+
 const PROBLEMS: Array<{ id: DiagnosticProblem; label: string; description: string }> = [
   { id: 'indexing', label: "My pages aren't getting indexed", description: 'Check crawlability, indexability, canonicals, and sitemap signals.' },
   { id: 'traffic-drop', label: 'My organic traffic dropped', description: 'Start with technical signals that may coincide with a traffic change.' },
@@ -80,6 +93,8 @@ export default function TechnicalSEOTroubleshooter() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<ScanResult | null>(null)
+  const [scanStatus, setScanStatus] = useState<ScanStatusPayload['status'] | null>(null)
+  const [scanProgress, setScanProgress] = useState(0)
 
   const selectedProblem = useMemo(
     () => PROBLEMS.find((item) => item.id === problem),
@@ -93,10 +108,54 @@ export default function TechnicalSEOTroubleshooter() {
     [recommendedPlan]
   )
 
+  async function wait(ms: number) {
+    await new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  async function pollScan(scanId: string) {
+    const maxAttempts = 120
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const response = await fetch(`/api/technical-seo/scan/${scanId}`, {
+        cache: 'no-store',
+      })
+      const data = (await response.json()) as ScanStatusPayload
+
+      if (!response.ok) {
+        throw new Error(
+          data.errorMessage || 'Unable to read the Technical SEO scan status.'
+        )
+      }
+
+      setScanStatus(data.status)
+      setScanProgress(Math.max(0, Math.min(100, data.progressPercent || 0)))
+
+      if (data.status === 'complete' && data.result) {
+        setResult(data.result)
+        setScanProgress(100)
+        return
+      }
+
+      if (data.status === 'failed' || data.status === 'cancelled') {
+        throw new Error(
+          data.errorMessage || 'The Technical SEO scan did not complete.'
+        )
+      }
+
+      await wait(1500)
+    }
+
+    throw new Error(
+      'The scan is taking longer than expected. Refresh this page in a moment to check the saved result.'
+    )
+  }
+
   async function handleAnalyze(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setResult(null)
+    setScanStatus(null)
+    setScanProgress(0)
 
     if (!url.trim()) {
       setError('Enter your website URL to begin.')
@@ -117,15 +176,24 @@ export default function TechnicalSEOTroubleshooter() {
         body: JSON.stringify({ url, problem, plan }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Unable to analyze the website.')
+      const data = (await response.json()) as {
+        scanId?: string
+        status?: ScanStatusPayload['status']
+        error?: string
       }
 
-      setResult(data)
+      if (!response.ok || !data.scanId) {
+        throw new Error(data.error || 'Unable to queue the website scan.')
+      }
+
+      setScanStatus(data.status || 'queued')
+      await pollScan(data.scanId)
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : 'Unable to analyze the website.')
+      setError(
+        scanError instanceof Error
+          ? scanError.message
+          : 'Unable to analyze the website.'
+      )
     } finally {
       setLoading(false)
     }
@@ -247,8 +315,34 @@ export default function TechnicalSEOTroubleshooter() {
               disabled={loading}
               className="rounded-full bg-gray-900 px-7 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
             >
-              {loading ? 'Analyzing website…' : 'Troubleshoot My Website'}
+              {loading
+                ? scanStatus === 'queued'
+                  ? 'Queued…'
+                  : scanStatus === 'analyzing'
+                    ? 'Building report…'
+                    : 'Crawling website…'
+                : 'Troubleshoot My Website'}
             </button>
+            {loading && (
+              <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-800 dark:bg-gray-900">
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {scanStatus === 'queued'
+                    ? 'Your scan is queued.'
+                    : scanStatus === 'analyzing'
+                      ? 'Your report is being assembled.'
+                      : 'Your website is being crawled.'}
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+                  <div
+                    className="h-full rounded-full bg-gray-900 transition-all dark:bg-white"
+                    style={{ width: `${scanProgress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {scanProgress > 0 ? `${scanProgress}% complete` : 'Starting…'}
+                </p>
+              </div>
+            )}
             {selectedProblem && (
               <p className="text-center text-xs text-gray-500 dark:text-gray-400">
                 Diagnostic path: <span className="font-semibold">{selectedProblem.label}</span>

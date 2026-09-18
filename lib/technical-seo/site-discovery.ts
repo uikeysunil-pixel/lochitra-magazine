@@ -14,28 +14,41 @@ function extractLocs(xml: string): string[] {
 }
 
 async function fetchText(url: URL): Promise<string | null> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
-  try {
-    const response = await fetch(url, {
-      redirect: 'follow',
-      headers: {
-        'user-agent': 'LocitraBot/0.1 (+https://www.locitra.com/technical-seo/)',
-        accept: 'application/xml,text/xml,text/plain,*/*;q=0.5',
-      },
-      signal: controller.signal,
-    })
-    if (!response.ok) return null
-    const length = Number(response.headers.get('content-length') || 0)
-    if (length > MAX_BYTES) return null
-    const body = await response.arrayBuffer()
-    if (body.byteLength > MAX_BYTES) return null
-    return new TextDecoder().decode(body)
-  } catch {
-    return null
-  } finally {
-    clearTimeout(timeout)
+  let current = new URL(url)
+  for (let redirects = 0; redirects <= 3; redirects += 1) {
+    if (current.origin !== url.origin) return null
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    try {
+      const response = await fetch(current, {
+        redirect: 'manual',
+        headers: {
+          'user-agent': 'LocitraBot/0.1 (+https://www.locitra.com/technical-seo/)',
+          accept: 'application/xml,text/xml,text/plain,*/*;q=0.5',
+        },
+        signal: controller.signal,
+      })
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get('location')
+        if (!location) return null
+        const next = new URL(location, current)
+        if (next.origin !== url.origin) return null
+        current = next
+        continue
+      }
+      if (!response.ok) return null
+      const length = Number(response.headers.get('content-length') || 0)
+      if (length > MAX_BYTES) return null
+      const body = await response.arrayBuffer()
+      if (body.byteLength > MAX_BYTES) return null
+      return new TextDecoder().decode(body)
+    } catch {
+      return null
+    } finally {
+      clearTimeout(timeout)
+    }
   }
+  return null
 }
 
 export async function discoverSitemapPages(rootUrl: string, maxPages: number): Promise<string[]> {

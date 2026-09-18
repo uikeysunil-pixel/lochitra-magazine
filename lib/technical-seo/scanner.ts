@@ -159,7 +159,7 @@ function getMetaContent(html: string, name: string): string | null {
 }
 
 function getMetaContentFlexible(html: string, name: string): string | null {
-  const tags = html.match(/<meta\\b[^>]*>/gi) || []
+  const tags = html.match(/<meta\b[^>]*>/gi) || []
   const normalized = name.toLowerCase()
 
   for (const tag of tags) {
@@ -178,14 +178,14 @@ function getCount(html: string, regex: RegExp): number {
 }
 
 function getTitle(html: string): string | null {
-  return getFirstMatch(html, /<title\\b[^>]*>([\\s\\S]*?)<\\/title>/i)
+  return getFirstMatch(html, /<title\b[^>]*>([\s\S]*?)<\/title>/i)
 }
 
 function getCanonical(html: string): string | null {
-  const links = html.match(/<link\\b[^>]*>/gi) || []
+  const links = html.match(/<link\b[^>]*>/gi) || []
   for (const tag of links) {
     const rel = tag.match(/rel=["']([^"']+)["']/i)?.[1] || ''
-    if (!/\\bcanonical\\b/i.test(rel)) continue
+    if (!/\bcanonical\b/i.test(rel)) continue
     const href = tag.match(/href=["']([^"']+)["']/i)?.[1]
     if (href) return decodeHtmlEntities(href.trim())
   }
@@ -193,12 +193,12 @@ function getCanonical(html: string): string | null {
 }
 
 function getHtmlLang(html: string): string | null {
-  return getFirstMatch(html, /<html\\b[^>]*\\blang=["']([^"']+)["']/i)
+  return getFirstMatch(html, /<html\b[^>]*\blang=["']([^"']+)["']/i)
 }
 
 function getJsonLd(html: string): { blocks: number; types: string[]; invalidBlocks: number } {
   const scripts = html.match(
-    /<script\\b[^>]*type=["']application\\/ld\\+json["'][^>]*>([\\s\\S]*?)<\\/script>/gi
+    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
   ) || []
 
   const types = new Set<string>()
@@ -206,8 +206,8 @@ function getJsonLd(html: string): { blocks: number; types: string[]; invalidBloc
 
   for (const script of scripts) {
     const content = script
-      .replace(/^<script\\b[^>]*>/i, '')
-      .replace(/<\\/script>$/i, '')
+      .replace(/^<script\b[^>]*>/i, '')
+      .replace(/<\/script>$/i, '')
       .trim()
 
     try {
@@ -239,7 +239,7 @@ function getLinks(html: string, origin: string): {
   hrefs: string[]
   mixedContentCount: number
 } {
-  const anchors = html.match(/<a\\b[^>]*>/gi) || []
+  const anchors = html.match(/<a\b[^>]*>/gi) || []
   const hrefs: string[] = []
   let internal = 0
   let external = 0
@@ -260,7 +260,7 @@ function getLinks(html: string, origin: string): {
     }
   }
 
-  const resources = html.match(/(?:src|href)=["']http:\\/\\/[^"']+["']/gi) || []
+  const resources = html.match(/(?:src|href)=["']http:\/\/[^"']+["']/gi) || []
   const mixedContentCount = new URL(origin).protocol === 'https:' ? resources.length : 0
 
   return { internal, external, hrefs, mixedContentCount }
@@ -271,14 +271,14 @@ function getImages(html: string): {
   withoutAlt: number
   withoutDimensions: number
 } {
-  const images = html.match(/<img\\b[^>]*>/gi) || []
+  const images = html.match(/<img\b[^>]*>/gi) || []
   let withoutAlt = 0
   let withoutDimensions = 0
 
   for (const image of images) {
-    const alt = image.match(/\\balt=["']([^"']*)["']/i)
-    const width = image.match(/\\bwidth=["']([^"']+)["']/i)
-    const height = image.match(/\\bheight=["']([^"']+)["']/i)
+    const alt = image.match(/\balt=["']([^"']*)["']/i)
+    const width = image.match(/\bwidth=["']([^"']+)["']/i)
+    const height = image.match(/\bheight=["']([^"']+)["']/i)
     if (!alt || !alt[1].trim()) withoutAlt += 1
     if (!width || !height) withoutDimensions += 1
   }
@@ -287,7 +287,7 @@ function getImages(html: string): {
 }
 
 function getHreflangCount(html: string): number {
-  const links = html.match(/<link\\b[^>]*>/gi) || []
+  const links = html.match(/<link\b[^>]*>/gi) || []
   return links.filter((tag) => {
     const rel = tag.match(/rel=["']([^"']+)["']/i)?.[1] || ''
     return /alternate/i.test(rel) && /hreflang=/i.test(tag)
@@ -445,7 +445,7 @@ function buildFindings(input: {
     )
   }
 
-  if (robotsMeta && /\\bnoindex\\b/i.test(robotsMeta)) {
+  if (robotsMeta && /\bnoindex\b/i.test(robotsMeta)) {
     findings.push(
       makeFinding(
         'INDEX-001',
@@ -758,7 +758,7 @@ function collectMetrics(html: string, finalUrl: URL) {
   const jsonLd = getJsonLd(html)
   const hreflangCount = getHreflangCount(html)
   const hasViewport =
-    /<meta\\b[^>]*(?:name=["']viewport["'][^>]*content=|content=["'][^"']*width=device-width[^"']*)/i.test(
+    /<meta\b[^>]*(?:name=["']viewport["'][^>]*content=|content=["'][^"']*width=device-width[^"']*)/i.test(
       html
     )
 
@@ -768,7 +768,7 @@ function collectMetrics(html: string, finalUrl: URL) {
     images: images.total,
     imagesWithoutAlt: images.withoutAlt,
     imagesWithoutDimensions: images.withoutDimensions,
-    h1Count: getCount(html, /<h1\\b[^>]*>/gi),
+    h1Count: getCount(html, /<h1\b[^>]*>/gi),
     jsonLdBlocks: jsonLd.blocks,
     jsonLdTypes: jsonLd.types,
     hreflangCount,
@@ -778,10 +778,10 @@ function collectMetrics(html: string, finalUrl: URL) {
 }
 
 function getRobotsTxtDirectives(text: string): { disallowsRoot: boolean; sitemapUrls: string[] } {
-  const lines = text.split(/\\r?\\n/)
+  const lines = text.split(/\r?\n/)
   const sitemapUrls = lines
-    .filter((line) => /^\\s*sitemap:/i.test(line))
-    .map((line) => line.replace(/^\\s*sitemap:\\s*/i, '').trim())
+    .filter((line) => /^\s*sitemap:/i.test(line))
+    .map((line) => line.replace(/^\s*sitemap:\s*/i, '').trim())
     .filter(Boolean)
 
   let userAgentMatches = false
@@ -791,17 +791,17 @@ function getRobotsTxtDirectives(text: string): { disallowsRoot: boolean; sitemap
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('#')) continue
 
-    if (/^user-agent:\\s*\\*/i.test(trimmed)) {
+    if (/^user-agent:\s*\*/i.test(trimmed)) {
       userAgentMatches = true
       continue
     }
 
-    if (userAgentMatches && /^disallow:\\s*\\/$/i.test(trimmed)) {
+    if (userAgentMatches && /^disallow:\s*\/$/i.test(trimmed)) {
       disallowsRoot = true
     }
 
     if (userAgentMatches && /^user-agent:/i.test(trimmed)) {
-      userAgentMatches = /^user-agent:\\s*\\*/i.test(trimmed)
+      userAgentMatches = /^user-agent:\s*\*/i.test(trimmed)
     }
   }
 
@@ -874,7 +874,7 @@ export async function runQuickScan(input: string): Promise<ScanResult> {
   const finalUrl = normalizeUrl(response.url || url.toString())
   const contentType = response.headers.get('content-type') || 'unknown'
 
-  if (!/text\\/html|application\\/xhtml\\+xml/i.test(contentType)) {
+  if (!/text\/html|application\/xhtml\+xml/i.test(contentType)) {
     throw new Error(`The URL did not return HTML. Detected content type: ${contentType}`)
   }
 

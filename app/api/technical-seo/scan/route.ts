@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
 import { runCrawl } from '@/lib/technical-seo/crawler'
+import {
+  completeScanRecord,
+  createScanRecord,
+  failScanRecord,
+  markScanRunning,
+} from '@/lib/technical-seo/scan-repository'
 import type { DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
+import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -68,20 +75,46 @@ export async function POST(request: Request) {
       )
     }
 
-    const result = await runCrawl(url, plan as PlanId, problem as DiagnosticProblem)
-    const matchedFindings = result.findings.length
-
-    return NextResponse.json({
-      ...result,
-      requestedProblem: problem,
-      requestedPlan: plan,
-      diagnosticFocus: {
-        id: problem,
-        label: PROBLEM_LABELS[problem as DiagnosticProblem],
-        matchedFindings,
-      },
-      productStage: 'mvp-free-crawl',
+    const scanId = randomUUID()
+    await createScanRecord({
+      scanId,
+      websiteUrl: url,
+      problem: problem as DiagnosticProblem,
+      plan: plan as PlanId,
+      maxUrls: 5,
     })
+    await markScanRunning(scanId)
+
+    try {
+      const result = await runCrawl(
+        url,
+        plan as PlanId,
+        problem as DiagnosticProblem,
+        scanId
+      )
+      await completeScanRecord(scanId, result)
+
+      const matchedFindings = result.findings.length
+
+      return NextResponse.json({
+        ...result,
+        requestedProblem: problem,
+        requestedPlan: plan,
+        diagnosticFocus: {
+          id: problem,
+          label: PROBLEM_LABELS[problem as DiagnosticProblem],
+          matchedFindings,
+        },
+        productStage: 'mvp-free-crawl-persisted',
+      })
+    } catch (scanError) {
+      const message =
+        scanError instanceof Error
+          ? scanError.message
+          : 'Unable to complete the Technical SEO scan.'
+      await failScanRecord(scanId, message)
+      throw scanError
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to analyze the website.'
     return NextResponse.json({ error: message }, { status: 400 })

@@ -770,9 +770,20 @@ function collectMetrics(html: string, finalUrl: URL) {
       html
     )
 
+  const uniqueInternalUrls = new Set(
+    links.hrefs.filter((href) => {
+      try {
+        return new URL(href).origin === finalUrl.origin
+      } catch {
+        return false
+      }
+    })
+  )
+
   return {
     internalLinks: links.internal,
     externalLinks: links.external,
+    internalUrlsDiscovered: uniqueInternalUrls.size,
     images: images.total,
     imagesWithoutAlt: images.withoutAlt,
     imagesWithEmptyAlt: images.withEmptyAlt,
@@ -944,6 +955,8 @@ export async function runQuickScan(input: string): Promise<ScanResult> {
     httpStatus: response.status,
     contentType,
     durationMs: Date.now() - startedAt,
+    pagesChecked: 1,
+    internalUrlsDiscovered: metrics.internalUrlsDiscovered,
     pageTitle: title,
     metaDescription: description,
     canonical,

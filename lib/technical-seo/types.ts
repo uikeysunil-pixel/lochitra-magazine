@@ -98,6 +98,7 @@ export interface CrawlResult {
   urlsDiscovered: number
   urlsNotCrawled: number
   crawlErrors: number
+  urlsBlockedByRobots: number
   durationMs: number
   summary: ScanResult['summary']
   metrics: ScanResult['metrics']

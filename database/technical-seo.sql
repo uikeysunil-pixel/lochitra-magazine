@@ -10,6 +10,8 @@ create table if not exists seo_scans (
   final_url text,
   problem text not null,
   plan text not null,
+  access_mode text not null default 'public',
+  report_token_hash text,
   status text not null default 'queued',
   max_urls integer not null,
   pages_discovered integer not null default 0,
@@ -78,3 +80,7 @@ create index if not exists seo_scan_findings_scan_severity_idx
 -- queued -> running -> analyzing -> complete
 -- queued -> cancelled
 -- running/analyzing -> failed
+
+create unique index if not exists seo_scans_report_token_hash_uidx
+  on seo_scans (report_token_hash)
+  where report_token_hash is not null;

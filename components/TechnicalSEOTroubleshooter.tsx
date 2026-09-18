@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { rememberScan } from '@/lib/technical-seo/browser-history'
 import type { DiagnosticProblem, PlanId, ScanResult } from '@/lib/technical-seo/types'
 
 type ScanStatusPayload = {
@@ -194,6 +195,7 @@ export default function TechnicalSEOTroubleshooter() {
         throw new Error(data.error || 'Unable to queue the website scan.')
       }
 
+      rememberScan(data.scanId)
       setScanStatus(data.status || 'queued')
       setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
       setScanProgress(0)

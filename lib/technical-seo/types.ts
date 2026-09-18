@@ -26,6 +26,8 @@ export interface Finding {
   evidence: string[]
   recommendation: string
   diagnosticProblems: DiagnosticProblem[]
+  url?: string
+  affectedUrls?: string[]
 }
 
 export interface ScanResult {
@@ -81,5 +83,21 @@ export interface ScanResult {
     label: string
     matchedFindings: number
   }
+  findings: Finding[]
+}
+
+export interface CrawlResult {
+  scanId: string
+  url: string
+  finalUrl: string
+  fetchedAt: string
+  plan: PlanId
+  maxUrls: number
+  pagesChecked: number
+  urlsDiscovered: number
+  urlsNotCrawled: number
+  crawlErrors: number
+  durationMs: number
+  summary: ScanResult['summary']
   findings: Finding[]
 }

@@ -42,7 +42,53 @@ export async function markScanRunning(scanId: string) {
   `
 }
 
+async function persistCrawledPages(scanId: string, result: CrawlResult) {
+  await sql`
+    delete from seo_scan_urls
+    where scan_id = ${scanId}::uuid
+  `
+
+  for (const page of result.pages) {
+    await sql`
+      insert into seo_scan_urls (
+        scan_id,
+        url,
+        normalized_url,
+        state,
+        depth,
+        attempts,
+        http_status,
+        duration_ms,
+        scanned_at,
+        updated_at
+      )
+      values (
+        ${scanId}::uuid,
+        ${page.url},
+        ${page.finalUrl},
+        ${page.state},
+        0,
+        1,
+        ${page.httpStatus},
+        ${page.durationMs},
+        now(),
+        now()
+      )
+      on conflict (scan_id, normalized_url) do update set
+        url = excluded.url,
+        state = excluded.state,
+        attempts = excluded.attempts,
+        http_status = excluded.http_status,
+        duration_ms = excluded.duration_ms,
+        scanned_at = excluded.scanned_at,
+        updated_at = now()
+    `
+  }
+}
+
 export async function completeScanRecord(scanId: string, result: CrawlResult) {
+  await persistCrawledPages(scanId, result)
+
   await sql`
     delete from seo_scan_findings
     where scan_id = ${scanId}::uuid

@@ -269,6 +269,7 @@ function getLinks(html: string, origin: string): {
 function getImages(html: string): {
   total: number
   withoutAlt: number
+  withEmptyAlt: number
   withoutDimensions: number
 } {
   const images = html.match(/<img\b[^>]*>/gi) || []
@@ -598,7 +599,11 @@ function buildFindings(input: {
         'low',
         'high',
         'Some image elements do not include an alt attribute. Empty alt="" is not counted here because it can be intentional for decorative images.',
-        [`Images checked: ${metrics.images}`, `Images without alt text: ${metrics.imagesWithoutAlt}`],
+        [
+          `Images checked: ${metrics.images}`,
+          `Images without alt attribute: ${metrics.imagesWithoutAlt}`,
+          `Images with empty alt="": ${metrics.imagesWithEmptyAlt}`,
+        ],
         'Review informative images and add concise alternative text where needed. Leave intentionally decorative images with alt="".',
         ['technical', 'unknown']
       )

@@ -263,6 +263,13 @@ export default function TechnicalSEOTroubleshooter() {
             <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
               <div>
                 <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Technical quick check</p>
+                {result.diagnosticFocus && (
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-800 dark:border-primary-900 dark:bg-primary-950/30 dark:text-primary-200">
+                    <span>Diagnostic focus</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{result.diagnosticFocus.label}</span>
+                  </div>
+                )}
                 <h2 className="mt-1 break-all text-2xl font-extrabold text-gray-900 dark:text-gray-100">
                   {result.finalUrl}
                 </h2>
@@ -292,7 +299,7 @@ export default function TechnicalSEOTroubleshooter() {
               <section>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Confirmed problems</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Issues the current scan can verify from the available evidence.
+                  Issues the current scan can verify from the available evidence. Findings related to your selected concern are shown first.
                 </p>
                 <div className="mt-4 space-y-4">
                   {(() => {
@@ -437,6 +444,11 @@ export default function TechnicalSEOTroubleshooter() {
               </div>
               <div className="mt-6 rounded-xl bg-gray-50 p-4 text-xs leading-5 text-gray-600 dark:bg-gray-900 dark:text-gray-400">
                 This MVP checks the initial HTML response and standard robots/sitemap locations. It does not yet use Google Search Console, browser rendering, full-site crawling, payments, or PDF reports.
+                {result.diagnosticFocus && (
+                  <span className="mt-2 block font-medium">
+                    Matched findings for this diagnostic focus: {result.diagnosticFocus.matchedFindings}
+                  </span>
+                )}
               </div>
             </aside>
           </div>

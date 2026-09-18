@@ -784,6 +784,7 @@ function collectMetrics(html: string, finalUrl: URL) {
     internalLinks: links.internal,
     externalLinks: links.external,
     internalUrlsDiscovered: uniqueInternalUrls.size,
+    discoveredInternalUrls: [...uniqueInternalUrls],
     images: images.total,
     imagesWithoutAlt: images.withoutAlt,
     imagesWithEmptyAlt: images.withEmptyAlt,
@@ -937,9 +938,15 @@ export async function runQuickScan(input: string): Promise<ScanResult> {
     info: 4,
   }
 
-  findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
+  const annotatedFindings = findings.map((finding) => ({
+    ...finding,
+    url: finalUrl.toString(),
+    affectedUrls: [finalUrl.toString()],
+  }))
 
-  const summary = findings.reduce(
+  annotatedFindings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
+
+  const summary = annotatedFindings.reduce(
     (acc, finding) => {
       acc[finding.severity] += 1
       return acc
@@ -957,6 +964,7 @@ export async function runQuickScan(input: string): Promise<ScanResult> {
     durationMs: Date.now() - startedAt,
     pagesChecked: 1,
     internalUrlsDiscovered: metrics.internalUrlsDiscovered,
+    discoveredInternalUrls: metrics.discoveredInternalUrls,
     pageTitle: title,
     metaDescription: description,
     canonical,
@@ -976,6 +984,6 @@ export async function runQuickScan(input: string): Promise<ScanResult> {
       ...metrics,
     },
     summary,
-    findings,
+    findings: annotatedFindings,
   }
 }

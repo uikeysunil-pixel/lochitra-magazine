@@ -161,11 +161,6 @@ export async function runCrawl(
   }
 
   const allFindings = pageResults
-    .filter((page) =>
-      diagnosticProblem === 'unknown'
-        ? true
-        : page.findings.some((finding) => finding.diagnosticProblems.includes(diagnosticProblem))
-    )
     .flatMap((page) =>
       page.findings.filter(
         (finding) =>
@@ -175,6 +170,24 @@ export async function runCrawl(
     )
 
   const findings = aggregateFindings(allFindings)
+
+  const aggregatedMetrics: ScanResult['metrics'] = {
+    internalLinks: pageResults.reduce((sum, page) => sum + page.metrics.internalLinks, 0),
+    externalLinks: pageResults.reduce((sum, page) => sum + page.metrics.externalLinks, 0),
+    images: pageResults.reduce((sum, page) => sum + page.metrics.images, 0),
+    imagesWithoutAlt: pageResults.reduce((sum, page) => sum + page.metrics.imagesWithoutAlt, 0),
+    imagesWithEmptyAlt: pageResults.reduce((sum, page) => sum + page.metrics.imagesWithEmptyAlt, 0),
+    imagesWithoutDimensions: pageResults.reduce(
+      (sum, page) => sum + page.metrics.imagesWithoutDimensions,
+      0
+    ),
+    h1Count: pageResults.reduce((sum, page) => sum + page.metrics.h1Count, 0),
+    jsonLdBlocks: pageResults.reduce((sum, page) => sum + page.metrics.jsonLdBlocks, 0),
+    jsonLdTypes: [...new Set(pageResults.flatMap((page) => page.metrics.jsonLdTypes))].sort(),
+    hreflangCount: pageResults.reduce((sum, page) => sum + page.metrics.hreflangCount, 0),
+    hasViewport: pageResults.length > 0 && pageResults.every((page) => page.metrics.hasViewport),
+    mixedContentCount: pageResults.reduce((sum, page) => sum + page.metrics.mixedContentCount, 0),
+  }
 
   return {
     scanId: randomUUID(),
@@ -189,6 +202,7 @@ export async function runCrawl(
     crawlErrors,
     durationMs: Date.now() - startedAt,
     summary: summarize(findings),
+    metrics: aggregatedMetrics,
     findings,
   }
 }

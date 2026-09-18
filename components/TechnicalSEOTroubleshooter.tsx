@@ -353,9 +353,19 @@ export default function TechnicalSEOTroubleshooter() {
                   <section>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Diagnostic result</h3>
                     <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-                      <strong>No matching problem was detected in this quick check.</strong>
+                      <strong>
+                        {focusId === 'indexing' && 'No obvious indexing blocker was found in this quick check.'}
+                        {focusId === 'schema' && 'No schema syntax problem was found in this quick check.'}
+                        {focusId === 'wrong-page' && 'No obvious canonical or duplicate signal matched this quick check.'}
+                        {focusId === 'slow' && 'No performance-related finding matched the checks available in this quick scan.'}
+                        {focusId === 'broken-links' && 'No broken-link finding was detected by this quick scan.'}
+                        {focusId === 'migration' && 'No migration-related technical finding was detected by this quick scan.'}
+                        {focusId === 'duplicates' && 'No duplicate or low-value-page finding was detected by this quick scan.'}
+                        {focusId === 'technical' && 'No confirmed technical problem was detected by this quick scan.'}
+                        {focusId === 'traffic-drop' && 'No technical finding associated with a traffic drop was detected by this quick scan.'}
+                      </strong>
                       <p className="mt-2">
-                        The current scan did not find a technical finding associated with your selected concern. A deeper crawl or Google Search Console data may be required to investigate further.
+                        This is a limited initial-HTML check. A deeper crawl or additional data may still be required to investigate the selected concern. For indexing and traffic investigations, Google Search Console will be important in a deeper plan.
                       </p>
                     </div>
                   </section>

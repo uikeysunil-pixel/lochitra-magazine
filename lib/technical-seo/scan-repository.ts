@@ -1,3 +1,33 @@
+export async function getScanRecord(scanId: string) {
+  const rows = await sql`
+    select
+      id,
+      website_url,
+      final_url,
+      problem,
+      plan,
+      status,
+      max_urls,
+      pages_discovered,
+      pages_checked,
+      pages_not_crawled,
+      urls_blocked_by_robots,
+      crawl_errors,
+      progress_percent,
+      started_at,
+      completed_at,
+      error_message,
+      report_json,
+      created_at,
+      updated_at
+    from seo_scans
+    where id = ${scanId}::uuid
+    limit 1
+  `
+
+  return rows[0] ?? null
+}
+
 import { sql } from './db'
 import type { CrawlResult, DiagnosticProblem, Finding, PlanId } from './types'
 

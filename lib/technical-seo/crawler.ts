@@ -122,7 +122,8 @@ function summarize(findings: Finding[]): ScanResult['summary'] {
 export async function runCrawl(
   input: string,
   plan: PlanId,
-  diagnosticProblem: DiagnosticProblem
+  diagnosticProblem: DiagnosticProblem,
+  scanId = randomUUID()
 ): Promise<CrawlResult> {
   const startedAt = Date.now()
   const rootUrl = normalizeCrawlUrl(input)
@@ -256,7 +257,7 @@ export async function runCrawl(
   const firstRobots = pageResults.find((page) => page.robotsTxt.found)
 
   return {
-    scanId: randomUUID(),
+    scanId,
     url: rootUrl,
     finalUrl: canonicalRootUrl || rootUrl,
     fetchedAt: new Date().toISOString(),

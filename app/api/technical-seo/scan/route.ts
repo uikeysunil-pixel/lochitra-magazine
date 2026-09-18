@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
-import { runCrawl } from '@/lib/technical-seo/crawler'
-import {
-  completeScanRecord,
-  createScanRecord,
-  failScanRecord,
-  markScanRunning,
-} from '@/lib/technical-seo/scan-repository'
+import { inngest } from '@/inngest/client'
+import { createScanRecord, failScanRecord } from '@/lib/technical-seo/scan-repository'
 import type { DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 import { randomUUID } from 'crypto'
 
@@ -76,6 +71,7 @@ export async function POST(request: Request) {
     }
 
     const scanId = randomUUID()
+
     await createScanRecord({
       scanId,
       websiteUrl: url,
@@ -83,38 +79,36 @@ export async function POST(request: Request) {
       plan: plan as PlanId,
       maxUrls: 5,
     })
-    await markScanRunning(scanId)
 
     try {
-      const result = await runCrawl(
-        url,
-        plan as PlanId,
-        problem as DiagnosticProblem,
-        scanId
-      )
-      await completeScanRecord(scanId, result)
-
-      const matchedFindings = result.findings.length
-
-      return NextResponse.json({
-        ...result,
-        requestedProblem: problem,
-        requestedPlan: plan,
-        diagnosticFocus: {
-          id: problem,
-          label: PROBLEM_LABELS[problem as DiagnosticProblem],
-          matchedFindings,
+      await inngest.send({
+        id: scanId,
+        name: 'technical-seo/scan.requested',
+        data: {
+          scanId,
+          url,
+          problem: problem as DiagnosticProblem,
+          plan: plan as PlanId,
         },
-        productStage: 'mvp-free-crawl-persisted',
       })
-    } catch (scanError) {
+    } catch (eventError) {
       const message =
-        scanError instanceof Error
-          ? scanError.message
-          : 'Unable to complete the Technical SEO scan.'
+        eventError instanceof Error
+          ? eventError.message
+          : 'Unable to queue the Technical SEO scan.'
       await failScanRecord(scanId, message)
-      throw scanError
+      throw eventError
     }
+
+    return NextResponse.json(
+      {
+        scanId,
+        status: 'queued',
+        productStage: 'mvp-background-scan',
+        message: 'Your Technical SEO scan has been queued.',
+      },
+      { status: 202 }
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to analyze the website.'
     return NextResponse.json({ error: message }, { status: 400 })

@@ -101,5 +101,7 @@ export interface CrawlResult {
   durationMs: number
   summary: ScanResult['summary']
   metrics: ScanResult['metrics']
+  robotsTxt: ScanResult['robotsTxt']
+  sitemap: ScanResult['sitemap']
   findings: Finding[]
 }

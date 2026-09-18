@@ -6,6 +6,8 @@ export async function getScanRecord(scanId: string) {
       final_url,
       problem,
       plan,
+      access_mode,
+      report_token_hash,
       status,
       max_urls,
       pages_discovered,
@@ -47,8 +49,31 @@ export async function listRecentScans(limit = 10) {
   `
 }
 
+import { createHash, randomBytes, timingSafeEqual } from 'crypto'
 import { sql } from './db'
 import type { CrawlResult, DiagnosticProblem, Finding, PlanId } from './types'
+
+export function createReportAccessToken() {
+  return randomBytes(32).toString('base64url')
+}
+
+export function hashReportAccessToken(token: string) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+export function verifyReportAccessToken(
+  token: string | null | undefined,
+  storedHash: string | null | undefined
+) {
+  if (!token || !storedHash) return false
+
+  const candidate = Buffer.from(hashReportAccessToken(token), 'hex')
+  const expected = Buffer.from(storedHash, 'hex')
+
+  if (candidate.length !== expected.length) return false
+
+  return timingSafeEqual(candidate, expected)
+}
 
 export async function createScanRecord(input: {
   scanId: string
@@ -56,6 +81,8 @@ export async function createScanRecord(input: {
   problem: DiagnosticProblem
   plan: PlanId
   maxUrls: number
+  accessMode?: 'public' | 'private'
+  reportTokenHash?: string | null
 }) {
   const rows = await sql`
     insert into seo_scans (
@@ -63,6 +90,8 @@ export async function createScanRecord(input: {
       website_url,
       problem,
       plan,
+      access_mode,
+      report_token_hash,
       status,
       max_urls
     )
@@ -71,6 +100,8 @@ export async function createScanRecord(input: {
       ${input.websiteUrl},
       ${input.problem},
       ${input.plan},
+      ${input.accessMode ?? 'public'},
+      ${input.reportTokenHash ?? null},
       'queued',
       ${input.maxUrls}
     )

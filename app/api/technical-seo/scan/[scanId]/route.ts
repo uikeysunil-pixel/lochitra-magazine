@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getScanRecord } from '@/lib/technical-seo/scan-repository'
+import {
+  getScanRecord,
+  verifyReportAccessToken,
+} from '@/lib/technical-seo/scan-repository'
 import type { CrawlResult, DiagnosticProblem } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
@@ -41,6 +44,17 @@ export async function GET(
 
     const requestUrl = new URL(_request.url)
     const summaryOnly = requestUrl.searchParams.get('summary') === '1'
+    const accessToken = requestUrl.searchParams.get('key')
+
+    if (
+      row.access_mode === 'private' &&
+      !verifyReportAccessToken(accessToken, row.report_token_hash)
+    ) {
+      return NextResponse.json(
+        { error: 'This scan report requires a valid access link.' },
+        { status: 403 }
+      )
+    }
 
     const base = {
       scanId,

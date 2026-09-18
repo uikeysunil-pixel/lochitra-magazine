@@ -499,6 +499,11 @@ export default function TechnicalSEOTroubleshooter() {
               <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-950">
                 <h3 className="text-base font-extrabold text-gray-900 dark:text-gray-100">What we checked</h3>
                 <div className="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex justify-between gap-4"><span>Pages checked</span><strong className="text-gray-900 dark:text-gray-100">{result.pagesChecked}</strong></div>
+                  <div className="flex justify-between gap-4"><span>URLs discovered</span><strong className="text-gray-900 dark:text-gray-100">{result.urlsDiscovered}</strong></div>
+                  <div className="flex justify-between gap-4"><span>Pages not crawled</span><strong className="text-gray-900 dark:text-gray-100">{result.urlsNotCrawled}</strong></div>
+                  <div className="flex justify-between gap-4"><span>Crawl errors</span><strong className="text-gray-900 dark:text-gray-100">{result.crawlErrors}</strong></div>
+                  <div className="flex justify-between gap-4"><span>Blocked by robots.txt</span><strong className="text-gray-900 dark:text-gray-100">{result.urlsBlockedByRobots}</strong></div>
                   <div className="flex justify-between gap-4"><span>Internal links</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.internalLinks}</strong></div>
                   <div className="flex justify-between gap-4"><span>External links</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.externalLinks}</strong></div>
                   <div className="flex justify-between gap-4"><span>Images</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.images}</strong></div>
@@ -511,7 +516,7 @@ export default function TechnicalSEOTroubleshooter() {
                   <div className="flex justify-between gap-4"><span>Sitemap</span><strong className="text-gray-900 dark:text-gray-100">{result.sitemap.found ? 'Found' : 'Not found'}</strong></div>
                 </div>
                 <div className="mt-6 rounded-xl bg-gray-50 p-4 text-xs leading-5 text-gray-600 dark:bg-gray-900 dark:text-gray-400">
-                  This MVP checks the initial HTML response and standard robots/sitemap locations. It does not yet use Google Search Console, browser rendering, full-site crawling, payments, or PDF reports.
+                  This MVP performs a bounded same-site crawl using sitemap and internal-link discovery. It does not yet use Google Search Console, browser rendering, background scan jobs, payments, or PDF reports.
                   {result.diagnosticFocus && (
                     <span className="mt-2 block font-medium">
                       Findings matching this diagnostic focus: {result.diagnosticFocus.matchedFindings}

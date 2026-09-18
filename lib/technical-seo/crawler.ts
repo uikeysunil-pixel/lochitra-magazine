@@ -71,15 +71,41 @@ function aggregateFindings(pageFindings: Finding[]): Finding[] {
   }
 
   return [...groups.values()]
-    .map((finding) => ({
-      ...finding,
-      url: undefined,
-      affectedUrls: [...new Set(finding.affectedUrls || [])],
-      evidence: [
-        ...finding.evidence,
-        `Affected pages: ${finding.affectedUrls?.length || 0}`,
-      ],
-    }))
+    .map((finding) => {
+      const affectedUrls = [...new Set(finding.affectedUrls || [])]
+      const multiPage = affectedUrls.length > 1
+
+      let title = finding.title
+      if (multiPage && /image\(s\) lack width and\/or height attributes/i.test(title)) {
+        title = `Images lack width and/or height attributes on ${affectedUrls.length} pages`
+      } else if (multiPage && /image\(s\) have no alt attribute/i.test(title)) {
+        title = `Images have no alt attribute on ${affectedUrls.length} pages`
+      }
+
+      const baseEvidence = multiPage
+        ? finding.evidence.filter(
+            (item) =>
+              !/^Images checked:/i.test(item) &&
+              !/^Images without/i.test(item)
+          )
+        : finding.evidence
+
+      const evidence = multiPage
+        ? [
+            ...baseEvidence,
+            `Affected pages: ${affectedUrls.length}`,
+            'The original page-level evidence is intentionally not summed here; use the affected-page count for the site-wide scope.',
+          ]
+        : [...baseEvidence, `Affected pages: ${affectedUrls.length}`]
+
+      return {
+        ...finding,
+        title,
+        url: undefined,
+        affectedUrls,
+        evidence,
+      }
+    })
     .sort((a, b) => severityRank[a.severity] - severityRank[b.severity])
 }
 

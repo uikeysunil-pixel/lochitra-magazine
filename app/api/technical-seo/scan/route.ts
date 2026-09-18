@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { runQuickScan } from '@/lib/technical-seo/scanner'
+import { runCrawl } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
@@ -58,31 +58,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
     }
 
-    // Phase 1 intentionally exposes only the free quick scan.
-    // Paid plan enforcement will be added with billing before paid scans are enabled.
-    const result = await runQuickScan(url)
-    const matched = result.findings.filter((finding) =>
-      finding.diagnosticProblems.includes(problem as DiagnosticProblem)
-    )
-    const problemIndex = new Map(
-      matched.map((finding, index) => [finding.id, index])
-    )
+    if (plan !== 'free') {
+      return NextResponse.json(
+        {
+          error:
+            'Paid scans are not enabled yet. The crawler is being validated first; billing and paid crawl limits will be enabled after the MVP passes real-site testing.',
+        },
+        { status: 402 }
+      )
+    }
 
-    const focusedFindings = [...result.findings].sort((a, b) => {
-      const aMatched = problemIndex.has(a.id)
-      const bMatched = problemIndex.has(b.id)
-      if (aMatched !== bMatched) return aMatched ? -1 : 1
-
-      const severityRank: Record<string, number> = {
-        critical: 0,
-        high: 1,
-        medium: 2,
-        low: 3,
-        info: 4,
-      }
-
-      return (severityRank[a.severity] ?? 99) - (severityRank[b.severity] ?? 99)
-    })
+    const result = await runCrawl(url, plan as PlanId, problem as DiagnosticProblem)
+    const matchedFindings = result.findings.length
 
     return NextResponse.json({
       ...result,
@@ -91,10 +78,9 @@ export async function POST(request: Request) {
       diagnosticFocus: {
         id: problem,
         label: PROBLEM_LABELS[problem as DiagnosticProblem],
-        matchedFindings: matched.length,
+        matchedFindings,
       },
-      findings: focusedFindings,
-      productStage: 'mvp-free-scan',
+      productStage: 'mvp-free-crawl',
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to analyze the website.'

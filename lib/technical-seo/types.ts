@@ -72,5 +72,12 @@ export interface ScanResult {
     low: number
     info: number
   }
+  requestedProblem?: DiagnosticProblem
+  requestedPlan?: PlanId
+  diagnosticFocus?: {
+    id: DiagnosticProblem
+    label: string
+    matchedFindings: number
+  }
   findings: Finding[]
 }

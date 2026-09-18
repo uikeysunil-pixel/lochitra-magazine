@@ -56,6 +56,7 @@ export interface ScanResult {
     externalLinks: number
     images: number
     imagesWithoutAlt: number
+    imagesWithEmptyAlt: number
     imagesWithoutDimensions: number
     h1Count: number
     jsonLdBlocks: number

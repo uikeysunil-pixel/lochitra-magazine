@@ -94,12 +94,20 @@ export default function TechnicalSEOScanStatusPage({
               </p>
 
               {data.status === 'complete' && data.reportUrl && (
-                <a
-                  href={data.reportUrl}
-                  className="mt-7 inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
-                >
-                  View completed report
-                </a>
+                <div className="mt-7 flex flex-wrap justify-center gap-3">
+                  <a
+                    href={data.reportUrl}
+                    className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
+                  >
+                    View completed report
+                  </a>
+                  <a
+                    href="/technical-seo/history/"
+                    className="inline-flex rounded-full border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100"
+                  >
+                    Scan history
+                  </a>
+                </div>
               )}
 
               {(data.status === 'failed' || data.status === 'cancelled') && (

@@ -364,7 +364,10 @@ export default function TechnicalSEOTroubleshooter() {
                     {result.pagesChecked} {result.pagesChecked === 1 ? 'page' : 'pages'} checked. Want us to investigate more?
                   </h3>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-400">
-                    This free check crawled up to the first 5 same-site HTML pages it could discover. It found {result.urlsDiscovered} URL{result.urlsDiscovered === 1 ? "" : "s"} in the crawl queue; {result.urlsNotCrawled} remain outside this limited scan.
+                    This free check crawled up to the first 5 same-site HTML pages it could discover from sitemap and internal-link signals. It found {result.urlsDiscovered} URL{result.urlsDiscovered === 1 ? "" : "s"} in the crawl queue; {result.urlsNotCrawled} remain outside this limited scan.
+                    {result.urlsBlockedByRobots > 0 && (
+                      <> {result.urlsBlockedByRobots} discovered URL{result.urlsBlockedByRobots === 1 ? '' : 's'} were skipped because of robots.txt rules.</>
+                    )}
                   </p>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {[

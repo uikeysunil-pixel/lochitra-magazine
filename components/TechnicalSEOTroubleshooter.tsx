@@ -86,6 +86,13 @@ export default function TechnicalSEOTroubleshooter() {
     [problem]
   )
 
+  const recommendedPlan: Exclude<PlanId, 'free'> = problem === 'unknown' ? 'full' : 'quick'
+
+  const recommendedPlanDetails = useMemo(
+    () => PLANS.find((item) => item.id === recommendedPlan),
+    [recommendedPlan]
+  )
+
   async function handleAnalyze(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -343,6 +350,66 @@ export default function TechnicalSEOTroubleshooter() {
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-primary-200 bg-primary-50 p-6 shadow-sm dark:border-primary-900 dark:bg-primary-950/20">
+              <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+                <div>
+                  <p className="text-primary-700 dark:text-primary-300 text-xs font-bold tracking-[0.16em] uppercase">
+                    Your quick check is complete
+                  </p>
+                  <h3 className="mt-2 text-2xl font-extrabold text-gray-900 dark:text-gray-100">
+                    {result.pagesChecked} page checked. Want us to investigate the rest?
+                  </h3>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-400">
+                    This free check inspected the submitted page and discovered {result.internalUrlsDiscovered} unique internal URL{result.internalUrlsDiscovered === 1 ? "" : "s"} from its initial HTML. It did not crawl those pages, use Google Search Console, or build a website-wide technical diagnosis.
+                  </p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {[
+                      'Evidence for findings',
+                      'Priority and recommended actions',
+                      'More pages and technical signals',
+                      'Deeper problem-specific investigation',
+                    ].map((item) => (
+                      <div key={item} className="flex gap-2 text-xs text-gray-700 dark:text-gray-300">
+                        <span aria-hidden="true">✓</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-primary-200 bg-white p-5 dark:border-primary-900 dark:bg-gray-950">
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                    Recommended next step
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {recommendedPlanDetails?.name}
+                  </p>
+                  <div className="mt-3 text-3xl font-extrabold text-gray-900 dark:text-gray-100">
+                    {recommendedPlanDetails?.price}
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                    {problem === 'unknown'
+                      ? 'A broader website investigation is the most appropriate next step for the general diagnostic mode.'
+                      : `Continue investigating: ${selectedProblem?.label?.toLowerCase() || 'your selected problem'}.`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setError(
+                        'Paid checkout is not enabled yet. The next build will connect this investigation to billing and the full crawler.'
+                      )
+                    }
+                    className="mt-5 w-full rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                  >
+                    {problem === 'unknown' ? 'Continue to Full Investigation — $99' : 'Investigate This Problem — $49'}
+                  </button>
+                  <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
+                    One-time investigation · Payment coming in the next build
+                  </p>
                 </div>
               </div>
             </div>

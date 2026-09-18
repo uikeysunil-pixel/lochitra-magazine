@@ -8,7 +8,7 @@ function decodeXml(value: string): string {
 
 function extractLocs(xml: string): string[] {
   const values: string[] = []
-  const regex = /<loc\\b[^>]*>([\\s\\S]*?)<\\/loc>/gi
+  const regex = /<loc\b[^>]*>([\s\S]*?)<\/loc>/gi
   for (const match of xml.matchAll(regex)) values.push(decodeXml(match[1]))
   return values.filter(Boolean)
 }

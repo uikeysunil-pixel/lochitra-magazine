@@ -158,12 +158,20 @@ export default async function TechnicalSEOReportPage({
                 <div className="flex justify-between gap-4"><span>Sitemap</span><strong>{result.sitemap.found ? 'Found' : 'Not found'}</strong></div>
               </div>
 
-              <a
-                href="/technical-seo/"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
-              >
-                Run another scan
-              </a>
+              <div className="mt-6 grid gap-2">
+                <a
+                  href="/technical-seo/history/"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100"
+                >
+                  View scan history
+                </a>
+                <a
+                  href="/technical-seo/"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
+                >
+                  Run another scan
+                </a>
+              </div>
             </aside>
           </div>
         </div>

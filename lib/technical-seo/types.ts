@@ -84,6 +84,7 @@ export interface ScanResult {
     label: string
     matchedFindings: number
   }
+  reportUrl?: string
   findings: Finding[]
 }
 

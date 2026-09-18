@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import type { CrawlResult, DiagnosticProblem, Finding, FindingSeverity, PlanId, ScanResult } from './types'
+import { discoverSitemapPages } from './site-discovery'
 import { runQuickScan } from './scanner'
 
 export const CRAWL_LIMITS: Record<PlanId, number> = {
@@ -105,12 +106,27 @@ export async function runCrawl(
   }
 
   const maxUrls = CRAWL_LIMITS[plan]
-  const queued = [rootUrl]
+  const queued: string[] = [rootUrl]
   const seen = new Set([rootUrl])
   const pageResults: ScanResult[] = []
   let crawlErrors = 0
   let finalOrigin: string | null = null
   let canonicalRootUrl: string | null = null
+
+  try {
+    const sitemapPages = await discoverSitemapPages(rootUrl, maxUrls * 3)
+    for (const sitemapPage of sitemapPages) {
+      if (seen.size >= maxUrls * 4) break
+      const normalized = normalizeCrawlUrl(sitemapPage)
+      if (!normalized || !isLikelyHtmlUrl(normalized)) continue
+      if (new URL(normalized).origin !== new URL(rootUrl).origin) continue
+      if (seen.has(normalized)) continue
+      seen.add(normalized)
+      queued.push(normalized)
+    }
+  } catch {
+    crawlErrors += 1
+  }
 
   while (queued.length > 0 && pageResults.length < maxUrls) {
     const batch = queued.splice(0, Math.min(MAX_CONCURRENCY, maxUrls - pageResults.length))

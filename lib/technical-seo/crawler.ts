@@ -197,6 +197,11 @@ export async function runCrawl(
           continue
         }
 
+        if (!isAllowedByRobots(robotsPolicy, normalized)) {
+          urlsBlockedByRobots += 1
+          continue
+        }
+
         if (seen.has(normalized)) continue
         seen.add(normalized)
         queued.push(normalized)

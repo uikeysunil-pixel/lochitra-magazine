@@ -275,7 +275,7 @@ export default function TechnicalSEOTroubleshooter() {
                   ['critical', 'Critical'],
                   ['high', 'High'],
                   ['medium', 'Medium'],
-                  ['low', 'Low'],
+                  ['low', 'Opportunities'],
                   ['info', 'Info'],
                 ] as const).map(([key, label]) => (
                   <div key={key} className="min-w-14 rounded-xl border border-gray-200 px-2 py-3 dark:border-gray-800">
@@ -288,36 +288,137 @@ export default function TechnicalSEOTroubleshooter() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">What needs attention</h3>
-              {result.findings.map((finding) => (
-                <article
-                  key={finding.id}
-                  className={`rounded-2xl border p-5 ${severityClass(finding.severity)}`}
-                >
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
-                    <span>{finding.severity}</span>
-                    <span>·</span>
-                    <span>{finding.category}</span>
-                    <span>·</span>
-                    <span>{finding.confidence} confidence</span>
-                  </div>
-                  <h4 className="mt-2 text-base font-extrabold">{finding.title}</h4>
-                  <p className="mt-2 text-sm leading-6">{finding.summary}</p>
-                  <div className="mt-4">
-                    <p className="text-xs font-bold uppercase tracking-wide opacity-80">Evidence</p>
-                    <ul className="mt-1 space-y-1 text-sm">
-                      {finding.evidence.map((item) => (
-                        <li key={item}>• {item}</li>
+            <div className="space-y-8">
+              <section>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Confirmed problems</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Issues the current scan can verify from the available evidence.
+                </p>
+                <div className="mt-4 space-y-4">
+                  {(() => {
+                    const findings = result.findings.filter((finding) =>
+                      ['critical', 'high', 'medium'].includes(finding.severity)
+                    )
+                    return findings.length > 0 ? findings.map((finding) => (
+                      <article
+                        key={finding.id}
+                        className={`rounded-2xl border p-5 ${severityClass(finding.severity)}`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
+                          <span>{finding.severity}</span>
+                          <span>·</span>
+                          <span>{finding.category}</span>
+                          <span>·</span>
+                          <span>{finding.confidence} confidence</span>
+                        </div>
+                        <h4 className="mt-2 text-base font-extrabold">{finding.title}</h4>
+                        <p className="mt-2 text-sm leading-6">{finding.summary}</p>
+                        <div className="mt-4">
+                          <p className="text-xs font-bold uppercase tracking-wide opacity-80">Evidence</p>
+                          <ul className="mt-1 space-y-1 text-sm">
+                            {finding.evidence.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-xs font-bold uppercase tracking-wide opacity-80">Recommended action</p>
+                          <p className="mt-1 text-sm leading-6">{finding.recommendation}</p>
+                        </div>
+                      </article>
+                    )) : (
+                      <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400">
+                        No confirmed technical problems were detected by this scan.
+                      </div>
+                    )
+                  })()}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Review opportunities</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Optimization or quality signals worth reviewing, but not treated as confirmed technical failures.
+                </p>
+                <div className="mt-4 space-y-4">
+                  {(() => {
+                    const findings = result.findings.filter((finding) => finding.severity === 'low')
+                    return findings.length > 0 ? findings.map((finding) => (
+                      <article
+                        key={finding.id}
+                        className={`rounded-2xl border p-5 ${severityClass(finding.severity)}`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
+                          <span>{finding.severity}</span>
+                          <span>·</span>
+                          <span>{finding.category}</span>
+                          <span>·</span>
+                          <span>{finding.confidence} confidence</span>
+                        </div>
+                        <h4 className="mt-2 text-base font-extrabold">{finding.title}</h4>
+                        <p className="mt-2 text-sm leading-6">{finding.summary}</p>
+                        <div className="mt-4">
+                          <p className="text-xs font-bold uppercase tracking-wide opacity-80">Evidence</p>
+                          <ul className="mt-1 space-y-1 text-sm">
+                            {finding.evidence.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-xs font-bold uppercase tracking-wide opacity-80">Recommended action</p>
+                          <p className="mt-1 text-sm leading-6">{finding.recommendation}</p>
+                        </div>
+                      </article>
+                    )) : (
+                      <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400">
+                        No review opportunities were detected by this scan.
+                      </div>
+                    )
+                  })()}
+                </div>
+              </section>
+
+              {result.findings.some((finding) => finding.severity === 'info') && (
+                <section>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informational observations</h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Useful observations that are not treated as SEO problems by themselves.
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    {result.findings
+                      .filter((finding) => finding.severity === 'info')
+                      .map((finding) => (
+                        <article
+                          key={finding.id}
+                          className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                        >
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
+                            <span>info</span>
+                            <span>·</span>
+                            <span>{finding.category}</span>
+                            <span>·</span>
+                            <span>{finding.confidence} confidence</span>
+                          </div>
+                          <h4 className="mt-2 text-base font-extrabold">{finding.title}</h4>
+                          <p className="mt-2 text-sm leading-6">{finding.summary}</p>
+                          <div className="mt-4">
+                            <p className="text-xs font-bold uppercase tracking-wide opacity-80">Evidence</p>
+                            <ul className="mt-1 space-y-1 text-sm">
+                              {finding.evidence.map((item) => (
+                                <li key={item}>• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="mt-4">
+                            <p className="text-xs font-bold uppercase tracking-wide opacity-80">Recommended action</p>
+                            <p className="mt-1 text-sm leading-6">{finding.recommendation}</p>
+                          </div>
+                        </article>
                       ))}
-                    </ul>
                   </div>
-                  <div className="mt-4">
-                    <p className="text-xs font-bold uppercase tracking-wide opacity-80">Recommended action</p>
-                    <p className="mt-1 text-sm leading-6">{finding.recommendation}</p>
-                  </div>
-                </article>
-              ))}
+                </section>
+              )}
             </div>
 
             <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-950">
@@ -326,6 +427,8 @@ export default function TechnicalSEOTroubleshooter() {
                 <div className="flex justify-between gap-4"><span>Internal links</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.internalLinks}</strong></div>
                 <div className="flex justify-between gap-4"><span>External links</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.externalLinks}</strong></div>
                 <div className="flex justify-between gap-4"><span>Images</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.images}</strong></div>
+                <div className="flex justify-between gap-4"><span>Missing alt attributes</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.imagesWithoutAlt}</strong></div>
+                <div className="flex justify-between gap-4"><span>Empty alt attributes</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.imagesWithEmptyAlt}</strong></div>
                 <div className="flex justify-between gap-4"><span>H1 headings</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.h1Count}</strong></div>
                 <div className="flex justify-between gap-4"><span>JSON-LD blocks</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.jsonLdBlocks}</strong></div>
                 <div className="flex justify-between gap-4"><span>hreflang links</span><strong className="text-gray-900 dark:text-gray-100">{result.metrics.hreflangCount}</strong></div>

@@ -44,6 +44,15 @@ export async function markScanRunning(scanId: string) {
 
 export async function completeScanRecord(scanId: string, result: CrawlResult) {
   await sql`
+    delete from seo_scan_findings
+    where scan_id = ${scanId}::uuid
+  `
+
+  for (const finding of result.findings) {
+    await insertFinding(scanId, finding)
+  }
+
+  await sql`
     update seo_scans
     set
       final_url = ${result.finalUrl},
@@ -59,15 +68,6 @@ export async function completeScanRecord(scanId: string, result: CrawlResult) {
       updated_at = now()
     where id = ${scanId}::uuid
   `
-
-  await sql`
-    delete from seo_scan_findings
-    where scan_id = ${scanId}::uuid
-  `
-
-  for (const finding of result.findings) {
-    await insertFinding(scanId, finding)
-  }
 }
 
 export async function failScanRecord(scanId: string, message: string) {

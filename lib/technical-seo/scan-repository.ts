@@ -28,6 +28,25 @@ export async function getScanRecord(scanId: string) {
   return rows[0] ?? null
 }
 
+export async function listRecentScans(limit = 10) {
+  const safeLimit = Math.max(1, Math.min(50, Math.floor(limit)))
+  return sql`
+    select
+      id,
+      website_url,
+      problem,
+      plan,
+      status,
+      pages_checked,
+      progress_percent,
+      created_at,
+      completed_at
+    from seo_scans
+    order by created_at desc
+    limit ${safeLimit}
+  `
+}
+
 import { sql } from './db'
 import type { CrawlResult, DiagnosticProblem, Finding, PlanId } from './types'
 

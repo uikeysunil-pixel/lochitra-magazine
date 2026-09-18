@@ -40,6 +40,7 @@ export interface ScanResult {
   durationMs: number
   pagesChecked: number
   internalUrlsDiscovered: number
+  discoveredInternalUrls: string[]
   pageTitle: string | null
   metaDescription: string | null
   canonical: string | null
@@ -99,5 +100,6 @@ export interface CrawlResult {
   crawlErrors: number
   durationMs: number
   summary: ScanResult['summary']
+  metrics: ScanResult['metrics']
   findings: Finding[]
 }

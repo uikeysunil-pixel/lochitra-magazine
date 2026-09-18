@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import type { CrawlResult, DiagnosticProblem, Finding, FindingSeverity, PlanId, ScanResult } from './types'
-import { discoverSitemapPages } from './site-discovery'
+import { discoverSitemapPages, isAllowedByRobots, loadRobotsPolicy } from './site-discovery'
 import { runQuickScan } from './scanner'
 
 export const CRAWL_LIMITS: Record<PlanId, number> = {
@@ -110,7 +110,9 @@ export async function runCrawl(
   const seen = new Set([rootUrl])
   const pageResults: ScanResult[] = []
   let crawlErrors = 0
+  let urlsBlockedByRobots = 0
   let finalOrigin: string | null = null
+  const robotsPolicy = await loadRobotsPolicy(rootUrl)
   let canonicalRootUrl: string | null = null
 
   try {
@@ -120,6 +122,10 @@ export async function runCrawl(
       const normalized = normalizeCrawlUrl(sitemapPage)
       if (!normalized || !isLikelyHtmlUrl(normalized)) continue
       if (new URL(normalized).origin !== new URL(rootUrl).origin) continue
+      if (!isAllowedByRobots(robotsPolicy, normalized)) {
+        urlsBlockedByRobots += 1
+        continue
+      }
       if (seen.has(normalized)) continue
       seen.add(normalized)
       queued.push(normalized)
@@ -229,6 +235,7 @@ export async function runCrawl(
     urlsDiscovered: seen.size,
     urlsNotCrawled: Math.max(0, seen.size - pageResults.length),
     crawlErrors,
+    urlsBlockedByRobots,
     durationMs: Date.now() - startedAt,
     summary: summarize(findings),
     metrics: aggregatedMetrics,

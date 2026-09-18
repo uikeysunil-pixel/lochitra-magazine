@@ -361,16 +361,16 @@ export default function TechnicalSEOTroubleshooter() {
                     Your quick check is complete
                   </p>
                   <h3 className="mt-2 text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-                    {result.pagesChecked} page checked. Want us to investigate the rest?
+                    {result.pagesChecked} {result.pagesChecked === 1 ? 'page' : 'pages'} checked. Want us to investigate more?
                   </h3>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-400">
-                    This free check inspected the submitted page and discovered {result.internalUrlsDiscovered} unique internal URL{result.internalUrlsDiscovered === 1 ? "" : "s"} from its initial HTML. It did not crawl those pages, use Google Search Console, or build a website-wide technical diagnosis.
+                    This free check crawled up to the first 5 same-site HTML pages it could discover. It found {result.urlsDiscovered} URL{result.urlsDiscovered === 1 ? "" : "s"} in the crawl queue; {result.urlsNotCrawled} remain outside this limited scan.
                   </p>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {[
                       'Evidence for findings',
                       'Priority and recommended actions',
-                      'More pages and technical signals',
+                      'More pages and site-wide technical signals',
                       'Deeper problem-specific investigation',
                     ].map((item) => (
                       <div key={item} className="flex gap-2 text-xs text-gray-700 dark:text-gray-300">

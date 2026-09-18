@@ -14,6 +14,7 @@ type ScanStatusPayload = {
   urlsBlockedByRobots: number
   errorMessage?: string | null
   reportUrl?: string | null
+  statusUrl?: string | null
   result?: ScanResult
 }
 
@@ -96,6 +97,7 @@ export default function TechnicalSEOTroubleshooter() {
   const [result, setResult] = useState<ScanResult | null>(null)
   const [scanStatus, setScanStatus] = useState<ScanStatusPayload['status'] | null>(null)
   const [scanProgress, setScanProgress] = useState(0)
+  const [statusUrl, setStatusUrl] = useState<string | null>(null)
 
   const selectedProblem = useMemo(
     () => PROBLEMS.find((item) => item.id === problem),
@@ -160,6 +162,7 @@ export default function TechnicalSEOTroubleshooter() {
     setResult(null)
     setScanStatus(null)
     setScanProgress(0)
+    setStatusUrl(null)
 
     if (!url.trim()) {
       setError('Enter your website URL to begin.')
@@ -191,6 +194,8 @@ export default function TechnicalSEOTroubleshooter() {
       }
 
       setScanStatus(data.status || 'queued')
+      setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
+      setScanProgress(0)
       await pollScan(data.scanId)
     } catch (scanError) {
       setError(
@@ -345,6 +350,14 @@ export default function TechnicalSEOTroubleshooter() {
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   {scanProgress > 0 ? `${scanProgress}% complete` : 'Starting…'}
                 </p>
+                {statusUrl && (
+                  <a
+                    href={statusUrl}
+                    className="mt-3 inline-block text-xs font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100"
+                  >
+                    Open this scan status page
+                  </a>
+                )}
               </div>
             )}
             {selectedProblem && (

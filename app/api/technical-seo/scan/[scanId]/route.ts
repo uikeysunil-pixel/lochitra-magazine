@@ -39,11 +39,17 @@ export async function GET(
       return NextResponse.json({ error: 'Scan not found.' }, { status: 404 })
     }
 
+    const requestUrl = new URL(_request.url)
+    const summaryOnly = requestUrl.searchParams.get('summary') === '1'
+
     const base = {
       scanId,
+      websiteUrl: row.website_url,
       status: row.status,
       problem: row.problem,
       plan: row.plan,
+      createdAt: row.created_at,
+      completedAt: row.completed_at,
       progressPercent: row.progress_percent,
       pagesChecked: row.pages_checked,
       pagesDiscovered: row.pages_discovered,
@@ -57,7 +63,7 @@ export async function GET(
           : null,
     }
 
-    if (row.status !== 'complete' || !row.report_json) {
+    if (summaryOnly || row.status !== 'complete' || !row.report_json) {
       return NextResponse.json(base)
     }
 

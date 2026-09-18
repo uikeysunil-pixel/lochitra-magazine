@@ -1,0 +1,194 @@
+import { randomUUID } from 'crypto'
+import type { CrawlResult, DiagnosticProblem, Finding, FindingSeverity, PlanId, ScanResult } from './types'
+import { runQuickScan } from './scanner'
+
+export const CRAWL_LIMITS: Record<PlanId, number> = {
+  free: 5,
+  quick: 50,
+  full: 250,
+  deep: 1000,
+}
+
+const MAX_CONCURRENCY = 3
+
+const NON_HTML_EXTENSIONS = new Set([
+  '.7z', '.avi', '.bmp', '.css', '.csv', '.doc', '.docx', '.gif', '.ico',
+  '.jpeg', '.jpg', '.js', '.json', '.mp3', '.mp4', '.mpeg', '.pdf', '.png',
+  '.svg', '.tar', '.txt', '.webp', '.woff', '.woff2', '.xls', '.xlsx', '.zip',
+])
+
+function normalizeCrawlUrl(value: string): string | null {
+  try {
+    const url = new URL(value)
+    if (!['http:', 'https:'].includes(url.protocol)) return null
+    url.hash = ''
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+function isLikelyHtmlUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    const pathname = url.pathname.toLowerCase()
+    for (const extension of NON_HTML_EXTENSIONS) {
+      if (pathname.endsWith(extension)) return false
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+function aggregateFindings(pageFindings: Finding[]): Finding[] {
+  const groups = new Map<string, Finding>()
+
+  for (const finding of pageFindings) {
+    const key = finding.id
+    const existing = groups.get(key)
+    if (!existing) {
+      groups.set(key, {
+        ...finding,
+        affectedUrls: finding.url ? [finding.url] : [],
+      })
+      continue
+    }
+
+    const existingUrls = new Set(existing.affectedUrls || [])
+    if (finding.url) existingUrls.add(finding.url)
+
+    existing.affectedUrls = [...existingUrls]
+  }
+
+  const severityRank: Record<FindingSeverity, number> = {
+    critical: 0,
+    high: 1,
+    medium: 2,
+    low: 3,
+    info: 4,
+  }
+
+  return [...groups.values()]
+    .map((finding) => ({
+      ...finding,
+      url: undefined,
+      affectedUrls: [...new Set(finding.affectedUrls || [])],
+      evidence: [
+        ...finding.evidence,
+        `Affected pages: ${finding.affectedUrls?.length || 0}`,
+      ],
+    }))
+    .sort((a, b) => severityRank[a.severity] - severityRank[b.severity])
+}
+
+function summarize(findings: Finding[]): ScanResult['summary'] {
+  return findings.reduce(
+    (acc, finding) => {
+      acc[finding.severity] += 1
+      return acc
+    },
+    { critical: 0, high: 0, medium: 0, low: 0, info: 0 } as ScanResult['summary']
+  )
+}
+
+export async function runCrawl(
+  input: string,
+  plan: PlanId,
+  diagnosticProblem: DiagnosticProblem
+): Promise<CrawlResult> {
+  const startedAt = Date.now()
+  const rootUrl = normalizeCrawlUrl(input)
+
+  if (!rootUrl) {
+    throw new Error('Enter a valid http:// or https:// website URL.')
+  }
+
+  const maxUrls = CRAWL_LIMITS[plan]
+  const queued = [rootUrl]
+  const seen = new Set([rootUrl])
+  const pageResults: ScanResult[] = []
+  let crawlErrors = 0
+  let finalOrigin: string | null = null
+  let canonicalRootUrl: string | null = null
+
+  while (queued.length > 0 && pageResults.length < maxUrls) {
+    const batch = queued.splice(0, Math.min(MAX_CONCURRENCY, maxUrls - pageResults.length))
+    const results = await Promise.all(
+      batch.map(async (url) => {
+        try {
+          const result = await runQuickScan(url)
+          return { url, result }
+        } catch {
+          crawlErrors += 1
+          return { url, result: null as ScanResult | null }
+        }
+      })
+    )
+
+    for (const item of results) {
+      if (!item.result) continue
+
+      const result = item.result
+      pageResults.push(result)
+
+      if (!finalOrigin) {
+        finalOrigin = new URL(result.finalUrl).origin
+        canonicalRootUrl = result.finalUrl
+      }
+
+      if (finalOrigin !== new URL(result.finalUrl).origin) continue
+
+      for (const discovered of result.discoveredInternalUrls) {
+        const normalized = normalizeCrawlUrl(discovered)
+        if (!normalized || !isLikelyHtmlUrl(normalized)) continue
+
+        try {
+          if (new URL(normalized).origin !== finalOrigin) continue
+        } catch {
+          continue
+        }
+
+        if (seen.has(normalized)) continue
+        seen.add(normalized)
+        queued.push(normalized)
+
+        if (seen.size >= maxUrls * 4) break
+      }
+
+      if (seen.size >= maxUrls * 4) break
+    }
+  }
+
+  const allFindings = pageResults
+    .filter((page) =>
+      diagnosticProblem === 'unknown'
+        ? true
+        : page.findings.some((finding) => finding.diagnosticProblems.includes(diagnosticProblem))
+    )
+    .flatMap((page) =>
+      page.findings.filter(
+        (finding) =>
+          diagnosticProblem === 'unknown' ||
+          finding.diagnosticProblems.includes(diagnosticProblem)
+      )
+    )
+
+  const findings = aggregateFindings(allFindings)
+
+  return {
+    scanId: randomUUID(),
+    url: rootUrl,
+    finalUrl: canonicalRootUrl || rootUrl,
+    fetchedAt: new Date().toISOString(),
+    plan,
+    maxUrls,
+    pagesChecked: pageResults.length,
+    urlsDiscovered: seen.size,
+    urlsNotCrawled: Math.max(0, seen.size - pageResults.length),
+    crawlErrors,
+    durationMs: Date.now() - startedAt,
+    summary: summarize(findings),
+    findings,
+  }
+}

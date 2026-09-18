@@ -51,6 +51,10 @@ export async function GET(
       crawlErrors: row.crawl_errors,
       urlsBlockedByRobots: row.urls_blocked_by_robots,
       errorMessage: row.error_message,
+      reportUrl:
+        row.status === 'complete'
+          ? `/technical-seo/report/${scanId}/`
+          : null,
     }
 
     if (row.status !== 'complete' || !row.report_json) {

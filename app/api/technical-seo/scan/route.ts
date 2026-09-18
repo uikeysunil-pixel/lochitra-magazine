@@ -20,6 +20,20 @@ const PROBLEMS = new Set<DiagnosticProblem>([
 
 const PLANS = new Set<PlanId>(['free', 'quick', 'full', 'deep'])
 
+const PROBLEM_LABELS: Record<DiagnosticProblem, string> = {
+  indexing: "My pages aren't getting indexed",
+  'traffic-drop': 'My organic traffic dropped',
+  'wrong-page': 'Google is showing the wrong page',
+  slow: 'My website is slow',
+  technical: 'I have technical SEO errors',
+  schema: 'My schema / structured data has problems',
+  migration: 'I recently redesigned or migrated my website',
+  'broken-links': 'I have broken pages or links',
+  duplicates: 'I have duplicate or low-value pages',
+  unknown: "I don't know — find the important problems",
+}
+
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
@@ -47,11 +61,39 @@ export async function POST(request: Request) {
     // Phase 1 intentionally exposes only the free quick scan.
     // Paid plan enforcement will be added with billing before paid scans are enabled.
     const result = await runQuickScan(url)
+    const matched = result.findings.filter((finding) =>
+      finding.diagnosticProblems.includes(problem as DiagnosticProblem)
+    )
+    const problemIndex = new Map(
+      matched.map((finding, index) => [finding.id, index])
+    )
+
+    const focusedFindings = [...result.findings].sort((a, b) => {
+      const aMatched = problemIndex.has(a.id)
+      const bMatched = problemIndex.has(b.id)
+      if (aMatched !== bMatched) return aMatched ? -1 : 1
+
+      const severityRank: Record<string, number> = {
+        critical: 0,
+        high: 1,
+        medium: 2,
+        low: 3,
+        info: 4,
+      }
+
+      return (severityRank[a.severity] ?? 99) - (severityRank[b.severity] ?? 99)
+    })
 
     return NextResponse.json({
       ...result,
       requestedProblem: problem,
       requestedPlan: plan,
+      diagnosticFocus: {
+        id: problem,
+        label: PROBLEM_LABELS[problem as DiagnosticProblem],
+        matchedFindings: matched.length,
+      },
+      findings: focusedFindings,
       productStage: 'mvp-free-scan',
     })
   } catch (error) {

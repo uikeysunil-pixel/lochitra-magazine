@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { getScanRecord } from '@/lib/technical-seo/scan-repository'
+import {
+  getScanRecord,
+  verifyReportAccessToken,
+} from '@/lib/technical-seo/scan-repository'
 import type { CrawlResult, DiagnosticProblem } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
@@ -42,15 +45,25 @@ function severityClass(severity: string) {
 
 export default async function TechnicalSEOReportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ scanId: string }>
+  searchParams: Promise<{ key?: string }>
 }) {
   const { scanId } = await params
+  const { key } = await searchParams
 
   if (!isUuid(scanId)) notFound()
 
   const scan = await getScanRecord(scanId)
   if (!scan || scan.status !== 'complete' || !scan.report_json) notFound()
+
+  if (
+    scan.access_mode === 'private' &&
+    !verifyReportAccessToken(key, scan.report_token_hash)
+  ) {
+    notFound()
+  }
 
   const result = scan.report_json as CrawlResult
   const problem = scan.problem as DiagnosticProblem

@@ -282,6 +282,13 @@ export async function runCrawl(
       status: firstSitemap?.sitemap.status ?? null,
       found: Boolean(firstSitemap || sitemapUrls.length > 0),
     },
+    pages: pageResults.map((page) => ({
+      url: page.url,
+      finalUrl: page.finalUrl,
+      httpStatus: page.httpStatus,
+      durationMs: page.durationMs,
+      state: 'complete' as const,
+    })),
     findings,
   }
 }

@@ -273,17 +273,20 @@ function getImages(html: string): {
 } {
   const images = html.match(/<img\b[^>]*>/gi) || []
   let withoutAlt = 0
+  let withEmptyAlt = 0
   let withoutDimensions = 0
 
   for (const image of images) {
     const alt = image.match(/\balt=["']([^"']*)["']/i)
     const width = image.match(/\bwidth=["']([^"']+)["']/i)
     const height = image.match(/\bheight=["']([^"']+)["']/i)
-    if (!alt || !alt[1].trim()) withoutAlt += 1
+    if (!alt) withoutAlt += 1
+    else if (!alt[1].trim()) withEmptyAlt += 1
+
     if (!width || !height) withoutDimensions += 1
   }
 
-  return { total: images.length, withoutAlt, withoutDimensions }
+  return { total: images.length, withoutAlt, withEmptyAlt, withoutDimensions }
 }
 
 function getHreflangCount(html: string): number {
@@ -590,13 +593,13 @@ function buildFindings(input: {
     findings.push(
       makeFinding(
         'IMG-001',
-        `${metrics.imagesWithoutAlt} image(s) have missing or empty alt text`,
+        `${metrics.imagesWithoutAlt} image(s) have no alt attribute`,
         'Images',
         'low',
         'high',
-        'Some image elements do not include useful alt text.',
+        'Some image elements do not include an alt attribute. Empty alt="" is not counted here because it can be intentional for decorative images.',
         [`Images checked: ${metrics.images}`, `Images without alt text: ${metrics.imagesWithoutAlt}`],
-        'Review decorative images separately from informative images and add concise alternative text to informative images.',
+        'Review informative images and add concise alternative text where needed. Leave intentionally decorative images with alt="".',
         ['technical', 'unknown']
       )
     )
@@ -767,6 +770,7 @@ function collectMetrics(html: string, finalUrl: URL) {
     externalLinks: links.external,
     images: images.total,
     imagesWithoutAlt: images.withoutAlt,
+    imagesWithEmptyAlt: images.withEmptyAlt,
     imagesWithoutDimensions: images.withoutDimensions,
     h1Count: getCount(html, /<h1\b[^>]*>/gi),
     jsonLdBlocks: jsonLd.blocks,

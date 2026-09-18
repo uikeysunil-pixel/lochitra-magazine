@@ -36,6 +36,8 @@ export interface ScanResult {
   httpStatus: number
   contentType: string
   durationMs: number
+  pagesChecked: number
+  internalUrlsDiscovered: number
   pageTitle: string | null
   metaDescription: string | null
   canonical: string | null

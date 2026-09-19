@@ -105,6 +105,12 @@ export async function createScanRecord(input: {
       plan,
       access_mode,
       report_token_hash,
+      payment_status,
+      stripe_checkout_session_id,
+      stripe_payment_intent_id,
+      customer_email,
+      paid_at,
+      background_event_sent_at,
       status,
       max_urls
     )

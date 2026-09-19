@@ -7,7 +7,7 @@ import { forgetScan, readScanHistory } from '@/lib/technical-seo/browser-history
 type ScanSummary = {
   scanId: string
   websiteUrl: string
-  status: 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
+  status: 'awaiting_payment' | 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
   paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
   problem: string
   plan: string
@@ -21,6 +21,7 @@ type ScanSummary = {
 }
 
 const STATUS_LABELS: Record<ScanSummary['status'], string> = {
+  awaiting_payment: 'Awaiting payment',
   queued: 'Queued',
   running: 'Running',
   analyzing: 'Analyzing',

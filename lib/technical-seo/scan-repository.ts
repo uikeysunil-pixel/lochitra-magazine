@@ -150,6 +150,24 @@ export async function markCheckoutSessionCreated(
   `
 }
 
+export async function markCheckoutFailed(
+  scanId: string,
+  checkoutSessionId: string,
+  message: string
+) {
+  await sql`
+    update seo_scans
+    set
+      payment_status = 'failed',
+      status = 'cancelled',
+      error_message = ${message},
+      updated_at = now()
+    where id = ${scanId}::uuid
+      and stripe_checkout_session_id = ${checkoutSessionId}
+      and payment_status <> 'paid'
+  `
+}
+
 export async function markCheckoutCancelled(scanId: string, message: string) {
   await sql`
     update seo_scans
@@ -174,8 +192,11 @@ export async function markCheckoutPaid(input: {
     set
       payment_status = 'paid',
       stripe_checkout_session_id = ${input.checkoutSessionId},
-      stripe_payment_intent_id = ${input.paymentIntentId ?? null},
-      customer_email = ${input.customerEmail ?? null},
+      stripe_payment_intent_id = coalesce(
+        ${input.paymentIntentId ?? null},
+        stripe_payment_intent_id
+      ),
+      customer_email = coalesce(${input.customerEmail ?? null}, customer_email),
       paid_at = coalesce(paid_at, now()),
       status = case
         when status = 'awaiting_payment' then 'queued'
@@ -184,8 +205,14 @@ export async function markCheckoutPaid(input: {
       updated_at = now()
     where id = ${input.scanId}::uuid
       and stripe_checkout_session_id = ${input.checkoutSessionId}
-      and payment_status <> 'paid'
-    returning id, website_url, problem, plan, status
+    returning
+      id,
+      website_url,
+      problem,
+      plan,
+      status,
+      payment_status,
+      background_event_sent_at
   `
 
   return rows[0] ?? null

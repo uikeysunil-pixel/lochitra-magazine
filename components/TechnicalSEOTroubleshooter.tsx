@@ -6,7 +6,7 @@ import type { DiagnosticProblem, PlanId, ScanResult } from '@/lib/technical-seo/
 
 type ScanStatusPayload = {
   scanId: string
-  status: 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
+  status: 'awaiting_payment' | 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
   progressPercent: number
   pagesChecked: number
   pagesDiscovered: number

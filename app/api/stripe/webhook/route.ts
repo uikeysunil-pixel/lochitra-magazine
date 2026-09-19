@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { inngest } from '@/inngest/client'
 import {
-  failScanRecord,
   markBackgroundEventSent,
   markCheckoutFailed,
   markCheckoutPaid,

@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from 'crypto'
+
 const STRIPE_API_BASE = 'https://api.stripe.com/v1'
 
 function getStripeSecretKey() {
@@ -97,12 +99,20 @@ export function verifyStripeWebhookSignature(
   }
 
   const signedPayload = `${timestamp}.${payload}`
-  const expected = new Bun.CryptoHasher('sha256')
-  expected.update(endpointSecret)
-  expected.update(signedPayload)
-  const expectedHex = expected.digest('hex')
+  const expectedHex = createHmac('sha256', endpointSecret)
+    .update(signedPayload, 'utf8')
+    .digest('hex')
 
-  if (!signatures.includes(expectedHex)) {
+  const expectedBuffer = Buffer.from(expectedHex, 'hex')
+  const valid = signatures.some((signature) => {
+    const signatureBuffer = Buffer.from(signature, 'hex')
+    return (
+      signatureBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(signatureBuffer, expectedBuffer)
+    )
+  })
+
+  if (!valid) {
     throw new Error('Stripe webhook signature verification failed.')
   }
 }

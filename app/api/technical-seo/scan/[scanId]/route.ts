@@ -60,6 +60,7 @@ export async function GET(
       scanId,
       websiteUrl: row.website_url,
       status: row.status,
+      paymentStatus: row.payment_status,
       problem: row.problem,
       plan: row.plan,
       createdAt: row.created_at,
@@ -73,7 +74,11 @@ export async function GET(
       errorMessage: row.error_message,
       reportUrl:
         row.status === 'complete'
-          ? `/technical-seo/report/${scanId}/`
+          ? row.access_mode === 'private' && accessToken
+            ? `/technical-seo/report/${scanId}/?key=${encodeURIComponent(accessToken)}`
+            : row.access_mode === 'public'
+              ? `/technical-seo/report/${scanId}/`
+              : null
           : null,
     }
 

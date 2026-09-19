@@ -12,6 +12,12 @@ create table if not exists seo_scans (
   plan text not null,
   access_mode text not null default 'public',
   report_token_hash text,
+  payment_status text not null default 'unpaid',
+  stripe_checkout_session_id text,
+  stripe_payment_intent_id text,
+  customer_email text,
+  paid_at timestamptz,
+  background_event_sent_at timestamptz,
   status text not null default 'queued',
   max_urls integer not null,
   pages_discovered integer not null default 0,
@@ -30,6 +36,10 @@ create table if not exists seo_scans (
 
 create index if not exists seo_scans_status_created_idx
   on seo_scans (status, created_at);
+
+create unique index if not exists seo_scans_stripe_checkout_session_uidx
+  on seo_scans (stripe_checkout_session_id)
+  where stripe_checkout_session_id is not null;
 
 create table if not exists seo_scan_urls (
   id bigserial primary key,

@@ -53,8 +53,8 @@ const PLANS: Array<{
     name: 'Targeted Troubleshoot',
     price: '$49',
     description: 'Problem-specific diagnosis with a focused report.',
-    features: ['Problem-oriented analysis', 'Evidence', 'Prioritized findings', 'PDF report'],
-    enabled: false,
+    features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
+    enabled: true,
   },
   {
     id: 'full',
@@ -170,18 +170,42 @@ export default function TechnicalSEOTroubleshooter() {
       return
     }
 
-    if (plan !== 'free') {
-      setError('Paid scans are not enabled yet. The analysis engine is being built first; billing and paid crawl limits come next.')
-      return
-    }
-
     setLoading(true)
 
     try {
+      if (plan === 'quick') {
+        const response = await fetch('/api/technical-seo/checkout', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url, problem, plan }),
+        })
+
+        const data = (await response.json()) as {
+          scanId?: string
+          status?: ScanStatusPayload['status']
+          statusUrl?: string
+          accessKey?: string
+          checkoutUrl?: string
+          error?: string
+        }
+
+        if (!response.ok || !data.scanId || !data.checkoutUrl) {
+          throw new Error(data.error || 'Unable to start secure checkout.')
+        }
+
+        rememberScan(data.scanId, data.accessKey)
+        setScanStatus(data.status || 'queued')
+        setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
+        setScanProgress(0)
+
+        window.location.assign(data.checkoutUrl)
+        return
+      }
+
       const response = await fetch('/api/technical-seo/scan', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url, problem, plan }),
+        body: JSON.stringify({ url, problem, plan: 'free' }),
       })
 
       const data = (await response.json()) as {
@@ -328,12 +352,16 @@ export default function TechnicalSEOTroubleshooter() {
               className="rounded-full bg-gray-900 px-7 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
             >
               {loading
-                ? scanStatus === 'queued'
-                  ? 'Queued…'
-                  : scanStatus === 'analyzing'
-                    ? 'Building report…'
-                    : 'Crawling website…'
-                : 'Troubleshoot My Website'}
+                ? plan === 'quick' && scanStatus === 'queued'
+                  ? 'Opening secure checkout…'
+                  : scanStatus === 'queued'
+                    ? 'Queued…'
+                    : scanStatus === 'analyzing'
+                      ? 'Building report…'
+                      : 'Crawling website…'
+                : plan === 'quick'
+                  ? 'Continue to secure checkout — $49'
+                  : 'Troubleshoot My Website'}
             </button>
             {loading && (
               <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-800 dark:bg-gray-900">

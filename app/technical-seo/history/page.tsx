@@ -8,6 +8,7 @@ type ScanSummary = {
   scanId: string
   websiteUrl: string
   status: 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
+  paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
   problem: string
   plan: string
   pagesChecked: number

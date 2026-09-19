@@ -8,6 +8,12 @@ export async function getScanRecord(scanId: string) {
       plan,
       access_mode,
       report_token_hash,
+      payment_status,
+      stripe_checkout_session_id,
+      stripe_payment_intent_id,
+      customer_email,
+      paid_at,
+      background_event_sent_at,
       status,
       max_urls,
       pages_discovered,
@@ -83,6 +89,13 @@ export async function createScanRecord(input: {
   maxUrls: number
   accessMode?: 'public' | 'private'
   reportTokenHash?: string | null
+  paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
+  stripeCheckoutSessionId?: string | null
+  stripePaymentIntentId?: string | null
+  customerEmail?: string | null
+  paidAt?: string | null
+  backgroundEventSentAt?: string | null
+  initialStatus?: 'awaiting_payment' | 'queued'
 }) {
   const rows = await sql`
     insert into seo_scans (
@@ -102,13 +115,84 @@ export async function createScanRecord(input: {
       ${input.plan},
       ${input.accessMode ?? 'public'},
       ${input.reportTokenHash ?? null},
-      'queued',
+      ${input.paymentStatus ?? 'unpaid'},
+      ${input.stripeCheckoutSessionId ?? null},
+      ${input.stripePaymentIntentId ?? null},
+      ${input.customerEmail ?? null},
+      ${input.paidAt ?? null},
+      ${input.backgroundEventSentAt ?? null},
+      ${input.initialStatus ?? 'queued'},
       ${input.maxUrls}
     )
     returning id
   `
 
   return rows[0]?.id as string
+}
+
+export async function markCheckoutSessionCreated(
+  scanId: string,
+  checkoutSessionId: string
+) {
+  await sql`
+    update seo_scans
+    set
+      stripe_checkout_session_id = ${checkoutSessionId},
+      payment_status = 'pending',
+      updated_at = now()
+    where id = ${scanId}::uuid
+  `
+}
+
+export async function markCheckoutCancelled(scanId: string, message: string) {
+  await sql`
+    update seo_scans
+    set
+      payment_status = 'failed',
+      status = 'cancelled',
+      error_message = ${message},
+      updated_at = now()
+    where id = ${scanId}::uuid
+      and status = 'awaiting_payment'
+  `
+}
+
+export async function markCheckoutPaid(input: {
+  scanId: string
+  checkoutSessionId: string
+  paymentIntentId?: string | null
+  customerEmail?: string | null
+}) {
+  const rows = await sql`
+    update seo_scans
+    set
+      payment_status = 'paid',
+      stripe_checkout_session_id = ${input.checkoutSessionId},
+      stripe_payment_intent_id = ${input.paymentIntentId ?? null},
+      customer_email = ${input.customerEmail ?? null},
+      paid_at = coalesce(paid_at, now()),
+      status = case
+        when status = 'awaiting_payment' then 'queued'
+        else status
+      end,
+      updated_at = now()
+    where id = ${input.scanId}::uuid
+      and stripe_checkout_session_id = ${input.checkoutSessionId}
+      and payment_status <> 'paid'
+    returning id, website_url, problem, plan, status
+  `
+
+  return rows[0] ?? null
+}
+
+export async function markBackgroundEventSent(scanId: string) {
+  await sql`
+    update seo_scans
+    set
+      background_event_sent_at = coalesce(background_event_sent_at, now()),
+      updated_at = now()
+    where id = ${scanId}::uuid
+  `
 }
 
 export async function markScanRunning(scanId: string) {

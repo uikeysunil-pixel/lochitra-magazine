@@ -18,6 +18,7 @@ export const technicalSeoScan = inngest.createFunction(
   {
     id: 'technical-seo-scan',
     name: 'Technical SEO scan',
+    idempotency: 'event.data.scanId',
     triggers: { event: 'technical-seo/scan.requested' },
   },
   async ({ event, step }) => {

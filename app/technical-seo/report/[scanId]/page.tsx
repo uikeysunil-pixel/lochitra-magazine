@@ -1,9 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import {
-  getScanRecord,
-  verifyReportAccessToken,
-} from '@/lib/technical-seo/scan-repository'
+import { getScanRecord, verifyReportAccessToken } from '@/lib/technical-seo/scan-repository'
 import type { CrawlResult, DiagnosticProblem } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
@@ -58,10 +55,7 @@ export default async function TechnicalSEOReportPage({
   const scan = await getScanRecord(scanId)
   if (!scan || scan.status !== 'complete' || !scan.report_json) notFound()
 
-  if (
-    scan.access_mode === 'private' &&
-    !verifyReportAccessToken(key, scan.report_token_hash)
-  ) {
+  if (scan.access_mode === 'private' && !verifyReportAccessToken(key, scan.report_token_hash)) {
     notFound()
   }
 
@@ -75,10 +69,10 @@ export default async function TechnicalSEOReportPage({
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-950">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
             <div>
-              <p className="text-primary-600 text-xs font-bold tracking-[0.18em] uppercase dark:text-primary-400">
+              <p className="text-primary-600 dark:text-primary-400 text-xs font-bold tracking-[0.18em] uppercase">
                 Locitra Technical SEO
               </p>
-              <h1 className="mt-2 break-all text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl dark:text-gray-100">
+              <h1 className="mt-2 text-2xl font-extrabold tracking-tight break-all text-gray-900 sm:text-3xl dark:text-gray-100">
                 {scan.website_url}
               </h1>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -99,7 +93,10 @@ export default async function TechnicalSEOReportPage({
 
           <div className="mt-8 grid gap-3 sm:grid-cols-5">
             {(['critical', 'high', 'medium', 'low', 'info'] as const).map((severity) => (
-              <div key={severity} className="rounded-2xl border border-gray-200 p-4 text-center dark:border-gray-800">
+              <div
+                key={severity}
+                className="rounded-2xl border border-gray-200 p-4 text-center dark:border-gray-800"
+              >
                 <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
                   {result.summary[severity]}
                 </div>
@@ -112,9 +109,7 @@ export default async function TechnicalSEOReportPage({
 
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
             <section>
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
-                Findings
-              </h2>
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Findings</h2>
 
               {findings.length === 0 ? (
                 <div className="mt-4 rounded-2xl border border-gray-200 p-5 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
@@ -134,7 +129,9 @@ export default async function TechnicalSEOReportPage({
                       <p className="mt-2 text-sm leading-6">{finding.summary}</p>
 
                       <div className="mt-4">
-                        <div className="text-xs font-bold tracking-wide uppercase opacity-80">Evidence</div>
+                        <div className="text-xs font-bold tracking-wide uppercase opacity-80">
+                          Evidence
+                        </div>
                         <ul className="mt-1 space-y-1 text-sm">
                           {finding.evidence.map((item) => (
                             <li key={item}>• {item}</li>
@@ -159,16 +156,46 @@ export default async function TechnicalSEOReportPage({
                 Scan coverage
               </h2>
               <div className="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex justify-between gap-4"><span>Pages checked</span><strong>{scan.pages_checked}</strong></div>
-                <div className="flex justify-between gap-4"><span>URLs discovered</span><strong>{scan.pages_discovered}</strong></div>
-                <div className="flex justify-between gap-4"><span>Pages not crawled</span><strong>{scan.pages_not_crawled}</strong></div>
-                <div className="flex justify-between gap-4"><span>Robots blocked</span><strong>{scan.urls_blocked_by_robots}</strong></div>
-                <div className="flex justify-between gap-4"><span>Crawl errors</span><strong>{scan.crawl_errors}</strong></div>
-                <div className="flex justify-between gap-4"><span>Internal links</span><strong>{result.metrics.internalLinks}</strong></div>
-                <div className="flex justify-between gap-4"><span>Images</span><strong>{result.metrics.images}</strong></div>
-                <div className="flex justify-between gap-4"><span>JSON-LD blocks</span><strong>{result.metrics.jsonLdBlocks}</strong></div>
-                <div className="flex justify-between gap-4"><span>robots.txt</span><strong>{result.robotsTxt.found ? 'Found' : 'Not found'}</strong></div>
-                <div className="flex justify-between gap-4"><span>Sitemap</span><strong>{result.sitemap.found ? 'Found' : 'Not found'}</strong></div>
+                <div className="flex justify-between gap-4">
+                  <span>Pages checked</span>
+                  <strong>{scan.pages_checked}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>URLs discovered</span>
+                  <strong>{scan.pages_discovered}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Pages not crawled</span>
+                  <strong>{scan.pages_not_crawled}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Robots blocked</span>
+                  <strong>{scan.urls_blocked_by_robots}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Crawl errors</span>
+                  <strong>{scan.crawl_errors}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Internal links</span>
+                  <strong>{result.metrics.internalLinks}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Images</span>
+                  <strong>{result.metrics.images}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>JSON-LD blocks</span>
+                  <strong>{result.metrics.jsonLdBlocks}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>robots.txt</span>
+                  <strong>{result.robotsTxt.found ? 'Found' : 'Not found'}</strong>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Sitemap</span>
+                  <strong>{result.sitemap.found ? 'Found' : 'Not found'}</strong>
+                </div>
               </div>
 
               <div className="mt-6 grid gap-2">

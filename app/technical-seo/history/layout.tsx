@@ -9,10 +9,6 @@ export const metadata: Metadata = {
   },
 }
 
-export default function TechnicalSEOHistoryLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function TechnicalSEOHistoryLayout({ children }: { children: React.ReactNode }) {
   return children
 }

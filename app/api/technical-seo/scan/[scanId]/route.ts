@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server'
-import {
-  getScanRecord,
-  verifyReportAccessToken,
-} from '@/lib/technical-seo/scan-repository'
+import { getScanRecord, verifyReportAccessToken } from '@/lib/technical-seo/scan-repository'
 import type { CrawlResult, DiagnosticProblem } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
@@ -25,10 +22,7 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ scanId: string }> }
-) {
+export async function GET(_request: Request, context: { params: Promise<{ scanId: string }> }) {
   const { scanId } = await context.params
 
   if (!isUuid(scanId)) {
@@ -107,8 +101,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unable to read scan status.'
+    const message = error instanceof Error ? error.message : 'Unable to read scan status.'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

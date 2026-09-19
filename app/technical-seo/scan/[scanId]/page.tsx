@@ -43,10 +43,9 @@ export default function TechnicalSEOScanStatusPage({
     async function poll() {
       try {
         const keyQuery = accessKey ? `?key=${encodeURIComponent(accessKey)}` : ''
-        const response = await fetch(
-          `/api/technical-seo/scan/${scanId}${keyQuery}`,
-          { cache: 'no-store' }
-        )
+        const response = await fetch(`/api/technical-seo/scan/${scanId}${keyQuery}`, {
+          cache: 'no-store',
+        })
         const payload = (await response.json()) as Payload & { error?: string }
 
         if (!response.ok) throw new Error(payload.error || 'Unable to read scan status.')
@@ -54,12 +53,18 @@ export default function TechnicalSEOScanStatusPage({
 
         setData(payload)
 
-        if (payload.status !== 'complete' && payload.status !== 'failed' && payload.status !== 'cancelled') {
+        if (
+          payload.status !== 'complete' &&
+          payload.status !== 'failed' &&
+          payload.status !== 'cancelled'
+        ) {
           window.setTimeout(poll, 1500)
         }
       } catch (statusError) {
         if (!cancelled) {
-          setError(statusError instanceof Error ? statusError.message : 'Unable to read scan status.')
+          setError(
+            statusError instanceof Error ? statusError.message : 'Unable to read scan status.'
+          )
         }
       }
     }
@@ -77,7 +82,7 @@ export default function TechnicalSEOScanStatusPage({
     <div className="pt-8 pb-16 sm:pt-12">
       <main className="mx-auto max-w-2xl px-4 sm:px-6">
         <section className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-gray-800 dark:bg-gray-950">
-          <p className="text-primary-600 text-xs font-bold tracking-[0.18em] uppercase dark:text-primary-400">
+          <p className="text-primary-600 dark:text-primary-400 text-xs font-bold tracking-[0.18em] uppercase">
             Locitra Technical SEO
           </p>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">
@@ -109,7 +114,8 @@ export default function TechnicalSEOScanStatusPage({
                 />
               </div>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                {progress}% complete · {data.pagesChecked} pages checked · {data.pagesDiscovered} URLs discovered
+                {progress}% complete · {data.pagesChecked} pages checked · {data.pagesDiscovered}{' '}
+                URLs discovered
               </p>
 
               {data.status === 'complete' && data.reportUrl && (
@@ -136,9 +142,7 @@ export default function TechnicalSEOScanStatusPage({
               )}
             </>
           ) : (
-            <p className="mt-5 text-sm text-gray-500 dark:text-gray-400">
-              Loading scan status…
-            </p>
+            <p className="mt-5 text-sm text-gray-500 dark:text-gray-400">Loading scan status…</p>
           )}
         </section>
       </main>

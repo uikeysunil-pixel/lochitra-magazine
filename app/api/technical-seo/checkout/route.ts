@@ -94,10 +94,7 @@ export async function POST(request: Request) {
       plan: 'quick',
     })
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Unable to start Stripe Checkout.'
+    const message = error instanceof Error ? error.message : 'Unable to start Stripe Checkout.'
 
     if (scanId) {
       try {

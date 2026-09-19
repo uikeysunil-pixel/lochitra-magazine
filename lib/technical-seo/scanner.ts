@@ -100,8 +100,10 @@ async function fetchText(url: URL, allowedHost: string): Promise<Response> {
         method: 'GET',
         redirect: 'manual',
         headers: {
-          'user-agent': 'Locitra-Technical-SEO-Troubleshooter/0.1 (+https://www.locitra.com/technical-seo/)',
-          accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5',
+          'user-agent':
+            'Locitra-Technical-SEO-Troubleshooter/0.1 (+https://www.locitra.com/technical-seo/)',
+          accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5',
         },
         signal: controller.signal,
       })
@@ -197,9 +199,8 @@ function getHtmlLang(html: string): string | null {
 }
 
 function getJsonLd(html: string): { blocks: number; types: string[]; invalidBlocks: number } {
-  const scripts = html.match(
-    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-  ) || []
+  const scripts =
+    html.match(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || []
 
   const types = new Set<string>()
   let invalidBlocks = 0
@@ -233,7 +234,10 @@ function getJsonLd(html: string): { blocks: number; types: string[]; invalidBloc
   return { blocks: scripts.length, types: [...types].sort(), invalidBlocks }
 }
 
-function getLinks(html: string, origin: string): {
+function getLinks(
+  html: string,
+  origin: string
+): {
   internal: number
   external: number
   hrefs: string[]

@@ -35,7 +35,6 @@ const PROBLEM_LABELS: Record<DiagnosticProblem, string> = {
   unknown: "I don't know — find the important problems",
 }
 
-
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
@@ -93,9 +92,7 @@ export async function POST(request: Request) {
       })
     } catch (eventError) {
       const message =
-        eventError instanceof Error
-          ? eventError.message
-          : 'Unable to queue the Technical SEO scan.'
+        eventError instanceof Error ? eventError.message : 'Unable to queue the Technical SEO scan.'
       await failScanRecord(scanId, message)
       throw eventError
     }

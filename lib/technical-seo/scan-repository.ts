@@ -136,10 +136,7 @@ export async function createScanRecord(input: {
   return rows[0]?.id as string
 }
 
-export async function markCheckoutSessionCreated(
-  scanId: string,
-  checkoutSessionId: string
-) {
+export async function markCheckoutSessionCreated(scanId: string, checkoutSessionId: string) {
   await sql`
     update seo_scans
     set

@@ -21,15 +21,10 @@ export function readScanHistory(): ScanHistoryEntry[] {
     return parsed
       .map((value): ScanHistoryEntry | null => {
         if (typeof value === 'string') return { scanId: value }
-        if (
-          value &&
-          typeof value === 'object' &&
-          typeof value.scanId === 'string'
-        ) {
+        if (value && typeof value === 'object' && typeof value.scanId === 'string') {
           return {
             scanId: value.scanId,
-            accessKey:
-              typeof value.accessKey === 'string' ? value.accessKey : undefined,
+            accessKey: typeof value.accessKey === 'string' ? value.accessKey : undefined,
           }
         }
         return null

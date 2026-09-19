@@ -116,3 +116,17 @@ export interface CrawlResult {
   pages: CrawlPage[]
   findings: Finding[]
 }
+
+export interface CrawlReportResult extends CrawlResult {
+  requestedProblem?: DiagnosticProblem
+  requestedPlan?: PlanId
+  diagnosticFocus?: {
+    id: DiagnosticProblem
+    label: string
+    matchedFindings: number
+  }
+  reportUrl?: string
+  httpStatus?: number
+}
+
+export type CrawlReport = CrawlReportResult

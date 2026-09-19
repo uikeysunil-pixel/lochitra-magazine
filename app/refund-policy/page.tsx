@@ -53,10 +53,10 @@ export default function RefundPolicyPage() {
         <section aria-labelledby="service-heading">
           <h2 id="service-heading">1. Service Covered by This Policy</h2>
           <p>
-            This policy currently applies to the paid <strong>Targeted Technical SEO
-            Troubleshoot</strong> service, which provides a focused technical investigation of a
-            customer-provided website together with evidence, affected-page information, and
-            prioritized recommendations.
+            This policy currently applies to the paid{' '}
+            <strong>Targeted Technical SEO Troubleshoot</strong> service, which provides a focused
+            technical investigation of a customer-provided website together with evidence,
+            affected-page information, and prioritized recommendations.
           </p>
           <p>
             Service scope is determined by the plan and diagnostic path selected at checkout. The
@@ -84,9 +84,9 @@ export default function RefundPolicyPage() {
               className="hover:underline"
             >
               contact@locitra.com
-            </a>
-            {' '}with the email address used for the purchase and, where available, the order or
-            report reference.
+            </a>{' '}
+            with the email address used for the purchase and, where available, the order or report
+            reference.
           </p>
         </section>
 

@@ -7,7 +7,14 @@ import { forgetScan, readScanHistory } from '@/lib/technical-seo/browser-history
 type ScanSummary = {
   scanId: string
   websiteUrl: string
-  status: 'awaiting_payment' | 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
+  status:
+    | 'awaiting_payment'
+    | 'queued'
+    | 'running'
+    | 'analyzing'
+    | 'complete'
+    | 'failed'
+    | 'cancelled'
   paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
   problem: string
   plan: string
@@ -67,13 +74,10 @@ export default function TechnicalSEOHistoryPage() {
         const results = await Promise.all(
           entries.map(async ({ scanId, accessKey }) => {
             try {
-              const key = accessKey
-                ? `&key=${encodeURIComponent(accessKey)}`
-                : ''
-              const response = await fetch(
-                `/api/technical-seo/scan/${scanId}?summary=1${key}`,
-                { cache: 'no-store' }
-              )
+              const key = accessKey ? `&key=${encodeURIComponent(accessKey)}` : ''
+              const response = await fetch(`/api/technical-seo/scan/${scanId}?summary=1${key}`, {
+                cache: 'no-store',
+              })
 
               if (!response.ok) return null
 
@@ -110,14 +114,15 @@ export default function TechnicalSEOHistoryPage() {
         <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 dark:border-gray-800 dark:bg-gray-950">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
-              <p className="text-primary-600 text-xs font-bold tracking-[0.18em] uppercase dark:text-primary-400">
+              <p className="text-primary-600 dark:text-primary-400 text-xs font-bold tracking-[0.18em] uppercase">
                 Locitra Technical SEO
               </p>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">
                 Your scan history
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-400">
-                Scans created in this browser are saved here for easy access. This local history does not list scans from other users or devices.
+                Scans created in this browser are saved here for easy access. This local history
+                does not list scans from other users or devices.
               </p>
             </div>
 
@@ -169,7 +174,8 @@ export default function TechnicalSEOHistoryPage() {
                         {PROBLEM_LABELS[scan.problem] || scan.problem} · {scan.plan}
                       </div>
                       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        {STATUS_LABELS[scan.status]} · {scan.pagesChecked} pages checked · {formatDate(scan.createdAt)}
+                        {STATUS_LABELS[scan.status]} · {scan.pagesChecked} pages checked ·{' '}
+                        {formatDate(scan.createdAt)}
                       </div>
                     </div>
 
@@ -195,7 +201,8 @@ export default function TechnicalSEOHistoryPage() {
           )}
 
           <p className="mt-6 text-xs leading-5 text-gray-500 dark:text-gray-400">
-            This history is stored in your browser. Clearing site data or using another device will not carry these entries over. Account-based history can be added later.
+            This history is stored in your browser. Clearing site data or using another device will
+            not carry these entries over. Account-based history can be added later.
           </p>
         </section>
       </main>

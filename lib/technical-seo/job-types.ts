@@ -1,19 +1,8 @@
 import type { DiagnosticProblem, PlanId } from './types'
 
-export type ScanJobStatus =
-  | 'queued'
-  | 'running'
-  | 'analyzing'
-  | 'complete'
-  | 'failed'
-  | 'cancelled'
+export type ScanJobStatus = 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
 
-export type ScanUrlState =
-  | 'queued'
-  | 'running'
-  | 'complete'
-  | 'failed'
-  | 'blocked'
+export type ScanUrlState = 'queued' | 'running' | 'complete' | 'failed' | 'blocked'
 
 export interface ScanJob {
   id: string
@@ -58,8 +47,4 @@ export interface ScanJobCreateInput {
   plan: PlanId
 }
 
-export const SCAN_JOB_TERMINAL_STATES: ScanJobStatus[] = [
-  'complete',
-  'failed',
-  'cancelled',
-]
+export const SCAN_JOB_TERMINAL_STATES: ScanJobStatus[] = ['complete', 'failed', 'cancelled']

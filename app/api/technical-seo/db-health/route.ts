@@ -40,8 +40,7 @@ export async function GET() {
       message: 'Locitra is connected to the Technical SEO Neon database.',
     })
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unable to connect to Neon.'
+    const message = error instanceof Error ? error.message : 'Unable to connect to Neon.'
 
     return NextResponse.json(
       {

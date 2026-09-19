@@ -37,8 +37,7 @@ export async function POST(request: Request) {
   try {
     verifyStripeWebhookSignature(payload, signature, getWebhookSecret())
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Invalid Stripe webhook signature.'
+    const message = error instanceof Error ? error.message : 'Invalid Stripe webhook signature.'
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
@@ -74,10 +73,7 @@ export async function POST(request: Request) {
     event.type === 'checkout.session.completed' ||
     event.type === 'checkout.session.async_payment_succeeded'
   ) {
-    if (
-      event.type === 'checkout.session.completed' &&
-      session.payment_status !== 'paid'
-    ) {
+    if (event.type === 'checkout.session.completed' && session.payment_status !== 'paid') {
       return NextResponse.json({ received: true, pending: true })
     }
 

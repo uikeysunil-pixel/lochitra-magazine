@@ -1,5 +1,12 @@
 import { randomUUID } from 'crypto'
-import type { CrawlResult, DiagnosticProblem, Finding, FindingSeverity, PlanId, ScanResult } from './types'
+import type {
+  CrawlResult,
+  DiagnosticProblem,
+  Finding,
+  FindingSeverity,
+  PlanId,
+  ScanResult,
+} from './types'
 import { discoverSitemapPages, isAllowedByRobots, loadRobotsPolicy } from './site-discovery'
 import { runQuickScan } from './scanner'
 
@@ -13,9 +20,33 @@ export const CRAWL_LIMITS: Record<PlanId, number> = {
 const MAX_CONCURRENCY = 3
 
 const NON_HTML_EXTENSIONS = new Set([
-  '.7z', '.avi', '.bmp', '.css', '.csv', '.doc', '.docx', '.gif', '.ico',
-  '.jpeg', '.jpg', '.js', '.json', '.mp3', '.mp4', '.mpeg', '.pdf', '.png',
-  '.svg', '.tar', '.txt', '.webp', '.woff', '.woff2', '.xls', '.xlsx', '.zip',
+  '.7z',
+  '.avi',
+  '.bmp',
+  '.css',
+  '.csv',
+  '.doc',
+  '.docx',
+  '.gif',
+  '.ico',
+  '.jpeg',
+  '.jpg',
+  '.js',
+  '.json',
+  '.mp3',
+  '.mp4',
+  '.mpeg',
+  '.pdf',
+  '.png',
+  '.svg',
+  '.tar',
+  '.txt',
+  '.webp',
+  '.woff',
+  '.woff2',
+  '.xls',
+  '.xlsx',
+  '.zip',
 ])
 
 function normalizeCrawlUrl(value: string): string | null {
@@ -84,9 +115,7 @@ function aggregateFindings(pageFindings: Finding[]): Finding[] {
 
       const baseEvidence = multiPage
         ? finding.evidence.filter(
-            (item) =>
-              !/^Images checked:/i.test(item) &&
-              !/^Images without/i.test(item)
+            (item) => !/^Images checked:/i.test(item) && !/^Images without/i.test(item)
           )
         : finding.evidence
 
@@ -123,7 +152,7 @@ export async function runCrawl(
   input: string,
   plan: PlanId,
   diagnosticProblem: DiagnosticProblem,
-  scanId = randomUUID()
+  scanId: string = randomUUID()
 ): Promise<CrawlResult> {
   const startedAt = Date.now()
   const rootUrl = normalizeCrawlUrl(input)
@@ -214,14 +243,12 @@ export async function runCrawl(
     }
   }
 
-  const allFindings = pageResults
-    .flatMap((page) =>
-      page.findings.filter(
-        (finding) =>
-          diagnosticProblem === 'unknown' ||
-          finding.diagnosticProblems.includes(diagnosticProblem)
-      )
+  const allFindings = pageResults.flatMap((page) =>
+    page.findings.filter(
+      (finding) =>
+        diagnosticProblem === 'unknown' || finding.diagnosticProblems.includes(diagnosticProblem)
     )
+  )
 
   const findings = aggregateFindings(allFindings)
 

@@ -301,7 +301,7 @@ export default function TechnicalSEOTroubleshooter() {
             <div className="mb-3">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Choose a plan</p>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                The first live slice is the free scanner. Paid plan enforcement comes after the analysis engine is validated on real sites.
+                The first paid slice is a 50-page targeted investigation with a detailed evidence-based report.
               </p>
             </div>
             <div className="grid gap-4 lg:grid-cols-4">

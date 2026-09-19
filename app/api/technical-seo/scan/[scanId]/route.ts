@@ -72,6 +72,10 @@ export async function GET(
       crawlErrors: row.crawl_errors,
       urlsBlockedByRobots: row.urls_blocked_by_robots,
       errorMessage: row.error_message,
+      statusUrl:
+        row.access_mode === 'private' && accessToken
+          ? `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessToken)}`
+          : `/technical-seo/scan/${scanId}/`,
       reportUrl:
         row.status === 'complete'
           ? row.access_mode === 'private' && accessToken

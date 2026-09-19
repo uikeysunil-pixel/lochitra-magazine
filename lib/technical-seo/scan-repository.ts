@@ -1,3 +1,7 @@
+import { createHash, randomBytes, timingSafeEqual } from 'crypto'
+import { sql } from './db'
+import type { CrawlResult, DiagnosticProblem, Finding, PlanId } from './types'
+
 export async function getScanRecord(scanId: string) {
   const rows = await sql`
     select
@@ -54,10 +58,6 @@ export async function listRecentScans(limit = 10) {
     limit ${safeLimit}
   `
 }
-
-import { createHash, randomBytes, timingSafeEqual } from 'crypto'
-import { sql } from './db'
-import type { CrawlResult, DiagnosticProblem, Finding, PlanId } from './types'
 
 export function createReportAccessToken() {
   return randomBytes(32).toString('base64url')

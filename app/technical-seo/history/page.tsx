@@ -59,14 +59,17 @@ export default function TechnicalSEOHistoryPage() {
     let cancelled = false
 
     async function loadHistory() {
-      const ids = readScanHistory()
+      const entries = readScanHistory()
 
       try {
         const results = await Promise.all(
-          ids.map(async (scanId) => {
+          entries.map(async ({ scanId, accessKey }) => {
             try {
+              const key = accessKey
+                ? `&key=${encodeURIComponent(accessKey)}`
+                : ''
               const response = await fetch(
-                `/api/technical-seo/scan/${scanId}?summary=1`,
+                `/api/technical-seo/scan/${scanId}?summary=1${key}`,
                 { cache: 'no-store' }
               )
 

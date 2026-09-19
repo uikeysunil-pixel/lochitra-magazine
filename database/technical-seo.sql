@@ -87,7 +87,7 @@ create index if not exists seo_scan_findings_scan_severity_idx
   on seo_scan_findings (scan_id, severity);
 
 -- Allowed state values are enforced in application code for the MVP:
--- queued -> running -> analyzing -> complete
+-- awaiting_payment -> queued -> running -> analyzing -> complete
 -- queued -> cancelled
 -- running/analyzing -> failed
 

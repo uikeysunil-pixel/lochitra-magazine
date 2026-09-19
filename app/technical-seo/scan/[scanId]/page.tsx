@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { rememberScan } from '@/lib/technical-seo/browser-history'
 
 type Status = 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
 
@@ -12,6 +13,7 @@ interface Payload {
   pagesDiscovered: number
   errorMessage?: string | null
   reportUrl?: string | null
+  paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
 }
 
 export default function TechnicalSEOScanStatusPage({
@@ -22,9 +24,15 @@ export default function TechnicalSEOScanStatusPage({
   const [scanId, setScanId] = useState<string | null>(null)
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState('')
+  const [accessKey, setAccessKey] = useState<string | null>(null)
 
   useEffect(() => {
-    params.then(({ scanId: id }) => setScanId(id))
+    params.then(({ scanId: id }) => {
+      setScanId(id)
+      const key = new URLSearchParams(window.location.search).get('key')
+      setAccessKey(key)
+      if (key) rememberScan(id, key)
+    })
   }, [params])
 
   useEffect(() => {
@@ -34,9 +42,11 @@ export default function TechnicalSEOScanStatusPage({
 
     async function poll() {
       try {
-        const response = await fetch(`/api/technical-seo/scan/${scanId}`, {
-          cache: 'no-store',
-        })
+        const keyQuery = accessKey ? `?key=${encodeURIComponent(accessKey)}` : ''
+        const response = await fetch(
+          `/api/technical-seo/scan/${scanId}${keyQuery}`,
+          { cache: 'no-store' }
+        )
         const payload = (await response.json()) as Payload & { error?: string }
 
         if (!response.ok) throw new Error(payload.error || 'Unable to read scan status.')
@@ -59,7 +69,7 @@ export default function TechnicalSEOScanStatusPage({
     return () => {
       cancelled = true
     }
-  }, [scanId])
+  }, [scanId, accessKey])
 
   const progress = Math.max(0, Math.min(100, data?.progressPercent ?? 0))
 
@@ -81,7 +91,16 @@ export default function TechnicalSEOScanStatusPage({
           ) : data ? (
             <>
               <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                Status: <span className="font-semibold capitalize">{data.status}</span>
+                {data.paymentStatus === 'pending' || data.paymentStatus === 'unpaid'
+                  ? 'Payment is being confirmed before the investigation starts.'
+                  : 'Status:'}{' '}
+                {data.paymentStatus === 'paid' ? (
+                  <span className="font-semibold">Paid · {data.status}</span>
+                ) : data.paymentStatus === 'pending' || data.paymentStatus === 'unpaid' ? (
+                  <span className="font-semibold capitalize">{data.paymentStatus}</span>
+                ) : (
+                  <span className="font-semibold capitalize">{data.status}</span>
+                )}
               </p>
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
                 <div

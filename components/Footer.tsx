@@ -97,6 +97,7 @@ export default function Footer() {
                   { href: '/privacy-policy', label: 'Privacy Policy' },
                   { href: '/newsletter', label: 'Newsletter' },
                   { href: '/terms', label: 'Terms & Conditions' },
+                  { href: '/refund-policy', label: 'Cancellation & Refund Policy' },
                   { href: '/disclaimer', label: 'Disclaimer' },
                 ].map(({ href, label }) => (
                   <li key={href}>
@@ -176,6 +177,13 @@ export default function Footer() {
               className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
             >
               Terms
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link
+              href="/refund-policy"
+              className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            >
+              Refund Policy
             </Link>
             <span aria-hidden="true">·</span>
             <Link

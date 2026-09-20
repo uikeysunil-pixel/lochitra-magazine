@@ -20,7 +20,7 @@ interface AuthorCardProps {
 }
 
 const CONCISE_DEFAULT_BIO =
-  'Sunil Kumar Uikey is the Founder and Editor-in-Chief of Locitra, dedicated to publishing practical, evidence-based guides for digital professionals and creators. With over a decade of hands-on experience in artificial intelligence, software evaluation, and digital strategy, Sunil cuts through market hype to deliver actionable insights. He systematically tests emerging AI tools, productivity platforms, cybersecurity software, and online business models to ensure every guide is grounded in real-world utility, strict commercial independence, and rigorous verification.'
+  'Sunil Kumar Uikey is the Founder and Editor-in-Chief of Locitra, publishing practical, evidence-based guides for digital professionals and creators. His editorial work draws on official documentation, technical research, and documented workflows, with a focus on clarity, limitations, and practical usefulness.'
 
 function formatCardBio(rawBio?: string): string {
   if (!rawBio) return CONCISE_DEFAULT_BIO

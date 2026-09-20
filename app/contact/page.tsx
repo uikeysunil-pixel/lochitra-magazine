@@ -120,7 +120,7 @@ export default function ContactPage() {
               Direct Contact
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Prefer to email us directly from your email client? You can reach our team at:
+              Prefer to email us directly from your email client? You can reach Locitra at:
             </p>
             <div className="mt-3">
               <a
@@ -197,7 +197,7 @@ export default function ContactPage() {
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span>Every legitimate message is reviewed directly by our editorial team.</span>
+                <span>Every legitimate message is reviewed by Locitra before a response is sent.</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg

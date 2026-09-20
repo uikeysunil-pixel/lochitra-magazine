@@ -143,10 +143,10 @@ export default function AboutPage() {
             </div>
           )}
           <p className="lead">
-            Sunil Kumar Uikey founded Locitra after years of hands-on experience exploring blogging,
-            AI tools, SEO, digital publishing, online income strategies, and technology. His goal is
-            to simplify complex digital topics into practical, trustworthy guidance that helps
-            readers make informed decisions and build valuable digital skills.
+            Sunil Kumar Uikey founded Locitra to turn practical experience with blogging, AI tools,
+            SEO, digital publishing, online income strategies, and technology into clear guidance.
+            The publication focuses on helping readers understand complex digital topics, compare
+            options, and make informed decisions.
           </p>
           {founder ? (
             <MDXLayoutRenderer code={founder.body.code} components={components} />
@@ -302,9 +302,9 @@ export default function AboutPage() {
           </p>
           <ul>
             <li>
-              <strong>Rigorous Verification:</strong> Where appropriate, articles are informed by
-              hands-on evaluation, official documentation, reputable industry sources, and editorial
-              review.
+              <strong>Source Verification:</strong> Where appropriate, articles are informed by
+              official documentation, primary sources, reputable industry publications, documented
+              evaluation notes, and editorial review.
             </li>
             <li>
               <strong>Human Editorial Oversight:</strong> AI tools may assist with drafting or

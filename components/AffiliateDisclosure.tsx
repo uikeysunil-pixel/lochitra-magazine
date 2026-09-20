@@ -60,25 +60,6 @@ export default function AffiliateDisclosure({
           Learn more
         </Link>
         .
-        {showReviewer && (
-          <span className="ml-3 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700/40 dark:bg-amber-900/30 dark:text-amber-300">
-            <svg
-              className="h-3 w-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Reviewed by {reviewedBy}
-          </span>
-        )}
       </div>
     </div>
   )

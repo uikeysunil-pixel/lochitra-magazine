@@ -183,11 +183,9 @@ export default async function AuthorPage(props: { params: Promise<{ slug: string
               </p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {author.yearsExperience ? author.yearsExperience : 'Active'}
-              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">1</p>
               <p className="mt-1 text-xs font-medium tracking-widest text-gray-500 uppercase">
-                {author.yearsExperience ? 'Years Exp.' : 'Editorial Contributor'}
+                Editor
               </p>
             </div>
           </div>

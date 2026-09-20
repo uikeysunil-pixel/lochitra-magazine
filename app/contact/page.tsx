@@ -197,7 +197,9 @@ export default function ContactPage() {
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span>Every legitimate message is reviewed by Locitra before a response is sent.</span>
+                <span>
+                  Every legitimate message is reviewed by Locitra before a response is sent.
+                </span>
               </li>
               <li className="flex items-start gap-3">
                 <svg

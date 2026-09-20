@@ -60,7 +60,6 @@ export default function AffiliateDisclosure({
           Learn more
         </Link>
         .
-
       </div>
     </div>
   )

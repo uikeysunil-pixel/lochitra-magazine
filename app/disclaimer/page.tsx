@@ -162,7 +162,7 @@ export default function DisclaimerPage() {
         <section aria-labelledby="independence-heading">
           <h2 id="independence-heading">3. Editorial Independence &amp; Commercial Policy</h2>
           <p>
-            Locitra operates with complete editorial independence. Our editorial staff and research
+            Locitra operates with complete editorial independence. Locitra's editorial and research
             workflows remain strictly separated from commercial monetization operations.
           </p>
           <p>Our commercial commitment guarantees that:</p>
@@ -270,9 +270,9 @@ export default function DisclaimerPage() {
           </p>
           <ul>
             <li>
-              <strong>Workflow Assistance:</strong> AI tools assist our team with initial research
-              synthesis, structural outlining, topic brainstorming, grammar optimization, and meta
-              description generation.
+              <strong>Workflow Assistance:</strong> AI tools assist Locitra's editorial process with
+              initial research synthesis, structural outlining, topic brainstorming, grammar
+              optimization, and meta description generation.
             </li>
             <li>
               <strong>Mandatory Human Oversight:</strong> AI tools never write or publish content
@@ -285,8 +285,8 @@ export default function DisclaimerPage() {
               against primary sources prior to publication.
             </li>
             <li>
-              <strong>Human Responsibility:</strong> Our editorial team remains fully accountable
-              for the accuracy, quality, and integrity of every published sentence.
+              <strong>Human Responsibility:</strong> Locitra's editor remains fully accountable for
+              the accuracy, quality, and integrity of every published sentence.
             </li>
           </ul>
           <p>
@@ -477,8 +477,8 @@ export default function DisclaimerPage() {
             accordingly.
           </p>
           <p>
-            For questions, clarifications, or feedback regarding this disclosure, please contact our
-            editorial team at{' '}
+            For questions, clarifications, or feedback regarding this disclosure, please contact
+            Locitra at{' '}
             <a
               href="mailto:contact@locitra.com?subject=Disclosure%20Inquiry"
               aria-label="Email Locitra Disclosure Inquiry"

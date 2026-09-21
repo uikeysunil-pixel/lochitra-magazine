@@ -209,7 +209,7 @@ export default function TermsPage() {
           <h2 id="editorial-heading">4. Editorial Content &amp; Publication Governance</h2>
           <p>
             Articles published on Locitra are created for general informational, educational, and
-            analytical purposes. While our team follows rigorous research and verification
+            analytical purposes. While Locitra follows rigorous research and verification
             procedures:
           </p>
           <ul>

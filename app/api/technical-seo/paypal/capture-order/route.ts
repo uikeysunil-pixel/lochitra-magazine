@@ -100,19 +100,16 @@ export async function POST(request: Request) {
     }
 
     // STEP 4 — HANDLE ALREADY-COMPLETED PAYPAL ORDERS / EXECUTE CAPTURE
-    let finalOrder: Order
-    if (existingOrder.status === OrderStatus.Completed) {
-      finalOrder = existingOrder
-    } else {
+    if (existingOrder.status !== OrderStatus.Completed) {
       try {
-        finalOrder = (await capturePayPalOrder(orderId)) as Order
+        await capturePayPalOrder(orderId)
       } catch (captureErr) {
         try {
           const refreshedOrder = (await getPayPalOrder(orderId)) as Order
-          if (refreshedOrder && refreshedOrder.status === OrderStatus.Completed) {
-            finalOrder = refreshedOrder
-          } else {
-            return NextResponse.json({ error: 'PayPal order was not completed.' }, { status: 409 })
+          if (!refreshedOrder || refreshedOrder.status !== OrderStatus.Completed) {
+            const message =
+              captureErr instanceof Error ? captureErr.message : 'PayPal capture failed.'
+            return NextResponse.json({ error: message }, { status: 409 })
           }
         } catch {
           const message =
@@ -120,6 +117,18 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: message }, { status: 409 })
         }
       }
+    }
+
+    // PayPal's capture response may omit original purchase-unit fields such as customId.
+    // Re-fetch the completed order so final verification uses the authoritative order data.
+    let finalOrder: Order
+    try {
+      finalOrder = (await getPayPalOrder(orderId)) as Order
+    } catch {
+      return NextResponse.json(
+        { error: 'PayPal completed order could not be retrieved for verification.' },
+        { status: 409 }
+      )
     }
 
     // STEP 5 — VERIFY THE FINAL ORDER

@@ -83,12 +83,26 @@ async function assertSafeHostname(hostname: string): Promise<void> {
   }
 }
 
+function isSameSiteHostname(hostname: string, allowedHost: string): boolean {
+  const current = hostname.toLowerCase()
+  const allowed = allowedHost.toLowerCase()
+
+  if (current === allowed) return true
+
+  // Treat the apex and www hostnames as the same site. Many production
+  // sites redirect between these two canonical hostname variants.
+  return (
+    (allowed.startsWith('www.') && current === allowed.slice(4)) ||
+    (current.startsWith('www.') && current.slice(4) === allowed)
+  )
+}
+
 async function fetchText(url: URL, allowedHost: string): Promise<Response> {
   let current = url
 
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
     await assertSafeHostname(current.hostname)
-    if (current.hostname.toLowerCase() !== allowedHost.toLowerCase()) {
+    if (!isSameSiteHostname(current.hostname, allowedHost)) {
       throw new Error('Cross-host redirects are not supported in the MVP scanner.')
     }
 

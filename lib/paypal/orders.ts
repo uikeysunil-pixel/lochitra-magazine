@@ -78,3 +78,11 @@ export async function capturePayPalOrder(orderId: string): Promise<unknown> {
 
   return result
 }
+
+export async function getPayPalOrder(orderId: string): Promise<unknown> {
+  const { result } = await ordersController.getOrder({
+    id: orderId,
+  })
+
+  return result
+}

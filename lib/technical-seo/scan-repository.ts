@@ -293,6 +293,7 @@ export async function markPaymentPaid(input: {
     where id = ${input.scanId}::uuid
       and payment_provider = ${input.paymentProvider}
       and payment_reference = ${input.paymentReference}
+      and payment_status = 'pending'
     returning
       id,
       website_url,

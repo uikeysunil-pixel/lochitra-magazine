@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 
 type Status = 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
@@ -25,6 +25,69 @@ export default function TechnicalSEOScanStatusPage({
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState('')
   const [accessKey, setAccessKey] = useState<string | null>(null)
+  const captureAttemptedRef = useRef(false)
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const provider = searchParams.get('provider')
+    const token = searchParams.get('token')
+
+    if (provider !== 'paypal' || !token || !token.trim()) {
+      return
+    }
+
+    const orderId = token.trim()
+
+    if (captureAttemptedRef.current) return
+    captureAttemptedRef.current = true
+
+    let cancelled = false
+    const controller = new AbortController()
+
+    async function confirmPayPalPayment() {
+      try {
+        const response = await fetch('/api/technical-seo/paypal/capture-order', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ orderId }),
+          signal: controller.signal,
+        })
+
+        const payload = (await response.json()) as { error?: string }
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to confirm PayPal payment.')
+        }
+
+        if (cancelled) return
+
+        const cleanUrl = new URL(window.location.href)
+        cleanUrl.searchParams.delete('provider')
+        cleanUrl.searchParams.delete('token')
+        cleanUrl.searchParams.delete('PayerID')
+
+        window.history.replaceState({}, '', cleanUrl.toString())
+      } catch (captureError) {
+        if (
+          !cancelled &&
+          !(captureError instanceof DOMException && captureError.name === 'AbortError')
+        ) {
+          setError(
+            captureError instanceof Error
+              ? captureError.message
+              : 'Unable to confirm PayPal payment.'
+          )
+        }
+      }
+    }
+
+    confirmPayPalPayment()
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [])
 
   useEffect(() => {
     params.then(({ scanId: id }) => {

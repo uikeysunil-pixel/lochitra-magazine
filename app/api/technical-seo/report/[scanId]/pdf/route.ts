@@ -1,3 +1,4 @@
+import { PDFDocument } from 'pdfkit'
 import { NextResponse } from 'next/server'
 import {
   getScanRecord,
@@ -65,81 +66,94 @@ function wrapText(value: string, maxChars: number) {
 }
 
 function buildPdf(lines: string[]) {
-  const pageWidth = 595
-  const pageHeight = 842
-  const margin = 48
-  const lineHeight = 13
-  const maxLinesPerPage = 56
-
-  const pages: string[][] = []
-  for (let i = 0; i < lines.length; i += maxLinesPerPage) {
-    pages.push(lines.slice(i, i + maxLinesPerPage))
-  }
-
-  if (pages.length === 0) pages.push([])
-
-  const objects: string[] = []
-  const pageObjectNumbers: number[] = []
-
-  const addObject = (body: string) => {
-    objects.push(body)
-    return objects.length
-  }
-
-  const fontObject = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
-  const pagesObject = addObject('<< /Type /Pages /Kids [] /Count 0 >>')
-  const catalogObject = addObject(
-    '<< /Type /Catalog /Pages ' + pagesObject + ' 0 R >>'
-  )
-
-  for (const pageLines of pages) {
-    const commands: string[] = [
-      'BT',
-      '/F1 9 Tf',
-      `${margin} ${pageHeight - margin} Td`,
-    ]
-
-    pageLines.forEach((line, index) => {
-      if (index > 0) commands.push(`0 -${lineHeight} Td`)
-      commands.push(`(${escapePdfText(line)}) Tj`)
-    })
-
-    commands.push('ET')
-
-    const stream = commands.join('\n')
-    const contentObject = addObject(
-      `<< /Length ${Buffer.byteLength(stream, 'latin1')} >>\nstream\n${stream}\nendstream`
-    )
-
-    const pageObject = addObject(
-      `<< /Type /Page /Parent ${pagesObject} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontObject} 0 R >> >> /Contents ${contentObject} 0 R >>`
-    )
-
-    pageObjectNumbers.push(pageObject)
-  }
-
-  const kids = pageObjectNumbers.map((number) => `${number} 0 R`).join(' ')
-  objects[pagesObject - 1] = `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`
-
-  let pdf = '%PDF-1.4\n'
-  const offsets: number[] = [0]
-
-  objects.forEach((object, index) => {
-    offsets[index + 1] = Buffer.byteLength(pdf, 'latin1')
-    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`
+  const doc = new PDFDocument({
+    size: 'A4',
+    margin: 48,
+    bufferPages: true,
+    info: {
+      Title: 'Locitra Technical SEO Report',
+      Author: 'Locitra',
+      Subject: 'Technical SEO audit report',
+      Keywords: 'SEO, technical SEO, Locitra, website audit',
+    },
   })
 
-  const xrefOffset = Buffer.byteLength(pdf, 'latin1')
-  pdf += `xref\n0 ${objects.length + 1}\n`
-  pdf += '0000000000 65535 f \n'
+  const chunks: Buffer[] = []
+  doc.on('data', (chunk: Buffer) => chunks.push(chunk))
+  const title = lines[0] ?? 'LOCITRA TECHNICAL SEO REPORT'
+  const bodyLines = lines.slice(1)
 
-  for (let i = 1; i <= objects.length; i += 1) {
-    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`
+  doc.font('Helvetica-Bold').fontSize(20).fillColor('#111827').text(title)
+  doc.moveDown(0.35)
+  doc.moveTo(48, doc.y).lineTo(547, doc.y).lineWidth(1).strokeColor('#D1D5DB').stroke()
+  doc.moveDown(0.8)
+
+  for (const line of bodyLines) {
+    if (line === 'SUMMARY' || line === 'SCAN COVERAGE' || line === 'FINDINGS') {
+      doc.moveDown(0.45)
+      doc.font('Helvetica-Bold').fontSize(13).fillColor('#111827').text(line)
+      doc.moveDown(0.25)
+      doc.moveTo(48, doc.y).lineTo(547, doc.y).lineWidth(0.6).strokeColor('#D1D5DB').stroke()
+      doc.moveDown(0.35)
+      continue
+    }
+    if (line === '-------' || line === '-------------' || line === '--------' || line === '==============================================') continue
+    if (line === '') { doc.moveDown(0.35); continue }
+    if (/^\\d+\\. \\[(CRITICAL|HIGH|MEDIUM|LOW|INFO)\\]/i.test(line)) {
+      doc.moveDown(0.35)
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text(line, { width: 499 })
+      continue
+    }
+    if (line.startsWith('   Category:')) {
+      doc.font('Helvetica').fontSize(8.5).fillColor('#4B5563').text(line.trim(), { width: 499 })
+      continue
+    }
+    if (line.startsWith('   Evidence:')) {
+      doc.moveDown(0.15)
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151').text(line.trim())
+      continue
+    }
+    if (line.startsWith('   Summary:') || line.startsWith('   Recommended action:')) {
+      const separatorIndex = line.indexOf(': ')
+      const label = separatorIndex >= 0 ? line.slice(0, separatorIndex + 2).trim() : ''
+      const value = separatorIndex >= 0 ? line.slice(separatorIndex + 2) : line
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151').text(label, { continued: true })
+      doc.font('Helvetica').text(value, { width: 499 })
+      continue
+    }
+    if (line.startsWith('     - ')) {
+      doc.font('Helvetica').fontSize(8.5).fillColor('#4B5563').text('• ' + line.slice(6), { width: 480, indent: 8 })
+      continue
+    }
+    if (line.startsWith('----------------------------------------------')) {
+      doc.moveDown(0.5)
+      doc.moveTo(48, doc.y).lineTo(547, doc.y).lineWidth(0.6).strokeColor('#D1D5DB').stroke()
+      doc.moveDown(0.5)
+      continue
+    }
+    if (line.startsWith('Prepared by Locitra')) {
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#374151').text(line)
+      continue
+    }
+    if (line.startsWith('This report is based')) {
+      doc.font('Helvetica').fontSize(7.5).fillColor('#6B7280').text(line, { width: 499 })
+      continue
+    }
+    doc.font('Helvetica').fontSize(9).fillColor('#374151').text(line, { width: 499, lineGap: 2 })
   }
 
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogObject} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`
+  const range = doc.bufferedPageRange()
+  for (let index = range.start; index < range.start + range.count; index += 1) {
+    doc.switchToPage(index)
+    doc.font('Helvetica').fontSize(7).fillColor('#9CA3AF')
+    doc.text('Locitra Technical SEO Report  |  Page ' + (index + 1) + ' of ' + range.count, 48, 805, { width: 499, align: 'center' })
+  }
 
-  return Buffer.from(pdf, 'latin1')
+  doc.end()
+  return new Promise<Buffer>((resolve, reject) => {
+    doc.once('end', () => resolve(Buffer.concat(chunks)))
+    doc.once('error', reject)
+  })
 }
 
 function addWrapped(lines: string[], label: string, value: string, indent = 0) {

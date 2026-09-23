@@ -35,7 +35,7 @@ function cleanText(value: string) {
     .replace(/←/g, '<-')
     .replace(/•/g, '-')
     .replace(/…/g, '...')
-    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '')
+    .replace(/[^ -~]/g, '')
 }
 
 function escapePdfText(value: string) {

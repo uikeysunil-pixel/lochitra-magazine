@@ -1,9 +1,6 @@
-import { PDFDocument } from 'pdfkit'
+import PDFDocument from 'pdfkit'
 import { NextResponse } from 'next/server'
-import {
-  getScanRecord,
-  verifyReportAccessToken,
-} from '@/lib/technical-seo/scan-repository'
+import { getScanRecord, verifyReportAccessToken } from '@/lib/technical-seo/scan-repository'
 import type { CrawlResult, DiagnosticProblem, Finding } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
@@ -97,8 +94,17 @@ function buildPdf(lines: string[]) {
       doc.moveDown(0.35)
       continue
     }
-    if (line === '-------' || line === '-------------' || line === '--------' || line === '==============================================') continue
-    if (line === '') { doc.moveDown(0.35); continue }
+    if (
+      line === '-------' ||
+      line === '-------------' ||
+      line === '--------' ||
+      line === '=============================================='
+    )
+      continue
+    if (line === '') {
+      doc.moveDown(0.35)
+      continue
+    }
     if (/^\\d+\\. \\[(CRITICAL|HIGH|MEDIUM|LOW|INFO)\\]/i.test(line)) {
       doc.moveDown(0.35)
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text(line, { width: 499 })
@@ -122,7 +128,11 @@ function buildPdf(lines: string[]) {
       continue
     }
     if (line.startsWith('     - ')) {
-      doc.font('Helvetica').fontSize(8.5).fillColor('#4B5563').text('• ' + line.slice(6), { width: 480, indent: 8 })
+      doc
+        .font('Helvetica')
+        .fontSize(8.5)
+        .fillColor('#4B5563')
+        .text('• ' + line.slice(6), { width: 480, indent: 8 })
       continue
     }
     if (line.startsWith('----------------------------------------------')) {
@@ -146,7 +156,12 @@ function buildPdf(lines: string[]) {
   for (let index = range.start; index < range.start + range.count; index += 1) {
     doc.switchToPage(index)
     doc.font('Helvetica').fontSize(7).fillColor('#9CA3AF')
-    doc.text('Locitra Technical SEO Report  |  Page ' + (index + 1) + ' of ' + range.count, 48, 805, { width: 499, align: 'center' })
+    doc.text(
+      'Locitra Technical SEO Report  |  Page ' + (index + 1) + ' of ' + range.count,
+      48,
+      805,
+      { width: 499, align: 'center' }
+    )
   }
 
   doc.end()
@@ -187,10 +202,7 @@ function addFinding(lines: string[], finding: Finding, index: number) {
   addWrapped(lines, '   Recommended action: ', finding.recommendation)
 }
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ scanId: string }> }
-) {
+export async function GET(request: Request, context: { params: Promise<{ scanId: string }> }) {
   const { scanId } = await context.params
 
   if (!isUuid(scanId)) {
@@ -205,10 +217,7 @@ export async function GET(
     }
 
     if (scan.status !== 'complete' || !scan.report_json) {
-      return NextResponse.json(
-        { error: 'The scan report is not ready yet.' },
-        { status: 409 }
-      )
+      return NextResponse.json({ error: 'The scan report is not ready yet.' }, { status: 409 })
     }
 
     if (scan.plan === 'free' || scan.payment_status !== 'paid') {
@@ -303,9 +312,6 @@ export async function GET(
     })
   } catch (error) {
     console.error('Failed to generate Technical SEO PDF:', error)
-    return NextResponse.json(
-      { error: 'Unable to generate the PDF report.' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Unable to generate the PDF report.' }, { status: 500 })
   }
 }

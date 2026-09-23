@@ -224,7 +224,7 @@ export default function TechnicalSEOTroubleshooter() {
 
     try {
       if (plan === 'quick') {
-        const response = await fetch('/api/technical-seo/checkout', {
+        const response = await fetch('/api/technical-seo/paypal/create-order', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ url, problem, plan }),

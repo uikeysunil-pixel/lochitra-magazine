@@ -15,6 +15,10 @@ export async function getScanRecord(scanId: string) {
       payment_status,
       stripe_checkout_session_id,
       stripe_payment_intent_id,
+      payment_provider,
+      payment_reference,
+      payment_transaction_id,
+      payment_currency,
       customer_email,
       paid_at,
       background_event_sent_at,
@@ -92,6 +96,10 @@ export async function createScanRecord(input: {
   paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
   stripeCheckoutSessionId?: string | null
   stripePaymentIntentId?: string | null
+  paymentProvider?: string | null
+  paymentReference?: string | null
+  paymentTransactionId?: string | null
+  paymentCurrency?: string | null
   customerEmail?: string | null
   paidAt?: string | null
   backgroundEventSentAt?: string | null
@@ -108,6 +116,10 @@ export async function createScanRecord(input: {
       payment_status,
       stripe_checkout_session_id,
       stripe_payment_intent_id,
+      payment_provider,
+      payment_reference,
+      payment_transaction_id,
+      payment_currency,
       customer_email,
       paid_at,
       background_event_sent_at,
@@ -124,6 +136,10 @@ export async function createScanRecord(input: {
       ${input.paymentStatus ?? 'unpaid'},
       ${input.stripeCheckoutSessionId ?? null},
       ${input.stripePaymentIntentId ?? null},
+      ${input.paymentProvider ?? null},
+      ${input.paymentReference ?? null},
+      ${input.paymentTransactionId ?? null},
+      ${input.paymentCurrency ?? null},
       ${input.customerEmail ?? null},
       ${input.paidAt ?? null},
       ${input.backgroundEventSentAt ?? null},
@@ -213,6 +229,102 @@ export async function markCheckoutPaid(input: {
   `
 
   return rows[0] ?? null
+}
+
+export async function markPaymentOrderCreated(input: {
+  scanId: string
+  paymentProvider: 'paypal' | 'razorpay'
+  paymentReference: string
+  paymentCurrency: string
+}) {
+  const rows = await sql`
+    update seo_scans
+    set
+      payment_provider = ${input.paymentProvider},
+      payment_reference = ${input.paymentReference},
+      payment_currency = ${input.paymentCurrency},
+      payment_status = 'pending',
+      updated_at = now()
+    where id = ${input.scanId}::uuid
+      and status = 'awaiting_payment'
+      and payment_status = 'pending'
+      and payment_provider is null
+      and payment_reference is null
+    returning
+      id,
+      website_url,
+      problem,
+      plan,
+      status,
+      payment_status,
+      payment_provider,
+      payment_reference,
+      payment_currency,
+      background_event_sent_at
+  `
+
+  return rows[0] ?? null
+}
+
+export async function markPaymentPaid(input: {
+  scanId: string
+  paymentProvider: 'paypal' | 'razorpay'
+  paymentReference: string
+  paymentTransactionId?: string | null
+  customerEmail?: string | null
+}) {
+  const rows = await sql`
+    update seo_scans
+    set
+      payment_status = 'paid',
+      payment_provider = ${input.paymentProvider},
+      payment_reference = ${input.paymentReference},
+      payment_transaction_id = coalesce(
+        ${input.paymentTransactionId ?? null},
+        payment_transaction_id
+      ),
+      customer_email = coalesce(${input.customerEmail ?? null}, customer_email),
+      paid_at = coalesce(paid_at, now()),
+      status = case
+        when status = 'awaiting_payment' then 'queued'
+        else status
+      end,
+      updated_at = now()
+    where id = ${input.scanId}::uuid
+      and payment_provider = ${input.paymentProvider}
+      and payment_reference = ${input.paymentReference}
+      and payment_status = 'pending'
+    returning
+      id,
+      website_url,
+      problem,
+      plan,
+      status,
+      payment_status,
+      background_event_sent_at
+  `
+
+  return rows[0] ?? null
+}
+
+export async function markPaymentFailed(
+  scanId: string,
+  paymentProvider: 'paypal' | 'razorpay',
+  paymentReference: string,
+  message: string
+) {
+  await sql`
+    update seo_scans
+    set
+      payment_status = 'failed',
+      status = 'cancelled',
+      error_message = ${message},
+      updated_at = now()
+    where id = ${scanId}::uuid
+      and payment_provider = ${paymentProvider}
+      and payment_reference = ${paymentReference}
+      and payment_status <> 'paid'
+  `
 }
 
 export async function markBackgroundEventSent(scanId: string) {

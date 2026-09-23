@@ -62,6 +62,10 @@ export default async function TechnicalSEOReportPage({
   const result = scan.report_json as CrawlResult
   const problem = scan.problem as DiagnosticProblem
   const findings = result.findings
+  const canDownloadPdf = scan.plan !== 'free' && scan.payment_status === 'paid'
+  const pdfUrl = key
+    ? `/api/technical-seo/report/${scanId}/pdf/?key=${encodeURIComponent(key)}`
+    : `/api/technical-seo/report/${scanId}/pdf/`
 
   return (
     <div className="pt-8 pb-16 sm:pt-12">
@@ -199,6 +203,14 @@ export default async function TechnicalSEOReportPage({
               </div>
 
               <div className="mt-6 grid gap-2">
+                {canDownloadPdf && (
+                  <a
+                    href={pdfUrl}
+                    className="inline-flex w-full items-center justify-center rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
+                  >
+                    Download PDF Report
+                  </a>
+                )}
                 <a
                   href="/technical-seo/history/"
                   className="inline-flex w-full items-center justify-center rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100"

@@ -291,7 +291,7 @@ export async function GET(
     lines.push('Prepared by Locitra Technical SEO.')
     lines.push('This report is based on the scan evidence available at the time of analysis.')
 
-    const pdf = buildPdf(lines)
+    const pdf = await buildPdf(lines)
 
     return new NextResponse(pdf as unknown as BodyInit, {
       status: 200,

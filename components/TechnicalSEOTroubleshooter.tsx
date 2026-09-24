@@ -207,6 +207,54 @@ export default function TechnicalSEOTroubleshooter() {
     )
   }
 
+  async function initiatePayPalCheckout(
+    targetUrl: string,
+    targetProblem: DiagnosticProblem,
+    targetPlan: PlanId = 'quick'
+  ) {
+    const trimmedUrl = targetUrl.trim()
+    if (!trimmedUrl) {
+      setError('Enter your website URL to begin.')
+      return
+    }
+
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/technical-seo/paypal/create-order', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: trimmedUrl, problem: targetProblem, plan: targetPlan }),
+      })
+
+      const data = (await response.json()) as {
+        scanId?: string
+        status?: ScanStatusPayload['status']
+        statusUrl?: string
+        accessKey?: string
+        checkoutUrl?: string
+        error?: string
+      }
+
+      if (!response.ok || !data.scanId || !data.checkoutUrl) {
+        throw new Error(data.error || 'Unable to start secure checkout.')
+      }
+
+      rememberScan(data.scanId, data.accessKey)
+      setScanStatus(data.status || 'queued')
+      setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
+      setScanProgress(0)
+
+      window.location.assign(data.checkoutUrl)
+    } catch (checkoutError) {
+      setError(
+        checkoutError instanceof Error ? checkoutError.message : 'Unable to start secure checkout.'
+      )
+      setLoading(false)
+    }
+  }
+
   async function handleAnalyze(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -220,38 +268,14 @@ export default function TechnicalSEOTroubleshooter() {
       return
     }
 
+    if (plan === 'quick') {
+      await initiatePayPalCheckout(url, problem, 'quick')
+      return
+    }
+
     setLoading(true)
 
     try {
-      if (plan === 'quick') {
-        const response = await fetch('/api/technical-seo/paypal/create-order', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ url, problem, plan }),
-        })
-
-        const data = (await response.json()) as {
-          scanId?: string
-          status?: ScanStatusPayload['status']
-          statusUrl?: string
-          accessKey?: string
-          checkoutUrl?: string
-          error?: string
-        }
-
-        if (!response.ok || !data.scanId || !data.checkoutUrl) {
-          throw new Error(data.error || 'Unable to start secure checkout.')
-        }
-
-        rememberScan(data.scanId, data.accessKey)
-        setScanStatus(data.status || 'queued')
-        setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
-        setScanProgress(0)
-
-        window.location.assign(data.checkoutUrl)
-        return
-      }
-
       const response = await fetch('/api/technical-seo/scan', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -421,7 +445,7 @@ export default function TechnicalSEOTroubleshooter() {
               className="rounded-full bg-gray-900 px-7 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
             >
               {loading
-                ? plan === 'quick' && scanStatus === 'queued'
+                ? plan === 'quick'
                   ? 'Opening secure checkout…'
                   : scanStatus === 'queued'
                     ? 'Queued…'
@@ -646,19 +670,29 @@ export default function TechnicalSEOTroubleshooter() {
                     </p>
                     <button
                       type="button"
-                      onClick={() =>
-                        setError(
-                          'Paid checkout is not enabled yet. The next build will connect this investigation to billing and the full crawler.'
-                        )
-                      }
-                      className="mt-5 w-full rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                      disabled={loading || !recommendedPlanDetails?.enabled}
+                      onClick={() => {
+                        if (recommendedPlan === 'quick') {
+                          setPlan('quick')
+                          initiatePayPalCheckout(url, problem, 'quick')
+                        } else {
+                          setError(
+                            'Full Investigation ($99) is coming in a future release. Targeted Troubleshoot ($49) is currently available.'
+                          )
+                        }
+                      }}
+                      className="mt-5 w-full rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                     >
-                      {problem === 'unknown'
-                        ? 'Continue to Full Investigation — $99'
-                        : 'Investigate This Problem — $49'}
+                      {loading && plan === 'quick'
+                        ? 'Opening secure checkout…'
+                        : problem === 'unknown'
+                          ? 'Continue to Full Investigation — $99'
+                          : 'Investigate This Problem — $49'}
                     </button>
                     <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
-                      One-time investigation · Payment coming in the next build
+                      {recommendedPlanDetails?.enabled
+                        ? 'One-time investigation · Secure PayPal checkout'
+                        : 'One-time investigation · Available in a future release'}
                     </p>
                   </div>
                 </div>
@@ -861,9 +895,9 @@ export default function TechnicalSEOTroubleshooter() {
                     </div>
                   </div>
                   <div className="mt-6 rounded-xl bg-gray-50 p-4 text-xs leading-5 text-gray-600 dark:bg-gray-900 dark:text-gray-400">
-                    This MVP performs a bounded same-site crawl using sitemap and internal-link
-                    discovery. It does not yet use Google Search Console, browser rendering,
-                    background scan jobs, payments, or PDF reports.
+                    This audit performs an automated crawl using sitemap and internal-link
+                    discovery. It does not yet integrate Google Search Console API data or headless
+                    browser JavaScript rendering.
                     {result.diagnosticFocus && (
                       <span className="mt-2 block font-medium">
                         Findings matching this diagnostic focus:{' '}

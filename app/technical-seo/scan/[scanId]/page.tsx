@@ -3,7 +3,33 @@
 import { useEffect, useRef, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 
-type Status = 'queued' | 'running' | 'analyzing' | 'complete' | 'failed' | 'cancelled'
+type Status =
+  | 'awaiting_payment'
+  | 'queued'
+  | 'running'
+  | 'analyzing'
+  | 'complete'
+  | 'failed'
+  | 'cancelled'
+
+function getHeadingText(status: Status | undefined): string {
+  switch (status) {
+    case 'awaiting_payment':
+      return 'Confirming payment…'
+    case 'queued':
+      return 'Your scan is queued'
+    case 'running':
+      return 'Your scan is in progress'
+    case 'complete':
+      return 'Your scan is complete'
+    case 'failed':
+      return 'Scan could not be completed'
+    case 'cancelled':
+      return 'Scan was cancelled'
+    default:
+      return 'Your scan is in progress'
+  }
+}
 
 interface Payload {
   scanId: string
@@ -149,7 +175,7 @@ export default function TechnicalSEOScanStatusPage({
             Locitra Technical SEO
           </p>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">
-            Your scan is in progress
+            {getHeadingText(data?.status)}
           </h1>
 
           {error ? (

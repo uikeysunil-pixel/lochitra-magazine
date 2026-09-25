@@ -21,6 +21,13 @@ const PROBLEM_LABELS: Record<DiagnosticProblem, string> = {
   unknown: "I don't know - find the important problems",
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Quick Check',
+  quick: 'Targeted Troubleshoot',
+  full: 'Full Troubleshoot',
+  deep: 'Deep Investigation',
+}
+
 const PALETTE = {
   textPrimary: '#0F172A',
   textSecondary: '#475569',
@@ -95,9 +102,7 @@ function drawHeader(
 
   const focusWidth = Math.floor(width * 0.44)
   const planWidth = Math.floor(width * 0.24)
-  const planLabel = scan.plan
-    ? scan.plan.charAt(0).toUpperCase() + scan.plan.slice(1) + ' Plan'
-    : 'Quick Plan'
+  const planLabel = PLAN_LABELS[scan.plan] ?? scan.plan ?? 'Quick Check'
 
   doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textMuted)
   doc.text('DIAGNOSTIC FOCUS: ', left + 8, y + 6, { continued: true })

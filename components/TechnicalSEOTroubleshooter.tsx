@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 import type { CrawlReportResult, DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 
@@ -156,24 +156,6 @@ export default function TechnicalSEOTroubleshooter() {
   const [scanStatus, setScanStatus] = useState<ScanStatusPayload['status'] | null>(null)
   const [scanProgress, setScanProgress] = useState(0)
   const [statusUrl, setStatusUrl] = useState<string | null>(null)
-  const [cancellationNotice, setCancellationNotice] = useState('')
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search)
-    const checkout = searchParams.get('checkout')
-    const provider = searchParams.get('provider')
-
-    if ((checkout === 'canceled' || checkout === 'cancelled') && provider === 'paypal') {
-      setCancellationNotice(
-        'PayPal checkout was cancelled. No payment was captured. You can try the $49 Targeted Troubleshoot again.'
-      )
-
-      const cleanUrl = new URL(window.location.href)
-      cleanUrl.searchParams.delete('checkout')
-      cleanUrl.searchParams.delete('provider')
-      window.history.replaceState({}, '', cleanUrl.toString())
-    }
-  }, [])
 
   const selectedProblem = useMemo(() => PROBLEMS.find((item) => item.id === problem), [problem])
 
@@ -276,7 +258,6 @@ export default function TechnicalSEOTroubleshooter() {
   async function handleAnalyze(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
-    setCancellationNotice('')
     setResult(null)
     setScanStatus(null)
     setScanProgress(0)
@@ -517,12 +498,6 @@ export default function TechnicalSEOTroubleshooter() {
               </a>
             )}
           </div>
-
-          {cancellationNotice && (
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
-              {cancellationNotice}
-            </div>
-          )}
 
           {error && (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">

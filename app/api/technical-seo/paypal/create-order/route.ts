@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     const origin = new URL(request.url).origin
     const statusUrl = `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessKey)}`
     const returnUrl = `${origin}${statusUrl}&provider=paypal`
-    const cancelUrl = `${origin}/technical-seo/?checkout=canceled&provider=paypal`
+    const cancelUrl = `${origin}/technical-seo/cancelled/`
 
     await createScanRecord({
       scanId,

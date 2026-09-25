@@ -1,7 +1,9 @@
 import { randomUUID } from 'crypto'
 import type {
+  ArchitectureSummary,
   CrawlResult,
   DiagnosticProblem,
+  DuplicateCandidateSummary,
   Finding,
   FindingSeverity,
   PlanId,
@@ -9,6 +11,12 @@ import type {
 } from './types'
 import { discoverSitemapPages, isAllowedByRobots, loadRobotsPolicy } from './site-discovery'
 import { runQuickScan } from './scanner'
+
+export type CrawlQueueItem = {
+  url: string
+  depth: number | null
+  discoveredFrom: string | null
+}
 
 export const CRAWL_LIMITS: Record<PlanId, number> = {
   free: 5,
@@ -60,6 +68,16 @@ function normalizeCrawlUrl(value: string): string | null {
   }
 }
 
+function normalizeForUrlComparison(urlStr: string): string {
+  try {
+    const u = new URL(urlStr)
+    u.hash = ''
+    return u.toString()
+  } catch {
+    return urlStr
+  }
+}
+
 function isLikelyHtmlUrl(value: string): boolean {
   try {
     const url = new URL(value)
@@ -70,6 +88,344 @@ function isLikelyHtmlUrl(value: string): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+export function getPathSection(urlStr: string): string {
+  try {
+    const url = new URL(urlStr)
+    const segments = url.pathname.split('/').filter(Boolean)
+    if (segments.length === 0) {
+      return '/'
+    }
+    return `/${segments[0]}/`
+  } catch {
+    return '/'
+  }
+}
+
+export function buildArchitectureSummary(params: {
+  pageResults: ScanResult[]
+  pageDepthMap: Map<string, number | null> | Map<string, number>
+  internalInboundGraph: Map<string, Set<string>>
+  sitemapDiscoveredUrls: Set<string>
+  rootUrl: string
+  canonicalRootUrl: string | null
+}): ArchitectureSummary {
+  const {
+    pageResults,
+    pageDepthMap,
+    internalInboundGraph,
+    sitemapDiscoveredUrls,
+    rootUrl,
+    canonicalRootUrl,
+  } = params
+
+  const depthDistribution: Record<number, number> = {}
+  let maxDepth = 0
+
+  for (const page of pageResults) {
+    const rawDepth = pageDepthMap.get(page.finalUrl) ?? pageDepthMap.get(page.url)
+    if (rawDepth !== undefined && rawDepth !== null) {
+      depthDistribution[rawDepth] = (depthDistribution[rawDepth] || 0) + 1
+      if (rawDepth > maxDepth) {
+        maxDepth = rawDepth
+      }
+    }
+  }
+
+  const topLinkedUrls = Array.from(internalInboundGraph.entries())
+    .map(([url, sources]) => ({
+      url,
+      inboundCount: sources.size,
+    }))
+    .filter((item) => item.inboundCount > 0)
+    .sort((a, b) => {
+      if (b.inboundCount !== a.inboundCount) {
+        return b.inboundCount - a.inboundCount
+      }
+      return a.url.localeCompare(b.url)
+    })
+    .slice(0, 20)
+
+  const redirectMap = new Map<string, string>()
+  for (const page of pageResults) {
+    if (page.url && page.finalUrl && page.url !== page.finalUrl) {
+      redirectMap.set(page.url, page.finalUrl)
+    }
+  }
+
+  const resolveRedirect = (url: string): string => {
+    let current = url
+    const visited = new Set<string>()
+    while (redirectMap.has(current) && !visited.has(current)) {
+      visited.add(current)
+      current = redirectMap.get(current)!
+    }
+    return current
+  }
+
+  const resolvedInboundGraph = new Map<string, Set<string>>()
+  for (const [targetUrl, sources] of internalInboundGraph.entries()) {
+    const resolvedTarget = resolveRedirect(targetUrl)
+    if (!resolvedInboundGraph.has(resolvedTarget)) {
+      resolvedInboundGraph.set(resolvedTarget, new Set())
+    }
+    const resolvedSet = resolvedInboundGraph.get(resolvedTarget)!
+    for (const src of sources) {
+      resolvedSet.add(src)
+    }
+
+    if (!resolvedInboundGraph.has(targetUrl)) {
+      resolvedInboundGraph.set(targetUrl, new Set())
+    }
+    const directSet = resolvedInboundGraph.get(targetUrl)!
+    for (const src of sources) {
+      directSet.add(src)
+    }
+  }
+
+  const isRootTarget = (url: string): boolean => {
+    const resolved = resolveRedirect(url)
+    const normUrl = normalizeForUrlComparison(url)
+    const normResolved = normalizeForUrlComparison(resolved)
+    const normRoot = normalizeForUrlComparison(rootUrl)
+    const normCanonicalRoot = canonicalRootUrl ? normalizeForUrlComparison(canonicalRootUrl) : null
+
+    return (
+      url === rootUrl ||
+      resolved === rootUrl ||
+      (canonicalRootUrl !== null && (url === canonicalRootUrl || resolved === canonicalRootUrl)) ||
+      normUrl === normRoot ||
+      normResolved === normRoot ||
+      (normCanonicalRoot !== null &&
+        (normUrl === normCanonicalRoot || normResolved === normCanonicalRoot))
+    )
+  }
+
+  const orphanCandidateSet = new Set<string>()
+  for (const rawUrl of sitemapDiscoveredUrls) {
+    if (isRootTarget(rawUrl)) continue
+
+    const candidateUrl = resolveRedirect(rawUrl)
+    if (isRootTarget(candidateUrl)) continue
+
+    const inboundCount =
+      (resolvedInboundGraph.get(candidateUrl)?.size ?? 0) +
+      (candidateUrl !== rawUrl ? (resolvedInboundGraph.get(rawUrl)?.size ?? 0) : 0)
+
+    if (inboundCount === 0) {
+      orphanCandidateSet.add(candidateUrl)
+    }
+  }
+
+  const orphanCandidates = Array.from(orphanCandidateSet).sort((a, b) => a.localeCompare(b))
+
+  const sectionCounts = new Map<string, number>()
+  for (const page of pageResults) {
+    const pathSection = getPathSection(page.finalUrl)
+    sectionCounts.set(pathSection, (sectionCounts.get(pathSection) || 0) + 1)
+  }
+
+  const sectionDistribution = Array.from(sectionCounts.entries())
+    .map(([path, pageCount]) => ({ path, pageCount }))
+    .sort((a, b) => {
+      if (b.pageCount !== a.pageCount) {
+        return b.pageCount - a.pageCount
+      }
+      return a.path.localeCompare(b.path)
+    })
+
+  let selfCanonicalCount = 0
+  let crossPageCanonicalCount = 0
+  let missingCanonicalCount = 0
+
+  for (const page of pageResults) {
+    if (!page.canonical || !page.canonical.trim()) {
+      missingCanonicalCount += 1
+      continue
+    }
+
+    try {
+      const pageUrlObj = new URL(page.finalUrl)
+      const resolved = new URL(page.canonical, page.finalUrl)
+      if (!['http:', 'https:'].includes(resolved.protocol)) {
+        continue
+      }
+
+      if (resolved.origin !== pageUrlObj.origin) {
+        continue
+      }
+
+      resolved.hash = ''
+      const normalizedCanonical = resolved.toString()
+      const normalizedPageUrl = normalizeForUrlComparison(page.finalUrl)
+
+      if (normalizedCanonical === normalizedPageUrl) {
+        selfCanonicalCount += 1
+      } else {
+        crossPageCanonicalCount += 1
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return {
+    depthDistribution,
+    maxDepth,
+    topLinkedUrls,
+    orphanCandidates,
+    sectionDistribution,
+    canonicalSummary: {
+      selfCanonicalCount,
+      crossPageCanonicalCount,
+      missingCanonicalCount,
+    },
+  }
+}
+
+export function buildDuplicateCandidateSummary(params: {
+  pageResults: ScanResult[]
+  discoveredUrls: Set<string>
+  finalOrigin: string | null
+}): DuplicateCandidateSummary {
+  const { pageResults, discoveredUrls, finalOrigin } = params
+
+  const titleGroups = new Map<string, Set<string>>()
+  for (const page of pageResults) {
+    if (!page.pageTitle) continue
+    const normalizedTitle = page.pageTitle.replace(/\s+/g, ' ').trim()
+    if (!normalizedTitle) continue
+
+    if (!titleGroups.has(normalizedTitle)) {
+      titleGroups.set(normalizedTitle, new Set())
+    }
+    titleGroups.get(normalizedTitle)!.add(page.finalUrl)
+  }
+
+  const titleDuplicateGroups = Array.from(titleGroups.entries())
+    .filter(([_, urls]) => urls.size >= 2)
+    .map(([title, urls]) => ({
+      title,
+      urls: Array.from(urls).sort((a, b) => a.localeCompare(b)),
+    }))
+    .sort((a, b) => {
+      if (b.urls.length !== a.urls.length) {
+        return b.urls.length - a.urls.length
+      }
+      return a.title.localeCompare(b.title)
+    })
+
+  const descGroups = new Map<string, Set<string>>()
+  for (const page of pageResults) {
+    if (!page.metaDescription) continue
+    const normalizedDesc = page.metaDescription.replace(/\s+/g, ' ').trim()
+    if (!normalizedDesc) continue
+
+    if (!descGroups.has(normalizedDesc)) {
+      descGroups.set(normalizedDesc, new Set())
+    }
+    descGroups.get(normalizedDesc)!.add(page.finalUrl)
+  }
+
+  const descriptionDuplicateGroups = Array.from(descGroups.entries())
+    .filter(([_, urls]) => urls.size >= 2)
+    .map(([description, urls]) => ({
+      description,
+      urls: Array.from(urls).sort((a, b) => a.localeCompare(b)),
+    }))
+    .sort((a, b) => {
+      if (b.urls.length !== a.urls.length) {
+        return b.urls.length - a.urls.length
+      }
+      return a.description.localeCompare(b.description)
+    })
+
+  const allUrls = new Set<string>()
+  for (const page of pageResults) {
+    allUrls.add(page.finalUrl)
+    allUrls.add(page.url)
+  }
+  for (const url of discoveredUrls) {
+    allUrls.add(url)
+  }
+
+  const targetOrigin =
+    finalOrigin || (pageResults.length > 0 ? new URL(pageResults[0].finalUrl).origin : null)
+
+  const paramGroups = new Map<string, Set<string>>()
+  for (const urlStr of allUrls) {
+    try {
+      const parsed = new URL(urlStr)
+      if (targetOrigin && parsed.origin !== targetOrigin) continue
+      parsed.hash = ''
+      const baseUrl = `${parsed.origin}${parsed.pathname}`
+      const fullUrl = parsed.toString()
+
+      if (!paramGroups.has(baseUrl)) {
+        paramGroups.set(baseUrl, new Set())
+      }
+      paramGroups.get(baseUrl)!.add(fullUrl)
+    } catch {
+      // ignore invalid URLs
+    }
+  }
+
+  const parameterVariationGroups = Array.from(paramGroups.entries())
+    .filter(([_, variations]) => variations.size >= 2)
+    .map(([baseUrl, variations]) => ({
+      baseUrl,
+      variations: Array.from(variations).sort((a, b) => a.localeCompare(b)),
+    }))
+    .sort((a, b) => {
+      if (b.variations.length !== a.variations.length) {
+        return b.variations.length - a.variations.length
+      }
+      return a.baseUrl.localeCompare(b.baseUrl)
+    })
+    .slice(0, 50)
+
+  const canonicalGroups = new Map<string, Set<string>>()
+  for (const page of pageResults) {
+    if (!page.canonical || !page.canonical.trim()) continue
+
+    try {
+      const pageUrlObj = new URL(page.finalUrl)
+      const resolved = new URL(page.canonical, page.finalUrl)
+      if (!['http:', 'https:'].includes(resolved.protocol)) continue
+      if (resolved.origin !== pageUrlObj.origin) continue
+
+      resolved.hash = ''
+      const canonicalTarget = resolved.toString()
+
+      if (!canonicalGroups.has(canonicalTarget)) {
+        canonicalGroups.set(canonicalTarget, new Set())
+      }
+      canonicalGroups.get(canonicalTarget)!.add(page.finalUrl)
+    } catch {
+      continue
+    }
+  }
+
+  const canonicalConflictGroups = Array.from(canonicalGroups.entries())
+    .filter(([_, declaringUrls]) => declaringUrls.size >= 2)
+    .map(([canonicalUrl, declaredOnUrls]) => ({
+      canonicalUrl,
+      declaredOnUrls: Array.from(declaredOnUrls).sort((a, b) => a.localeCompare(b)),
+    }))
+    .sort((a, b) => {
+      if (b.declaredOnUrls.length !== a.declaredOnUrls.length) {
+        return b.declaredOnUrls.length - a.declaredOnUrls.length
+      }
+      return a.canonicalUrl.localeCompare(b.canonicalUrl)
+    })
+
+  return {
+    titleDuplicateGroups,
+    descriptionDuplicateGroups,
+    parameterVariationGroups,
+    canonicalConflictGroups,
   }
 }
 
@@ -148,11 +504,20 @@ function summarize(findings: Finding[]): ScanResult['summary'] {
   )
 }
 
+export type RunCrawlDependencies = {
+  runQuickScan?: (url: string) => Promise<ScanResult>
+  discoverSitemapPages?: (url: string, limit: number) => Promise<string[]>
+  loadRobotsPolicy?: (
+    url: string
+  ) => Promise<{ rules: Array<{ pattern: string; allow: boolean; specificity: number }> }>
+}
+
 export async function runCrawl(
   input: string,
   plan: PlanId,
   diagnosticProblem: DiagnosticProblem,
-  scanId: string = randomUUID()
+  scanId: string = randomUUID(),
+  deps?: RunCrawlDependencies
 ): Promise<CrawlResult> {
   const startedAt = Date.now()
   const rootUrl = normalizeCrawlUrl(input)
@@ -161,31 +526,61 @@ export async function runCrawl(
     throw new Error('Enter a valid http:// or https:// website URL.')
   }
 
+  const runQuickScanFn = deps?.runQuickScan ?? runQuickScan
+  const discoverSitemapPagesFn = deps?.discoverSitemapPages ?? discoverSitemapPages
+  const loadRobotsPolicyFn = deps?.loadRobotsPolicy ?? loadRobotsPolicy
+
   const maxUrls = CRAWL_LIMITS[plan]
-  const queued: string[] = [rootUrl]
+  const queued: CrawlQueueItem[] = [
+    {
+      url: rootUrl,
+      depth: 0,
+      discoveredFrom: null,
+    },
+  ]
   const seen = new Set([rootUrl])
+  const sitemapDiscoveredUrls = new Set<string>()
+  const internalInboundGraph = new Map<string, Set<string>>()
+  const pageDepthMap = new Map<string, number | null>()
+  pageDepthMap.set(rootUrl, 0)
+
+  const recordBfsDepth = (url: string, newDepth: number | null) => {
+    if (newDepth === null || newDepth === undefined) return
+    const current = pageDepthMap.get(url)
+    if (current === undefined || current === null || newDepth < current) {
+      pageDepthMap.set(url, newDepth)
+    }
+  }
+
   const pageResults: ScanResult[] = []
   let crawlErrors = 0
   let urlsBlockedByRobots = 0
   let finalOrigin: string | null = null
-  const robotsPolicy = await loadRobotsPolicy(rootUrl)
+  const robotsPolicy = await loadRobotsPolicyFn(rootUrl)
   let canonicalRootUrl: string | null = null
   let rootFetchFailed = false
 
   try {
-    const sitemapPages = await discoverSitemapPages(rootUrl, maxUrls * 3)
+    const sitemapPages = await discoverSitemapPagesFn(rootUrl, maxUrls * 3)
     for (const sitemapPage of sitemapPages) {
       if (seen.size >= maxUrls * 4) break
       const normalized = normalizeCrawlUrl(sitemapPage)
       if (!normalized || !isLikelyHtmlUrl(normalized)) continue
       if (new URL(normalized).origin !== new URL(rootUrl).origin) continue
+      if (normalized !== rootUrl) {
+        sitemapDiscoveredUrls.add(normalized)
+      }
       if (!isAllowedByRobots(robotsPolicy, normalized)) {
         urlsBlockedByRobots += 1
         continue
       }
       if (seen.has(normalized)) continue
       seen.add(normalized)
-      queued.push(normalized)
+      queued.push({
+        url: normalized,
+        depth: null,
+        discoveredFrom: null,
+      })
     }
   } catch {
     crawlErrors += 1
@@ -194,16 +589,16 @@ export async function runCrawl(
   while (queued.length > 0 && pageResults.length < maxUrls) {
     const batch = queued.splice(0, Math.min(MAX_CONCURRENCY, maxUrls - pageResults.length))
     const results = await Promise.all(
-      batch.map(async (url) => {
+      batch.map(async (item) => {
         try {
-          const result = await runQuickScan(url)
-          return { url, result }
+          const result = await runQuickScanFn(item.url)
+          return { item, result }
         } catch {
           crawlErrors += 1
-          if (url === rootUrl) {
+          if (item.url === rootUrl) {
             rootFetchFailed = true
           }
-          return { url, result: null as ScanResult | null }
+          return { item, result: null as ScanResult | null }
         }
       })
     )
@@ -214,18 +609,30 @@ export async function runCrawl(
       )
     }
 
-    for (const item of results) {
-      if (!item.result) continue
+    for (const { item, result } of results) {
+      if (!result) continue
 
-      const result = item.result
       pageResults.push(result)
+
+      const knownDepth =
+        pageDepthMap.get(result.finalUrl) ?? pageDepthMap.get(item.url) ?? item.depth
+
+      if (knownDepth !== null && knownDepth !== undefined) {
+        recordBfsDepth(result.finalUrl, knownDepth)
+        recordBfsDepth(item.url, knownDepth)
+      }
 
       if (!finalOrigin) {
         finalOrigin = new URL(result.finalUrl).origin
         canonicalRootUrl = result.finalUrl
+        recordBfsDepth(result.finalUrl, 0)
+        recordBfsDepth(item.url, 0)
       }
 
       if (finalOrigin !== new URL(result.finalUrl).origin) continue
+
+      const sourceUrl = result.finalUrl
+      const parentDepth = pageDepthMap.get(sourceUrl) ?? pageDepthMap.get(item.url) ?? null
 
       for (const discovered of result.discoveredInternalUrls) {
         const normalized = normalizeCrawlUrl(discovered)
@@ -237,14 +644,46 @@ export async function runCrawl(
           continue
         }
 
+        if (!internalInboundGraph.has(normalized)) {
+          internalInboundGraph.set(normalized, new Set())
+        }
+        internalInboundGraph.get(normalized)!.add(sourceUrl)
+
         if (!isAllowedByRobots(robotsPolicy, normalized)) {
           urlsBlockedByRobots += 1
           continue
         }
 
+        const childDepth =
+          parentDepth !== null && parentDepth !== undefined ? parentDepth + 1 : null
+
+        if (childDepth !== null) {
+          recordBfsDepth(normalized, childDepth)
+
+          const queuedItem = queued.find((q) => q.url === normalized)
+          if (queuedItem) {
+            if (queuedItem.depth === null || childDepth < queuedItem.depth) {
+              queuedItem.depth = childDepth
+              queuedItem.discoveredFrom = sourceUrl
+            }
+          }
+
+          for (const page of pageResults) {
+            if (page.url === normalized || page.finalUrl === normalized) {
+              recordBfsDepth(page.url, childDepth)
+              recordBfsDepth(page.finalUrl, childDepth)
+            }
+          }
+        }
+
         if (seen.has(normalized)) continue
         seen.add(normalized)
-        queued.push(normalized)
+
+        queued.push({
+          url: normalized,
+          depth: childDepth,
+          discoveredFrom: sourceUrl,
+        })
 
         if (seen.size >= maxUrls * 4) break
       }
@@ -297,7 +736,7 @@ export async function runCrawl(
   const firstSitemap = pageResults.find((page) => page.sitemap.found && page.sitemap.url)
   const firstRobots = pageResults.find((page) => page.robotsTxt.found)
 
-  return {
+  const crawlResult: CrawlResult = {
     scanId,
     url: rootUrl,
     finalUrl: canonicalRootUrl || rootUrl,
@@ -332,4 +771,22 @@ export async function runCrawl(
     })),
     findings,
   }
+
+  if (plan === 'full') {
+    crawlResult.architecture = buildArchitectureSummary({
+      pageResults,
+      pageDepthMap,
+      internalInboundGraph,
+      sitemapDiscoveredUrls,
+      rootUrl,
+      canonicalRootUrl,
+    })
+    crawlResult.duplicates = buildDuplicateCandidateSummary({
+      pageResults,
+      discoveredUrls: seen,
+      finalOrigin,
+    })
+  }
+
+  return crawlResult
 }

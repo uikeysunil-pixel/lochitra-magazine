@@ -96,6 +96,44 @@ export interface CrawlPage {
   state: 'complete' | 'failed'
 }
 
+export interface ArchitectureSummary {
+  depthDistribution: Record<number, number>
+  maxDepth: number
+  topLinkedUrls: Array<{
+    url: string
+    inboundCount: number
+  }>
+  orphanCandidates: string[]
+  sectionDistribution: Array<{
+    path: string
+    pageCount: number
+  }>
+  canonicalSummary: {
+    selfCanonicalCount: number
+    crossPageCanonicalCount: number
+    missingCanonicalCount: number
+  }
+}
+
+export interface DuplicateCandidateSummary {
+  titleDuplicateGroups: Array<{
+    title: string
+    urls: string[]
+  }>
+  descriptionDuplicateGroups: Array<{
+    description: string
+    urls: string[]
+  }>
+  parameterVariationGroups: Array<{
+    baseUrl: string
+    variations: string[]
+  }>
+  canonicalConflictGroups: Array<{
+    canonicalUrl: string
+    declaredOnUrls: string[]
+  }>
+}
+
 export interface CrawlResult {
   scanId: string
   url: string
@@ -115,6 +153,8 @@ export interface CrawlResult {
   sitemap: ScanResult['sitemap']
   pages: CrawlPage[]
   findings: Finding[]
+  architecture?: ArchitectureSummary
+  duplicates?: DuplicateCandidateSummary
 }
 
 export interface CrawlReportResult extends CrawlResult {

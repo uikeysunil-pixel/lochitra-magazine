@@ -170,6 +170,7 @@ export async function runCrawl(
   let finalOrigin: string | null = null
   const robotsPolicy = await loadRobotsPolicy(rootUrl)
   let canonicalRootUrl: string | null = null
+  let rootFetchFailed = false
 
   try {
     const sitemapPages = await discoverSitemapPages(rootUrl, maxUrls * 3)
@@ -199,10 +200,19 @@ export async function runCrawl(
           return { url, result }
         } catch {
           crawlErrors += 1
+          if (url === rootUrl) {
+            rootFetchFailed = true
+          }
           return { url, result: null as ScanResult | null }
         }
       })
     )
+
+    if (rootFetchFailed) {
+      throw new Error(
+        'We could not reach the website from our scanner. Check the URL and try again.'
+      )
+    }
 
     for (const item of results) {
       if (!item.result) continue
@@ -241,6 +251,10 @@ export async function runCrawl(
 
       if (seen.size >= maxUrls * 4) break
     }
+  }
+
+  if (rootFetchFailed || pageResults.length === 0) {
+    throw new Error('We could not reach the website from our scanner. Check the URL and try again.')
   }
 
   const allFindings = pageResults.flatMap((page) =>

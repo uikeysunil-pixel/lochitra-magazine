@@ -53,10 +53,68 @@ export default async function TechnicalSEOReportPage({
   if (!isUuid(scanId)) notFound()
 
   const scan = await getScanRecord(scanId)
-  if (!scan || scan.status !== 'complete' || !scan.report_json) notFound()
+  if (!scan) notFound()
 
   if (scan.access_mode === 'private' && !verifyReportAccessToken(key, scan.report_token_hash)) {
     notFound()
+  }
+
+  if (scan.status !== 'complete' || !scan.report_json) {
+    const statusUrl =
+      scan.access_mode === 'private' && key
+        ? `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(key)}`
+        : `/technical-seo/scan/${scanId}/`
+
+    let statusTitle = 'Scan in progress'
+    let statusDescription = 'This scan is still being processed.'
+
+    if (scan.status === 'awaiting_payment') {
+      statusTitle = 'Payment confirmation pending'
+      statusDescription = 'Payment has not yet been confirmed for this scan.'
+    } else if (scan.status === 'queued') {
+      statusTitle = 'Scan is queued'
+      statusDescription = 'This scan is currently queued and waiting to be processed.'
+    } else if (scan.status === 'running' || scan.status === 'analyzing') {
+      statusTitle = 'Scan in progress'
+      statusDescription =
+        'This scan is still being processed. The diagnostic report will be available once crawling and analysis are complete.'
+    } else if (scan.status === 'failed' || scan.status === 'cancelled') {
+      statusTitle = scan.status === 'cancelled' ? 'Scan cancelled' : 'Scan could not be completed'
+      statusDescription = scan.error_message || 'This scan did not complete.'
+    }
+
+    return (
+      <div className="pt-8 pb-16 sm:pt-12">
+        <main className="mx-auto max-w-2xl px-4 sm:px-6">
+          <section className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-gray-800 dark:bg-gray-950">
+            <p className="text-primary-600 dark:text-primary-400 text-xs font-bold tracking-[0.18em] uppercase">
+              Locitra Technical SEO
+            </p>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl dark:text-gray-100">
+              {statusTitle}
+            </h1>
+            <p className="mt-2 text-sm break-all text-gray-500 dark:text-gray-400">
+              {scan.website_url}
+            </p>
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">{statusDescription}</p>
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <a
+                href={statusUrl}
+                className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+              >
+                View scan status
+              </a>
+              <a
+                href="/technical-seo/"
+                className="inline-flex rounded-full border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-900"
+              >
+                Run another scan
+              </a>
+            </div>
+          </section>
+        </main>
+      </div>
+    )
   }
 
   const result = scan.report_json as CrawlResult

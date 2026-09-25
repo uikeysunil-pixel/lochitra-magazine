@@ -40,7 +40,11 @@ interface Payload {
   errorMessage?: string | null
   reportUrl?: string | null
   paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
+  plan?: string
 }
+
+const MAX_POLL_ATTEMPTS = 240
+const POLL_INTERVAL_MS = 1500
 
 export default function TechnicalSEOScanStatusPage({
   params,
@@ -51,6 +55,7 @@ export default function TechnicalSEOScanStatusPage({
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState('')
   const [accessKey, setAccessKey] = useState<string | null>(null)
+  const [pollingCeilingReached, setPollingCeilingReached] = useState(false)
   const captureAttemptedRef = useRef(false)
 
   useEffect(() => {
@@ -128,8 +133,12 @@ export default function TechnicalSEOScanStatusPage({
     if (!scanId) return
 
     let cancelled = false
+    let timerId: number | undefined
+    let attempts = 0
 
     async function poll() {
+      if (cancelled) return
+
       try {
         const keyQuery = accessKey ? `?key=${encodeURIComponent(accessKey)}` : ''
         const response = await fetch(`/api/technical-seo/scan/${scanId}${keyQuery}`, {
@@ -147,7 +156,12 @@ export default function TechnicalSEOScanStatusPage({
           payload.status !== 'failed' &&
           payload.status !== 'cancelled'
         ) {
-          window.setTimeout(poll, 1500)
+          attempts += 1
+          if (attempts >= MAX_POLL_ATTEMPTS) {
+            setPollingCeilingReached(true)
+            return
+          }
+          timerId = window.setTimeout(poll, POLL_INTERVAL_MS)
         }
       } catch (statusError) {
         if (!cancelled) {
@@ -162,6 +176,9 @@ export default function TechnicalSEOScanStatusPage({
 
     return () => {
       cancelled = true
+      if (timerId) {
+        window.clearTimeout(timerId)
+      }
     }
   }, [scanId, accessKey])
 
@@ -185,15 +202,17 @@ export default function TechnicalSEOScanStatusPage({
           ) : data ? (
             <>
               <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                {data.paymentStatus === 'pending' || data.paymentStatus === 'unpaid'
-                  ? 'Payment is being confirmed before the investigation starts.'
-                  : 'Status:'}{' '}
-                {data.paymentStatus === 'paid' ? (
-                  <span className="font-semibold">Paid · {data.status}</span>
-                ) : data.paymentStatus === 'pending' || data.paymentStatus === 'unpaid' ? (
-                  <span className="font-semibold capitalize">{data.paymentStatus}</span>
+                {data.status === 'awaiting_payment' && data.plan !== 'free' ? (
+                  'Payment is being confirmed before the investigation starts.'
                 ) : (
-                  <span className="font-semibold capitalize">{data.status}</span>
+                  <>
+                    Status:{' '}
+                    {data.paymentStatus === 'paid' ? (
+                      <span className="font-semibold">Paid · {data.status}</span>
+                    ) : (
+                      <span className="font-semibold capitalize">{data.status}</span>
+                    )}
+                  </>
                 )}
               </p>
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
@@ -206,6 +225,18 @@ export default function TechnicalSEOScanStatusPage({
                 {progress}% complete · {data.pagesChecked} pages checked · {data.pagesDiscovered}{' '}
                 URLs discovered
               </p>
+
+              {pollingCeilingReached &&
+                data.status !== 'complete' &&
+                data.status !== 'failed' &&
+                data.status !== 'cancelled' && (
+                  <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+                    <p>
+                      This scan is taking longer than expected. We stopped live polling. Refresh
+                      this page later to check the saved result.
+                    </p>
+                  </div>
+                )}
 
               {data.status === 'complete' && data.reportUrl && (
                 <div className="mt-7 flex flex-wrap justify-center gap-3">

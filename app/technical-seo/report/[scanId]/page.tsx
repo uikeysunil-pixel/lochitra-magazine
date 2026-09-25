@@ -277,7 +277,11 @@ export default async function TechnicalSEOReportPage({
                 </a>
                 <a
                   href="/technical-seo/"
-                  className="inline-flex w-full items-center justify-center rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
+                  className={
+                    canDownloadPdf
+                      ? 'inline-flex w-full items-center justify-center rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100'
+                      : 'inline-flex w-full items-center justify-center rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900'
+                  }
                 >
                   Run another scan
                 </a>

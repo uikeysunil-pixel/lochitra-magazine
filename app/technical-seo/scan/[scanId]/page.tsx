@@ -12,6 +12,16 @@ type Status =
   | 'failed'
   | 'cancelled'
 
+const STATUS_LABELS: Record<Status, string> = {
+  awaiting_payment: 'Awaiting payment',
+  queued: 'Queued',
+  running: 'Running',
+  analyzing: 'Analyzing',
+  complete: 'Complete',
+  failed: 'Failed',
+  cancelled: 'Cancelled',
+}
+
 function getHeadingText(status: Status | undefined): string {
   switch (status) {
     case 'awaiting_payment':
@@ -196,25 +206,42 @@ export default function TechnicalSEOScanStatusPage({
           </h1>
 
           {error ? (
-            <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-              {error}
-            </p>
+            <>
+              <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                {error}
+              </p>
+              <div className="mt-7 flex flex-wrap justify-center gap-3">
+                <a
+                  href="/technical-seo/"
+                  className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                >
+                  Run another scan
+                </a>
+                <a
+                  href="/technical-seo/history/"
+                  className="inline-flex rounded-full border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-900"
+                >
+                  View scan history
+                </a>
+              </div>
+            </>
           ) : data ? (
             <>
               <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                {data.status === 'awaiting_payment' && data.plan !== 'free' ? (
-                  'Payment is being confirmed before the investigation starts.'
+                Status:{' '}
+                {data.paymentStatus === 'paid' ? (
+                  <span className="font-semibold">
+                    Paid · {STATUS_LABELS[data.status] || data.status}
+                  </span>
                 ) : (
-                  <>
-                    Status:{' '}
-                    {data.paymentStatus === 'paid' ? (
-                      <span className="font-semibold">Paid · {data.status}</span>
-                    ) : (
-                      <span className="font-semibold capitalize">{data.status}</span>
-                    )}
-                  </>
+                  <span className="font-semibold">{STATUS_LABELS[data.status] || data.status}</span>
                 )}
               </p>
+              {data.status === 'awaiting_payment' && data.plan !== 'free' && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Payment is being confirmed before the investigation starts.
+                </p>
+              )}
               <div className="mt-6 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
                 <div
                   className="h-full rounded-full bg-gray-900 transition-all dark:bg-white"
@@ -242,23 +269,61 @@ export default function TechnicalSEOScanStatusPage({
                 <div className="mt-7 flex flex-wrap justify-center gap-3">
                   <a
                     href={data.reportUrl}
-                    className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
+                    className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                   >
-                    View completed report
+                    View report
                   </a>
                   <a
                     href="/technical-seo/history/"
-                    className="inline-flex rounded-full border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100"
+                    className="inline-flex rounded-full border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-900"
                   >
-                    Scan history
+                    View scan history
                   </a>
                 </div>
               )}
 
-              {(data.status === 'failed' || data.status === 'cancelled') && (
-                <p className="mt-6 rounded-2xl border border-gray-200 p-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
-                  {data.errorMessage || 'This scan did not complete.'}
-                </p>
+              {data.status === 'failed' && (
+                <>
+                  <p className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+                    {data.errorMessage || 'This scan did not complete.'}
+                  </p>
+                  <div className="mt-7 flex flex-wrap justify-center gap-3">
+                    <a
+                      href="/technical-seo/"
+                      className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                    >
+                      Run another scan
+                    </a>
+                    <a
+                      href="/technical-seo/history/"
+                      className="inline-flex rounded-full border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-900"
+                    >
+                      View scan history
+                    </a>
+                  </div>
+                </>
+              )}
+
+              {data.status === 'cancelled' && (
+                <>
+                  <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+                    {data.errorMessage || 'This scan did not complete.'}
+                  </p>
+                  <div className="mt-7 flex flex-wrap justify-center gap-3">
+                    <a
+                      href="/technical-seo/"
+                      className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                    >
+                      Run another scan
+                    </a>
+                    <a
+                      href="/technical-seo/history/"
+                      className="inline-flex rounded-full border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-900"
+                    >
+                      View scan history
+                    </a>
+                  </div>
+                </>
               )}
             </>
           ) : (

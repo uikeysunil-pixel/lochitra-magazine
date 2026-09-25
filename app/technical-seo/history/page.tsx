@@ -37,6 +37,13 @@ const STATUS_LABELS: Record<ScanSummary['status'], string> = {
   cancelled: 'Cancelled',
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Quick Check',
+  quick: 'Targeted Troubleshoot',
+  full: 'Full Troubleshoot',
+  deep: 'Deep Investigation',
+}
+
 const PROBLEM_LABELS: Record<string, string> = {
   indexing: "Pages aren't getting indexed",
   'traffic-drop': 'Organic traffic dropped',
@@ -130,7 +137,7 @@ export default function TechnicalSEOHistoryPage() {
               href="/technical-seo/"
               className="inline-flex items-center justify-center rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white dark:bg-white dark:text-gray-900"
             >
-              Run a new scan
+              Run another scan
             </Link>
           </div>
 
@@ -171,7 +178,8 @@ export default function TechnicalSEOHistoryPage() {
                         {scan.websiteUrl}
                       </div>
                       <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {PROBLEM_LABELS[scan.problem] || scan.problem} · {scan.plan}
+                        {PROBLEM_LABELS[scan.problem] || scan.problem} ·{' '}
+                        {PLAN_LABELS[scan.plan] || scan.plan}
                       </div>
                       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         {STATUS_LABELS[scan.status]} · {scan.pagesChecked} pages checked ·{' '}
@@ -189,6 +197,7 @@ export default function TechnicalSEOHistoryPage() {
                       <button
                         type="button"
                         onClick={() => removeScan(scan.scanId)}
+                        aria-label={`Remove scan for ${scan.websiteUrl} from history`}
                         className="text-xs font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                       >
                         Remove

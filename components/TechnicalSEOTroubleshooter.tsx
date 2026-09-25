@@ -159,7 +159,7 @@ export default function TechnicalSEOTroubleshooter() {
 
   const selectedProblem = useMemo(() => PROBLEMS.find((item) => item.id === problem), [problem])
 
-  const recommendedPlan: Exclude<PlanId, 'free'> = problem === 'unknown' ? 'full' : 'quick'
+  const recommendedPlan: Exclude<PlanId, 'free'> = 'quick'
 
   const recommendedPlanDetails = useMemo(
     () => PLANS.find((item) => item.id === recommendedPlan),
@@ -384,7 +384,7 @@ export default function TechnicalSEOTroubleshooter() {
                 Choose a plan
               </p>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                The first paid slice is a 50-page targeted investigation with a detailed
+                The first paid slice is a 50-page targeted troubleshoot with a detailed
                 evidence-based report.
               </p>
             </div>
@@ -396,6 +396,7 @@ export default function TechnicalSEOTroubleshooter() {
                     key={item.id}
                     type="button"
                     onClick={() => item.enabled && setPlan(item.id)}
+                    disabled={!item.enabled}
                     aria-disabled={!item.enabled}
                     className={`rounded-2xl border p-5 text-left transition ${
                       active
@@ -494,7 +495,7 @@ export default function TechnicalSEOTroubleshooter() {
                 href={result.reportUrl}
                 className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-900"
               >
-                View permanent report
+                View report
               </a>
             )}
           </div>
@@ -665,7 +666,7 @@ export default function TechnicalSEOTroubleshooter() {
                     </div>
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {problem === 'unknown'
-                        ? 'A broader website investigation is the most appropriate next step for the general diagnostic mode.'
+                        ? 'Continue with a 50-page targeted troubleshoot for evidence, prioritized findings, and a detailed report.'
                         : `Continue investigating: ${selectedProblem?.label?.toLowerCase() || 'your selected problem'}.`}
                     </p>
                     <button
@@ -677,7 +678,7 @@ export default function TechnicalSEOTroubleshooter() {
                           initiatePayPalCheckout(url, problem, 'quick')
                         } else {
                           setError(
-                            'Full Investigation ($99) is coming in a future release. Targeted Troubleshoot ($49) is currently available.'
+                            'Full Troubleshoot ($99) is coming in a future release. Targeted Troubleshoot ($49) is currently available.'
                           )
                         }
                       }}
@@ -685,9 +686,9 @@ export default function TechnicalSEOTroubleshooter() {
                     >
                       {loading && plan === 'quick'
                         ? 'Opening secure checkout…'
-                        : problem === 'unknown'
-                          ? 'Continue to Full Investigation — $99'
-                          : 'Investigate This Problem — $49'}
+                        : recommendedPlan === 'quick'
+                          ? 'Continue to Targeted Troubleshoot — $49'
+                          : 'Continue to Full Troubleshoot — $99'}
                     </button>
                     <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
                       {recommendedPlanDetails?.enabled

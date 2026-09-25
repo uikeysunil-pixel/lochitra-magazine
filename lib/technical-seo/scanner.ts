@@ -904,7 +904,22 @@ async function checkAuxiliaryFiles(finalUrl: URL) {
   }
 }
 
-export async function runQuickScan(input: string): Promise<ScanResult> {
+export interface QuickScanOptions {
+  skipAuxiliaryFiles?: boolean
+  siteRobotsTxt?: {
+    status: number | null
+    found: boolean
+    disallowsRoot: boolean
+    sitemapUrls?: string[]
+  }
+  siteSitemap?: {
+    url: string | null
+    status: number | null
+    found: boolean
+  }
+}
+
+export async function runQuickScan(input: string, options?: QuickScanOptions): Promise<ScanResult> {
   const startedAt = Date.now()
   const url = normalizeUrl(input)
   await assertSafeHostname(url.hostname)
@@ -926,7 +941,19 @@ export async function runQuickScan(input: string): Promise<ScanResult> {
   const canonical = getCanonical(html)
   const htmlLang = getHtmlLang(html)
   const jsonLd = getJsonLd(html)
-  const auxiliary = await checkAuxiliaryFiles(finalUrl)
+  const auxiliary = options?.skipAuxiliaryFiles
+    ? {
+        robotsStatus: options?.siteRobotsTxt?.status ?? null,
+        robotsFound: options?.siteRobotsTxt?.found ?? false,
+        robotsDisallowsRoot: options?.siteRobotsTxt?.disallowsRoot ?? false,
+        sitemapUrl: options?.siteSitemap?.url ?? null,
+        sitemapStatus: options?.siteSitemap?.status ?? null,
+        sitemapFound: options?.siteSitemap?.found ?? false,
+        sitemapUrls:
+          options?.siteRobotsTxt?.sitemapUrls ??
+          (options?.siteSitemap?.url ? [options.siteSitemap.url] : []),
+      }
+    : await checkAuxiliaryFiles(finalUrl)
 
   const findings = buildFindings({
     finalUrl,
@@ -991,7 +1018,12 @@ export async function runQuickScan(input: string): Promise<ScanResult> {
       status: auxiliary.robotsStatus,
       found: auxiliary.robotsFound,
       disallowsRoot: auxiliary.robotsDisallowsRoot,
-      sitemapUrls: auxiliary.sitemapUrl ? [auxiliary.sitemapUrl] : [],
+      sitemapUrls:
+        'sitemapUrls' in auxiliary && Array.isArray(auxiliary.sitemapUrls)
+          ? auxiliary.sitemapUrls
+          : auxiliary.sitemapUrl
+            ? [auxiliary.sitemapUrl]
+            : [],
     },
     sitemap: {
       url: auxiliary.sitemapUrl,

@@ -4,6 +4,63 @@ const MAX_SITEMAPS = 10
 
 export interface RobotsPolicy {
   rules: Array<{ pattern: string; allow: boolean; specificity: number }>
+  loaded?: boolean
+}
+
+type RobotsFetchResult =
+  | { kind: 'success'; text: string }
+  | { kind: 'not_found' }
+  | { kind: 'error' }
+
+async function fetchRobotsContent(url: URL): Promise<RobotsFetchResult> {
+  let current = new URL(url)
+
+  for (let redirects = 0; redirects <= 3; redirects += 1) {
+    if (current.origin !== url.origin) return { kind: 'error' }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+    try {
+      const response = await fetch(current, {
+        redirect: 'manual',
+        headers: {
+          'user-agent': 'LocitraBot/0.1 (+https://www.locitra.com/technical-seo/)',
+          accept: 'text/plain,text/x-robots-tag,*/*;q=0.5',
+        },
+        signal: controller.signal,
+      })
+
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get('location')
+        if (!location) return { kind: 'error' }
+        current = new URL(location, current)
+        continue
+      }
+
+      if (response.status === 404 || response.status === 410) {
+        return { kind: 'not_found' }
+      }
+
+      if (response.status >= 200 && response.status < 300) {
+        const length = Number(response.headers.get('content-length') || 0)
+        if (length > MAX_BYTES) return { kind: 'error' }
+
+        const body = await response.arrayBuffer()
+        if (body.byteLength > MAX_BYTES) return { kind: 'error' }
+
+        return { kind: 'success', text: new TextDecoder().decode(body) }
+      }
+
+      return { kind: 'error' }
+    } catch {
+      return { kind: 'error' }
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  return { kind: 'error' }
 }
 
 function decodeXml(value: string): string {
@@ -68,15 +125,30 @@ async function fetchText(url: URL): Promise<string | null> {
   return null
 }
 
-export async function loadRobotsPolicy(rootUrl: string): Promise<RobotsPolicy | null> {
-  const root = new URL(rootUrl)
-  const robots = await fetchText(new URL('/robots.txt', root))
-  if (!robots) return null
+export async function loadRobotsPolicy(rootUrl: string): Promise<{
+  rules: Array<{ pattern: string; allow: boolean; specificity: number }>
+  loaded: boolean
+}> {
+  let root: URL
+  try {
+    root = new URL(rootUrl)
+  } catch {
+    return { rules: [], loaded: false }
+  }
+
+  const result = await fetchRobotsContent(new URL('/robots.txt', root))
+  if (result.kind === 'not_found') {
+    return { rules: [], loaded: true }
+  }
+
+  if (result.kind === 'error') {
+    return { rules: [], loaded: false }
+  }
 
   const rules: RobotsPolicy['rules'] = []
   let activeGroup: 'locitra' | 'wildcard' | null = null
 
-  for (const rawLine of robots.split(/\r?\n/)) {
+  for (const rawLine of result.text.split(/\r?\n/)) {
     const line = rawLine.replace(/#.*$/, '').trim()
     if (!line) {
       activeGroup = null
@@ -104,7 +176,7 @@ export async function loadRobotsPolicy(rootUrl: string): Promise<RobotsPolicy | 
     }
   }
 
-  return { rules }
+  return { rules, loaded: true }
 }
 
 function escapeRegex(value: string): string {
@@ -122,8 +194,11 @@ function matchesRobotsPattern(pattern: string, path: string): boolean {
   return new RegExp(source).test(path)
 }
 
-export function isAllowedByRobots(policy: RobotsPolicy | null, urlValue: string): boolean {
-  if (!policy) return true
+export function isAllowedByRobots(
+  policy: RobotsPolicy | null | undefined,
+  urlValue: string
+): boolean {
+  if (!policy || policy.loaded !== true) return false
 
   const url = new URL(urlValue)
   const target = url.pathname + url.search

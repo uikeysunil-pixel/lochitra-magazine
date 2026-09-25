@@ -30,6 +30,7 @@ create table if not exists seo_scans (
   completed_at timestamptz,
   error_message text,
   report_json jsonb,
+  checkpoint_json jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

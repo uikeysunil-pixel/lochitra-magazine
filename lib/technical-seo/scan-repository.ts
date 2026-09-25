@@ -1,6 +1,13 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto'
 import { sql } from './db'
-import type { CrawlResult, DiagnosticProblem, Finding, PlanId } from './types'
+import type {
+  CrawlCheckpoint,
+  CrawlPage,
+  CrawlResult,
+  DiagnosticProblem,
+  Finding,
+  PlanId,
+} from './types'
 
 export async function getScanRecord(scanId: string) {
   const rows = await sql`
@@ -34,6 +41,7 @@ export async function getScanRecord(scanId: string) {
       completed_at,
       error_message,
       report_json,
+      checkpoint_json,
       created_at,
       updated_at
     from seo_scans
@@ -345,15 +353,11 @@ export async function markScanRunning(scanId: string) {
       started_at = coalesce(started_at, now()),
       updated_at = now()
     where id = ${scanId}::uuid
+      and status not in ('complete', 'cancelled', 'failed')
   `
 }
 
 async function persistCrawledPages(scanId: string, result: CrawlResult) {
-  await sql`
-    delete from seo_scan_urls
-    where scan_id = ${scanId}::uuid
-  `
-
   for (const page of result.pages) {
     await sql`
       insert into seo_scan_urls (
@@ -373,7 +377,7 @@ async function persistCrawledPages(scanId: string, result: CrawlResult) {
         ${page.url},
         ${page.finalUrl},
         ${page.state},
-        0,
+        ${page.depth ?? 0},
         1,
         ${page.httpStatus},
         ${page.durationMs},
@@ -384,12 +388,112 @@ async function persistCrawledPages(scanId: string, result: CrawlResult) {
         url = excluded.url,
         state = excluded.state,
         attempts = excluded.attempts,
+        depth = excluded.depth,
         http_status = excluded.http_status,
         duration_ms = excluded.duration_ms,
         scanned_at = excluded.scanned_at,
         updated_at = now()
     `
   }
+}
+
+export async function saveScanCheckpoint(input: {
+  scanId: string
+  checkpoint: CrawlCheckpoint
+  newPages: CrawlPage[]
+  pagesChecked: number
+  pagesDiscovered: number
+  progressPercent: number
+  expectedSequence?: number | null
+}): Promise<boolean> {
+  const expectedSeq =
+    input.expectedSequence !== undefined
+      ? input.expectedSequence
+      : input.checkpoint.sequence === 0
+        ? null
+        : input.checkpoint.sequence - 1
+
+  const result = await (expectedSeq === null
+    ? sql`
+        update seo_scans
+        set
+          pages_checked = ${input.pagesChecked},
+          pages_discovered = ${input.pagesDiscovered},
+          progress_percent = ${input.progressPercent},
+          checkpoint_json = ${JSON.stringify(input.checkpoint)}::jsonb,
+          updated_at = now()
+        where id = ${input.scanId}::uuid
+          and checkpoint_json is null
+        returning id
+      `
+    : sql`
+        update seo_scans
+        set
+          pages_checked = ${input.pagesChecked},
+          pages_discovered = ${input.pagesDiscovered},
+          progress_percent = ${input.progressPercent},
+          checkpoint_json = ${JSON.stringify(input.checkpoint)}::jsonb,
+          updated_at = now()
+        where id = ${input.scanId}::uuid
+          and checkpoint_json is not null
+          and (checkpoint_json->>'sequence')::int = ${expectedSeq}
+        returning id
+      `)
+
+  if (result.length === 0) {
+    return false
+  }
+
+  for (const page of input.newPages) {
+    await sql`
+      insert into seo_scan_urls (
+        scan_id,
+        url,
+        normalized_url,
+        state,
+        depth,
+        attempts,
+        http_status,
+        duration_ms,
+        scanned_at,
+        updated_at
+      )
+      values (
+        ${input.scanId}::uuid,
+        ${page.url},
+        ${page.finalUrl},
+        ${page.state},
+        ${page.depth ?? 0},
+        1,
+        ${page.httpStatus},
+        ${page.durationMs},
+        now(),
+        now()
+      )
+      on conflict (scan_id, normalized_url) do update set
+        url = excluded.url,
+        state = excluded.state,
+        attempts = excluded.attempts,
+        depth = excluded.depth,
+        http_status = excluded.http_status,
+        duration_ms = excluded.duration_ms,
+        scanned_at = excluded.scanned_at,
+        updated_at = now()
+    `
+  }
+
+  return true
+}
+
+export async function getScanCheckpoint(scanId: string): Promise<CrawlCheckpoint | null> {
+  const rows = await sql`
+    select checkpoint_json
+    from seo_scans
+    where id = ${scanId}::uuid
+    limit 1
+  `
+
+  return (rows[0]?.checkpoint_json as CrawlCheckpoint) ?? null
 }
 
 export async function completeScanRecord(scanId: string, result: CrawlResult) {
@@ -419,6 +523,7 @@ export async function completeScanRecord(scanId: string, result: CrawlResult) {
       report_json = ${JSON.stringify(result)}::jsonb,
       updated_at = now()
     where id = ${scanId}::uuid
+      and status not in ('cancelled', 'failed')
   `
 }
 

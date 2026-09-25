@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto'
 import type {
   ArchitectureSummary,
+  CrawlCheckpoint,
+  CrawlQueueItem,
   CrawlResult,
   DiagnosticProblem,
   DuplicateCandidateSummary,
@@ -10,13 +12,9 @@ import type {
   ScanResult,
 } from './types'
 import { discoverSitemapPages, isAllowedByRobots, loadRobotsPolicy } from './site-discovery'
-import { runQuickScan } from './scanner'
+import { runQuickScan, type QuickScanOptions } from './scanner'
 
-export type CrawlQueueItem = {
-  url: string
-  depth: number | null
-  discoveredFrom: string | null
-}
+export type { CrawlQueueItem, CrawlCheckpoint }
 
 export const CRAWL_LIMITS: Record<PlanId, number> = {
   free: 5,
@@ -25,6 +23,7 @@ export const CRAWL_LIMITS: Record<PlanId, number> = {
   deep: 1000,
 }
 
+export const DEFAULT_CHUNK_SIZE = 25
 const MAX_CONCURRENCY = 3
 
 const NON_HTML_EXTENSIONS = new Set([
@@ -504,21 +503,124 @@ function summarize(findings: Finding[]): ScanResult['summary'] {
   )
 }
 
-export type RunCrawlDependencies = {
-  runQuickScan?: (url: string) => Promise<ScanResult>
-  discoverSitemapPages?: (url: string, limit: number) => Promise<string[]>
-  loadRobotsPolicy?: (
-    url: string
-  ) => Promise<{ rules: Array<{ pattern: string; allow: boolean; specificity: number }> }>
+export interface ActiveCrawlState {
+  scanId: string
+  rootUrl: string
+  plan: PlanId
+  diagnosticProblem: DiagnosticProblem
+  maxUrls: number
+  sequence: number
+  queued: CrawlQueueItem[]
+  seen: Set<string>
+  sitemapDiscoveredUrls: Set<string>
+  internalInboundGraph: Map<string, Set<string>>
+  pageDepthMap: Map<string, number | null>
+  pageResults: ScanResult[]
+  crawlErrors: number
+  urlsBlockedByRobots: number
+  finalOrigin: string | null
+  canonicalRootUrl: string | null
+  rootFetchFailed: boolean
+  isDone: boolean
+  startedAt: number
+  siteRobotsTxt?: ScanResult['robotsTxt']
+  siteSitemap?: ScanResult['sitemap']
+  robotsPolicy?: {
+    rules: Array<{ pattern: string; allow: boolean; specificity: number }>
+    loaded?: boolean
+  } | null
 }
 
-export async function runCrawl(
+export function serializeCrawlState(state: ActiveCrawlState): CrawlCheckpoint {
+  return {
+    scanId: state.scanId,
+    rootUrl: state.rootUrl,
+    plan: state.plan,
+    diagnosticProblem: state.diagnosticProblem,
+    maxUrls: state.maxUrls,
+    sequence: state.sequence ?? 0,
+    queued: state.queued,
+    seen: Array.from(state.seen),
+    sitemapDiscoveredUrls: Array.from(state.sitemapDiscoveredUrls),
+    internalInboundGraph: Array.from(state.internalInboundGraph.entries()).map(([k, set]) => [
+      k,
+      Array.from(set),
+    ]),
+    pageDepthMap: Array.from(state.pageDepthMap.entries()),
+    pageResults: state.pageResults,
+    crawlErrors: state.crawlErrors,
+    urlsBlockedByRobots: state.urlsBlockedByRobots,
+    finalOrigin: state.finalOrigin,
+    canonicalRootUrl: state.canonicalRootUrl,
+    rootFetchFailed: state.rootFetchFailed,
+    isDone: state.isDone,
+    startedAt: state.startedAt,
+    siteRobotsTxt: state.siteRobotsTxt,
+    siteSitemap: state.siteSitemap,
+    robotsPolicy: state.robotsPolicy && state.robotsPolicy.loaded ? state.robotsPolicy : null,
+  }
+}
+
+export function deserializeCrawlState(
+  checkpoint: CrawlCheckpoint,
+  robotsPolicy?: {
+    rules: Array<{ pattern: string; allow: boolean; specificity: number }>
+    loaded?: boolean
+  } | null
+): ActiveCrawlState {
+  const resolvedRobotsPolicy =
+    robotsPolicy !== undefined
+      ? (robotsPolicy ?? undefined)
+      : checkpoint.robotsPolicy &&
+          checkpoint.robotsPolicy.loaded &&
+          Array.isArray(checkpoint.robotsPolicy.rules)
+        ? checkpoint.robotsPolicy
+        : undefined
+
+  return {
+    scanId: checkpoint.scanId,
+    rootUrl: checkpoint.rootUrl,
+    plan: checkpoint.plan,
+    diagnosticProblem: checkpoint.diagnosticProblem,
+    maxUrls: checkpoint.maxUrls,
+    sequence: checkpoint.sequence ?? 0,
+    queued: [...checkpoint.queued],
+    seen: new Set(checkpoint.seen),
+    sitemapDiscoveredUrls: new Set(checkpoint.sitemapDiscoveredUrls),
+    internalInboundGraph: new Map(
+      checkpoint.internalInboundGraph.map(([k, arr]) => [k, new Set(arr)])
+    ),
+    pageDepthMap: new Map(checkpoint.pageDepthMap),
+    pageResults: [...checkpoint.pageResults],
+    crawlErrors: checkpoint.crawlErrors,
+    urlsBlockedByRobots: checkpoint.urlsBlockedByRobots,
+    finalOrigin: checkpoint.finalOrigin,
+    canonicalRootUrl: checkpoint.canonicalRootUrl,
+    rootFetchFailed: checkpoint.rootFetchFailed,
+    isDone: checkpoint.isDone,
+    startedAt: checkpoint.startedAt,
+    siteRobotsTxt: checkpoint.siteRobotsTxt,
+    siteSitemap: checkpoint.siteSitemap,
+    robotsPolicy: resolvedRobotsPolicy,
+  }
+}
+
+export type RunCrawlDependencies = {
+  runQuickScan?: (url: string, options?: QuickScanOptions) => Promise<ScanResult>
+  discoverSitemapPages?: (url: string, limit: number) => Promise<string[]>
+  loadRobotsPolicy?: (url: string) => Promise<{
+    rules: Array<{ pattern: string; allow: boolean; specificity: number }>
+    loaded: boolean
+  }>
+}
+
+export async function initCrawlState(
   input: string,
   plan: PlanId,
   diagnosticProblem: DiagnosticProblem,
   scanId: string = randomUUID(),
   deps?: RunCrawlDependencies
-): Promise<CrawlResult> {
+): Promise<ActiveCrawlState> {
   const startedAt = Date.now()
   const rootUrl = normalizeCrawlUrl(input)
 
@@ -526,7 +628,6 @@ export async function runCrawl(
     throw new Error('Enter a valid http:// or https:// website URL.')
   }
 
-  const runQuickScanFn = deps?.runQuickScan ?? runQuickScan
   const discoverSitemapPagesFn = deps?.discoverSitemapPages ?? discoverSitemapPages
   const loadRobotsPolicyFn = deps?.loadRobotsPolicy ?? loadRobotsPolicy
 
@@ -544,21 +645,22 @@ export async function runCrawl(
   const pageDepthMap = new Map<string, number | null>()
   pageDepthMap.set(rootUrl, 0)
 
-  const recordBfsDepth = (url: string, newDepth: number | null) => {
-    if (newDepth === null || newDepth === undefined) return
-    const current = pageDepthMap.get(url)
-    if (current === undefined || current === null || newDepth < current) {
-      pageDepthMap.set(url, newDepth)
-    }
-  }
-
-  const pageResults: ScanResult[] = []
   let crawlErrors = 0
   let urlsBlockedByRobots = 0
-  let finalOrigin: string | null = null
-  const robotsPolicy = await loadRobotsPolicyFn(rootUrl)
-  let canonicalRootUrl: string | null = null
-  let rootFetchFailed = false
+  let robotsPolicy: {
+    rules: Array<{ pattern: string; allow: boolean; specificity: number }>
+    loaded: boolean
+  }
+  try {
+    const loaded = await loadRobotsPolicyFn(rootUrl)
+    if (loaded && loaded.loaded === true && Array.isArray(loaded.rules)) {
+      robotsPolicy = { rules: loaded.rules, loaded: true }
+    } else {
+      throw new Error('Unable to retrieve robots.txt; crawl cannot continue safely.')
+    }
+  } catch {
+    throw new Error('Unable to retrieve robots.txt; crawl cannot continue safely.')
+  }
 
   try {
     const sitemapPages = await discoverSitemapPagesFn(rootUrl, maxUrls * 3)
@@ -586,24 +688,152 @@ export async function runCrawl(
     crawlErrors += 1
   }
 
-  while (queued.length > 0 && pageResults.length < maxUrls) {
-    const batch = queued.splice(0, Math.min(MAX_CONCURRENCY, maxUrls - pageResults.length))
+  return {
+    scanId,
+    rootUrl,
+    plan,
+    diagnosticProblem,
+    maxUrls,
+    sequence: 0,
+    queued,
+    seen,
+    sitemapDiscoveredUrls,
+    internalInboundGraph,
+    pageDepthMap,
+    pageResults: [],
+    crawlErrors,
+    urlsBlockedByRobots,
+    finalOrigin: null,
+    canonicalRootUrl: null,
+    rootFetchFailed: false,
+    isDone: false,
+    startedAt,
+    robotsPolicy,
+  }
+}
+
+export interface CrawlChunkResult {
+  state: ActiveCrawlState
+  newPages: ScanResult[]
+}
+
+export async function crawlChunk(
+  state: ActiveCrawlState,
+  chunkSize: number = DEFAULT_CHUNK_SIZE,
+  deps?: RunCrawlDependencies
+): Promise<CrawlChunkResult> {
+  if (state.isDone || state.pageResults.length >= state.maxUrls || state.queued.length === 0) {
+    state.isDone = true
+    return { state, newPages: [] }
+  }
+
+  const runQuickScanFn = deps?.runQuickScan ?? runQuickScan
+  const loadRobotsPolicyFn = deps?.loadRobotsPolicy ?? loadRobotsPolicy
+
+  if (
+    !state.robotsPolicy ||
+    !state.robotsPolicy.loaded ||
+    !Array.isArray(state.robotsPolicy.rules)
+  ) {
+    try {
+      const loaded = await loadRobotsPolicyFn(state.rootUrl)
+      if (loaded && loaded.loaded === true && Array.isArray(loaded.rules)) {
+        state.robotsPolicy = { rules: loaded.rules, loaded: true }
+      } else {
+        throw new Error('Unable to retrieve robots.txt; crawl cannot continue safely.')
+      }
+    } catch {
+      state.crawlErrors += 1
+      state.robotsPolicy = null
+      throw new Error('Unable to retrieve robots.txt; crawl cannot continue safely.')
+    }
+  }
+
+  // Pre-filter queue against the active, verified robots policy
+  const validQueue: CrawlQueueItem[] = []
+  for (const item of state.queued) {
+    if (item.url !== state.rootUrl && !isAllowedByRobots(state.robotsPolicy, item.url)) {
+      state.urlsBlockedByRobots += 1
+    } else {
+      validQueue.push(item)
+    }
+  }
+  state.queued = validQueue
+
+  state.sequence = (state.sequence ?? 0) + 1
+
+  const recordBfsDepth = (url: string, newDepth: number | null) => {
+    if (newDepth === null || newDepth === undefined) return
+    const current = state.pageDepthMap.get(url)
+    if (current === undefined || current === null || newDepth < current) {
+      state.pageDepthMap.set(url, newDepth)
+    }
+  }
+
+  const newPages: ScanResult[] = []
+  const targetPagesRemaining = Math.min(chunkSize, state.maxUrls - state.pageResults.length)
+
+  while (
+    state.queued.length > 0 &&
+    newPages.length < targetPagesRemaining &&
+    state.pageResults.length < state.maxUrls
+  ) {
+    if (!state.robotsPolicy || !state.robotsPolicy.loaded) {
+      throw new Error('Robots policy is unavailable; refusing to scan URLs.')
+    }
+
+    const batchSize = Math.min(
+      MAX_CONCURRENCY,
+      targetPagesRemaining - newPages.length,
+      state.maxUrls - state.pageResults.length
+    )
+    const rawBatch = state.queued.splice(0, batchSize)
+    const batch: CrawlQueueItem[] = []
+
+    for (const item of rawBatch) {
+      if (item.url !== state.rootUrl && !isAllowedByRobots(state.robotsPolicy, item.url)) {
+        state.urlsBlockedByRobots += 1
+      } else {
+        batch.push(item)
+      }
+    }
+
+    if (batch.length === 0) {
+      continue
+    }
+
     const results = await Promise.all(
       batch.map(async (item) => {
         try {
-          const result = await runQuickScanFn(item.url)
+          const isRootItem = item.url === state.rootUrl
+          const quickScanOpts =
+            !isRootItem && (state.siteRobotsTxt || state.siteSitemap)
+              ? {
+                  skipAuxiliaryFiles: true,
+                  siteRobotsTxt: state.siteRobotsTxt,
+                  siteSitemap: state.siteSitemap,
+                }
+              : undefined
+
+          const result = await runQuickScanFn(item.url, quickScanOpts)
+
+          if (isRootItem && result) {
+            state.siteRobotsTxt = result.robotsTxt
+            state.siteSitemap = result.sitemap
+          }
+
           return { item, result }
         } catch {
-          crawlErrors += 1
-          if (item.url === rootUrl) {
-            rootFetchFailed = true
+          state.crawlErrors += 1
+          if (item.url === state.rootUrl) {
+            state.rootFetchFailed = true
           }
           return { item, result: null as ScanResult | null }
         }
       })
     )
 
-    if (rootFetchFailed) {
+    if (state.rootFetchFailed) {
       throw new Error(
         'We could not reach the website from our scanner. Check the URL and try again.'
       )
@@ -612,45 +842,51 @@ export async function runCrawl(
     for (const { item, result } of results) {
       if (!result) continue
 
-      pageResults.push(result)
+      state.pageResults.push(result)
+      newPages.push(result)
 
       const knownDepth =
-        pageDepthMap.get(result.finalUrl) ?? pageDepthMap.get(item.url) ?? item.depth
+        state.pageDepthMap.get(result.finalUrl) ?? state.pageDepthMap.get(item.url) ?? item.depth
 
       if (knownDepth !== null && knownDepth !== undefined) {
         recordBfsDepth(result.finalUrl, knownDepth)
         recordBfsDepth(item.url, knownDepth)
       }
 
-      if (!finalOrigin) {
-        finalOrigin = new URL(result.finalUrl).origin
-        canonicalRootUrl = result.finalUrl
+      if (!state.finalOrigin) {
+        state.finalOrigin = new URL(result.finalUrl).origin
+        state.canonicalRootUrl = result.finalUrl
         recordBfsDepth(result.finalUrl, 0)
         recordBfsDepth(item.url, 0)
       }
 
-      if (finalOrigin !== new URL(result.finalUrl).origin) continue
+      if (state.finalOrigin !== new URL(result.finalUrl).origin) continue
 
       const sourceUrl = result.finalUrl
-      const parentDepth = pageDepthMap.get(sourceUrl) ?? pageDepthMap.get(item.url) ?? null
+      const parentDepth =
+        state.pageDepthMap.get(sourceUrl) ?? state.pageDepthMap.get(item.url) ?? null
 
       for (const discovered of result.discoveredInternalUrls) {
         const normalized = normalizeCrawlUrl(discovered)
         if (!normalized || !isLikelyHtmlUrl(normalized)) continue
 
         try {
-          if (new URL(normalized).origin !== finalOrigin) continue
+          if (new URL(normalized).origin !== state.finalOrigin) continue
         } catch {
           continue
         }
 
-        if (!internalInboundGraph.has(normalized)) {
-          internalInboundGraph.set(normalized, new Set())
+        if (!state.internalInboundGraph.has(normalized)) {
+          state.internalInboundGraph.set(normalized, new Set())
         }
-        internalInboundGraph.get(normalized)!.add(sourceUrl)
+        state.internalInboundGraph.get(normalized)!.add(sourceUrl)
 
-        if (!isAllowedByRobots(robotsPolicy, normalized)) {
-          urlsBlockedByRobots += 1
+        if (
+          !state.robotsPolicy ||
+          !state.robotsPolicy.loaded ||
+          !isAllowedByRobots(state.robotsPolicy, normalized)
+        ) {
+          state.urlsBlockedByRobots += 1
           continue
         }
 
@@ -660,7 +896,7 @@ export async function runCrawl(
         if (childDepth !== null) {
           recordBfsDepth(normalized, childDepth)
 
-          const queuedItem = queued.find((q) => q.url === normalized)
+          const queuedItem = state.queued.find((q) => q.url === normalized)
           if (queuedItem) {
             if (queuedItem.depth === null || childDepth < queuedItem.depth) {
               queuedItem.depth = childDepth
@@ -668,7 +904,7 @@ export async function runCrawl(
             }
           }
 
-          for (const page of pageResults) {
+          for (const page of state.pageResults) {
             if (page.url === normalized || page.finalUrl === normalized) {
               recordBfsDepth(page.url, childDepth)
               recordBfsDepth(page.finalUrl, childDepth)
@@ -676,21 +912,48 @@ export async function runCrawl(
           }
         }
 
-        if (seen.has(normalized)) continue
-        seen.add(normalized)
+        if (state.seen.has(normalized)) continue
+        state.seen.add(normalized)
 
-        queued.push({
+        state.queued.push({
           url: normalized,
           depth: childDepth,
           discoveredFrom: sourceUrl,
         })
 
-        if (seen.size >= maxUrls * 4) break
+        if (state.seen.size >= state.maxUrls * 4) break
       }
 
-      if (seen.size >= maxUrls * 4) break
+      if (state.seen.size >= state.maxUrls * 4) break
     }
   }
+
+  if (state.queued.length === 0 || state.pageResults.length >= state.maxUrls) {
+    state.isDone = true
+  }
+
+  return { state, newPages }
+}
+
+export function finalizeCrawl(state: ActiveCrawlState): CrawlResult {
+  const {
+    scanId,
+    rootUrl,
+    plan,
+    diagnosticProblem,
+    pageResults,
+    pageDepthMap,
+    internalInboundGraph,
+    sitemapDiscoveredUrls,
+    finalOrigin,
+    canonicalRootUrl,
+    rootFetchFailed,
+    startedAt,
+    crawlErrors,
+    urlsBlockedByRobots,
+    seen,
+    maxUrls,
+  } = state
 
   if (rootFetchFailed || pageResults.length === 0) {
     throw new Error('We could not reach the website from our scanner. Check the URL and try again.')
@@ -767,7 +1030,9 @@ export async function runCrawl(
       finalUrl: page.finalUrl,
       httpStatus: page.httpStatus,
       durationMs: page.durationMs,
-      state: 'complete' as const,
+      findingsCount: page.findings.length,
+      state: page.httpStatus >= 400 ? ('failed' as const) : ('complete' as const),
+      depth: pageDepthMap.get(page.finalUrl) ?? pageDepthMap.get(page.url) ?? null,
     })),
     findings,
   }
@@ -789,4 +1054,21 @@ export async function runCrawl(
   }
 
   return crawlResult
+}
+
+export async function runCrawl(
+  input: string,
+  plan: PlanId,
+  diagnosticProblem: DiagnosticProblem,
+  scanId: string = randomUUID(),
+  deps?: RunCrawlDependencies
+): Promise<CrawlResult> {
+  let state = await initCrawlState(input, plan, diagnosticProblem, scanId, deps)
+
+  while (!state.isDone) {
+    const chunkResult = await crawlChunk(state, DEFAULT_CHUNK_SIZE, deps)
+    state = chunkResult.state
+  }
+
+  return finalizeCrawl(state)
 }

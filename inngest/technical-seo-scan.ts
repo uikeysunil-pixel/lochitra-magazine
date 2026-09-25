@@ -1,11 +1,21 @@
 import { inngest } from './client'
-import { runCrawl } from '@/lib/technical-seo/crawler'
+import {
+  CRAWL_LIMITS,
+  DEFAULT_CHUNK_SIZE,
+  crawlChunk,
+  deserializeCrawlState,
+  finalizeCrawl,
+  initCrawlState,
+  serializeCrawlState,
+} from '@/lib/technical-seo/crawler'
 import {
   completeScanRecord,
   failScanRecord,
+  getScanCheckpoint,
   markScanRunning,
+  saveScanCheckpoint,
 } from '@/lib/technical-seo/scan-repository'
-import type { DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
+import type { CrawlPage, DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 
 interface TechnicalSeoScanEvent {
   scanId: string
@@ -29,25 +39,120 @@ export const technicalSeoScan = inngest.createFunction(
     })
 
     try {
-      const result = await step.run('crawl-website', () =>
-        runCrawl(data.url, data.plan, data.problem, data.scanId)
-      )
-
-      await step.run('persist-scan-result', async () => {
-        await completeScanRecord(data.scanId, result)
+      let checkpoint = await step.run('init-crawl', async () => {
+        const existing = await getScanCheckpoint(data.scanId)
+        if (existing) {
+          return existing
+        }
+        const state = await initCrawlState(data.url, data.plan, data.problem, data.scanId)
+        const serialized = serializeCrawlState(state)
+        const saved = await saveScanCheckpoint({
+          scanId: data.scanId,
+          checkpoint: serialized,
+          newPages: [],
+          pagesChecked: 0,
+          pagesDiscovered: serialized.seen.length,
+          progressPercent: 0,
+          expectedSequence: null,
+        })
+        if (!saved) {
+          const fresh = await getScanCheckpoint(data.scanId)
+          if (fresh) return fresh
+        }
+        return serialized
       })
 
-      return {
-        scanId: data.scanId,
-        status: 'complete',
-        pagesChecked: result.pagesChecked,
-        findings: result.findings.length,
+      const maxUrls = CRAWL_LIMITS[data.plan]
+      const maxChunks = Math.ceil(maxUrls / DEFAULT_CHUNK_SIZE) + 5
+      let chunkIndex = 0
+
+      while (!checkpoint.isDone && chunkIndex < maxChunks) {
+        const currentChunk = chunkIndex
+        checkpoint = await step.run(`crawl-chunk-${currentChunk}`, async () => {
+          const latest = (await getScanCheckpoint(data.scanId)) ?? checkpoint
+          if (latest.isDone) {
+            return latest
+          }
+
+          const expectedPreviousSequence = latest.sequence ?? 0
+
+          const activeState = deserializeCrawlState(latest)
+          const { state: updatedState, newPages } = await crawlChunk(
+            activeState,
+            DEFAULT_CHUNK_SIZE
+          )
+
+          const serialized = serializeCrawlState(updatedState)
+          const progressPercent =
+            updatedState.pageResults.length === 0
+              ? 0
+              : Math.min(
+                  99,
+                  Math.max(
+                    1,
+                    Math.round((updatedState.pageResults.length / updatedState.maxUrls) * 100)
+                  )
+                )
+
+          const crawlPages: CrawlPage[] = newPages.map((p) => ({
+            url: p.url,
+            finalUrl: p.finalUrl,
+            httpStatus: p.httpStatus,
+            durationMs: p.durationMs,
+            findingsCount: p.findings.length,
+            state: p.httpStatus >= 400 ? 'failed' : 'complete',
+            depth:
+              updatedState.pageDepthMap.get(p.finalUrl) ??
+              updatedState.pageDepthMap.get(p.url) ??
+              null,
+          }))
+
+          const saved = await saveScanCheckpoint({
+            scanId: data.scanId,
+            checkpoint: serialized,
+            newPages: crawlPages,
+            pagesChecked: updatedState.pageResults.length,
+            pagesDiscovered: serialized.seen.length,
+            progressPercent,
+            expectedSequence: expectedPreviousSequence,
+          })
+
+          if (!saved) {
+            const freshLatest = await getScanCheckpoint(data.scanId)
+            if (!freshLatest) {
+              throw new Error(`Checkpoint conflict: Scan ${data.scanId} checkpoint disappeared.`)
+            }
+
+            if ((freshLatest.sequence ?? 0) >= (serialized.sequence ?? 0)) {
+              return freshLatest
+            }
+
+            return freshLatest
+          }
+
+          return serialized
+        })
+
+        chunkIndex++
       }
+
+      const result = await step.run('finalize-scan', async () => {
+        const latest = (await getScanCheckpoint(data.scanId)) ?? checkpoint
+        const activeState = deserializeCrawlState(latest)
+        const finalResult = finalizeCrawl(activeState)
+        await completeScanRecord(data.scanId, finalResult)
+        return {
+          scanId: data.scanId,
+          status: 'complete',
+          pagesChecked: finalResult.pagesChecked,
+          findings: finalResult.findings.length,
+        }
+      })
+
+      return result
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : 'Unable to complete the Technical SEO scan.'
+        error instanceof Error ? error.message : 'Unable to complete the Technical SEO scan.'
 
       await step.run('mark-scan-failed', async () => {
         await failScanRecord(data.scanId, message)

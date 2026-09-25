@@ -93,7 +93,43 @@ export interface CrawlPage {
   finalUrl: string
   httpStatus: number
   durationMs: number
+  findingsCount?: number
   state: 'complete' | 'failed'
+  depth?: number | null
+}
+
+export interface CrawlQueueItem {
+  url: string
+  depth: number | null
+  discoveredFrom: string | null
+}
+
+export interface CrawlCheckpoint {
+  scanId: string
+  rootUrl: string
+  plan: PlanId
+  diagnosticProblem: DiagnosticProblem
+  maxUrls: number
+  sequence: number
+  queued: CrawlQueueItem[]
+  seen: string[]
+  sitemapDiscoveredUrls: string[]
+  internalInboundGraph: Array<[string, string[]]>
+  pageDepthMap: Array<[string, number | null]>
+  pageResults: ScanResult[]
+  crawlErrors: number
+  urlsBlockedByRobots: number
+  finalOrigin: string | null
+  canonicalRootUrl: string | null
+  rootFetchFailed: boolean
+  isDone: boolean
+  startedAt: number
+  siteRobotsTxt?: ScanResult['robotsTxt']
+  siteSitemap?: ScanResult['sitemap']
+  robotsPolicy?: {
+    rules: Array<{ pattern: string; allow: boolean; specificity: number }>
+    loaded?: boolean
+  } | null
 }
 
 export interface ArchitectureSummary {

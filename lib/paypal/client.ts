@@ -10,10 +10,12 @@ function getRequiredEnv(name: 'PAYPAL_CLIENT_ID' | 'PAYPAL_CLIENT_SECRET') {
   return value
 }
 
+const isLive = process.env.PAYPAL_ENVIRONMENT?.toLowerCase() === 'live'
+
 export const paypalClient = new Client({
   clientCredentialsAuthCredentials: {
     oAuthClientId: getRequiredEnv('PAYPAL_CLIENT_ID'),
     oAuthClientSecret: getRequiredEnv('PAYPAL_CLIENT_SECRET'),
   },
-  environment: Environment.Sandbox,
+  environment: isLive ? Environment.Production : Environment.Sandbox,
 })

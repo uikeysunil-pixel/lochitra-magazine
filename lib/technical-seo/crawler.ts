@@ -516,6 +516,7 @@ export interface ActiveCrawlState {
   internalInboundGraph: Map<string, Set<string>>
   pageDepthMap: Map<string, number | null>
   pageResults: ScanResult[]
+  pagesChecked: number
   crawlErrors: number
   urlsBlockedByRobots: number
   finalOrigin: string | null
@@ -531,6 +532,38 @@ export interface ActiveCrawlState {
   } | null
 }
 
+export function reconstructInternalInboundGraph(
+  pageResults: ScanResult[],
+  finalOrigin: string | null
+): Map<string, Set<string>> {
+  const graph = new Map<string, Set<string>>()
+
+  for (const result of pageResults) {
+    if (!result || !result.discoveredInternalUrls) continue
+    const sourceUrl = result.finalUrl
+
+    for (const discovered of result.discoveredInternalUrls) {
+      const normalized = normalizeCrawlUrl(discovered)
+      if (!normalized || !isLikelyHtmlUrl(normalized)) continue
+
+      if (finalOrigin) {
+        try {
+          if (new URL(normalized).origin !== finalOrigin) continue
+        } catch {
+          continue
+        }
+      }
+
+      if (!graph.has(normalized)) {
+        graph.set(normalized, new Set())
+      }
+      graph.get(normalized)!.add(sourceUrl)
+    }
+  }
+
+  return graph
+}
+
 export function serializeCrawlState(state: ActiveCrawlState): CrawlCheckpoint {
   return {
     scanId: state.scanId,
@@ -542,12 +575,8 @@ export function serializeCrawlState(state: ActiveCrawlState): CrawlCheckpoint {
     queued: state.queued,
     seen: Array.from(state.seen),
     sitemapDiscoveredUrls: Array.from(state.sitemapDiscoveredUrls),
-    internalInboundGraph: Array.from(state.internalInboundGraph.entries()).map(([k, set]) => [
-      k,
-      Array.from(set),
-    ]),
     pageDepthMap: Array.from(state.pageDepthMap.entries()),
-    pageResults: state.pageResults,
+    pagesChecked: state.pagesChecked ?? state.pageResults?.length ?? 0,
     crawlErrors: state.crawlErrors,
     urlsBlockedByRobots: state.urlsBlockedByRobots,
     finalOrigin: state.finalOrigin,
@@ -566,7 +595,8 @@ export function deserializeCrawlState(
   robotsPolicy?: {
     rules: Array<{ pattern: string; allow: boolean; specificity: number }>
     loaded?: boolean
-  } | null
+  } | null,
+  reconstructedPageResults?: ScanResult[]
 ): ActiveCrawlState {
   const resolvedRobotsPolicy =
     robotsPolicy !== undefined
@@ -576,6 +606,33 @@ export function deserializeCrawlState(
           Array.isArray(checkpoint.robotsPolicy.rules)
         ? checkpoint.robotsPolicy
         : undefined
+
+  const resolvedPagesChecked =
+    checkpoint.pagesChecked !== undefined
+      ? checkpoint.pagesChecked
+      : checkpoint.pageResults
+        ? checkpoint.pageResults.length
+        : 0
+
+  const resolvedPageResults =
+    reconstructedPageResults !== undefined
+      ? [...reconstructedPageResults]
+      : checkpoint.pageResults
+        ? [...checkpoint.pageResults]
+        : []
+
+  const resolvedInboundGraph =
+    reconstructedPageResults && reconstructedPageResults.length > 0
+      ? reconstructInternalInboundGraph(
+          reconstructedPageResults,
+          checkpoint.finalOrigin ??
+            (reconstructedPageResults[0]
+              ? new URL(reconstructedPageResults[0].finalUrl).origin
+              : null)
+        )
+      : checkpoint.internalInboundGraph
+        ? new Map(checkpoint.internalInboundGraph.map(([k, arr]) => [k, new Set(arr)]))
+        : new Map()
 
   return {
     scanId: checkpoint.scanId,
@@ -587,11 +644,10 @@ export function deserializeCrawlState(
     queued: [...checkpoint.queued],
     seen: new Set(checkpoint.seen),
     sitemapDiscoveredUrls: new Set(checkpoint.sitemapDiscoveredUrls),
-    internalInboundGraph: new Map(
-      checkpoint.internalInboundGraph.map(([k, arr]) => [k, new Set(arr)])
-    ),
+    internalInboundGraph: resolvedInboundGraph,
     pageDepthMap: new Map(checkpoint.pageDepthMap),
-    pageResults: [...checkpoint.pageResults],
+    pageResults: resolvedPageResults,
+    pagesChecked: resolvedPagesChecked,
     crawlErrors: checkpoint.crawlErrors,
     urlsBlockedByRobots: checkpoint.urlsBlockedByRobots,
     finalOrigin: checkpoint.finalOrigin,
@@ -701,6 +757,7 @@ export async function initCrawlState(
     internalInboundGraph,
     pageDepthMap,
     pageResults: [],
+    pagesChecked: 0,
     crawlErrors,
     urlsBlockedByRobots,
     finalOrigin: null,
@@ -722,7 +779,10 @@ export async function crawlChunk(
   chunkSize: number = DEFAULT_CHUNK_SIZE,
   deps?: RunCrawlDependencies
 ): Promise<CrawlChunkResult> {
-  if (state.isDone || state.pageResults.length >= state.maxUrls || state.queued.length === 0) {
+  const currentPagesChecked = state.pagesChecked ?? state.pageResults?.length ?? 0
+  state.pagesChecked = currentPagesChecked
+
+  if (state.isDone || currentPagesChecked >= state.maxUrls || state.queued.length === 0) {
     state.isDone = true
     return { state, newPages: [] }
   }
@@ -771,12 +831,12 @@ export async function crawlChunk(
   }
 
   const newPages: ScanResult[] = []
-  const targetPagesRemaining = Math.min(chunkSize, state.maxUrls - state.pageResults.length)
+  const targetPagesRemaining = Math.min(chunkSize, state.maxUrls - state.pagesChecked)
 
   while (
     state.queued.length > 0 &&
     newPages.length < targetPagesRemaining &&
-    state.pageResults.length < state.maxUrls
+    state.pagesChecked + newPages.length < state.maxUrls
   ) {
     if (!state.robotsPolicy || !state.robotsPolicy.loaded) {
       throw new Error('Robots policy is unavailable; refusing to scan URLs.')
@@ -785,7 +845,7 @@ export async function crawlChunk(
     const batchSize = Math.min(
       MAX_CONCURRENCY,
       targetPagesRemaining - newPages.length,
-      state.maxUrls - state.pageResults.length
+      state.maxUrls - (state.pagesChecked + newPages.length)
     )
     const rawBatch = state.queued.splice(0, batchSize)
     const batch: CrawlQueueItem[] = []
@@ -842,6 +902,7 @@ export async function crawlChunk(
     for (const { item, result } of results) {
       if (!result) continue
 
+      result.pagesChecked = state.pagesChecked + newPages.length + 1
       state.pageResults.push(result)
       newPages.push(result)
 
@@ -904,11 +965,8 @@ export async function crawlChunk(
             }
           }
 
-          for (const page of state.pageResults) {
-            if (page.url === normalized || page.finalUrl === normalized) {
-              recordBfsDepth(page.url, childDepth)
-              recordBfsDepth(page.finalUrl, childDepth)
-            }
+          if (state.pageDepthMap.has(normalized)) {
+            recordBfsDepth(normalized, childDepth)
           }
         }
 
@@ -928,7 +986,9 @@ export async function crawlChunk(
     }
   }
 
-  if (state.queued.length === 0 || state.pageResults.length >= state.maxUrls) {
+  state.pagesChecked += newPages.length
+
+  if (state.queued.length === 0 || state.pagesChecked >= state.maxUrls) {
     state.isDone = true
   }
 
@@ -1038,10 +1098,15 @@ export function finalizeCrawl(state: ActiveCrawlState): CrawlResult {
   }
 
   if (plan === 'full') {
+    const effectiveInboundGraph =
+      pageResults && pageResults.length > 0
+        ? reconstructInternalInboundGraph(pageResults, finalOrigin)
+        : internalInboundGraph
+
     crawlResult.architecture = buildArchitectureSummary({
       pageResults,
       pageDepthMap,
-      internalInboundGraph,
+      internalInboundGraph: effectiveInboundGraph,
       sitemapDiscoveredUrls,
       rootUrl,
       canonicalRootUrl,

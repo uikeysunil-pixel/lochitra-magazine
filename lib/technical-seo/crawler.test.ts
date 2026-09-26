@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://mock:mock@localhost:5432/mock'
+}
+
 import {
   CRAWL_LIMITS,
   buildArchitectureSummary,
@@ -9,11 +14,16 @@ import {
   finalizeCrawl,
   getPathSection,
   initCrawlState,
+  reconstructInternalInboundGraph,
   runCrawl,
   serializeCrawlState,
 } from './crawler'
 import { loadRobotsPolicy } from './site-discovery'
-import type { ScanResult } from './types'
+import type { CrawlCheckpoint, CrawlPage, CrawlQueueItem, ScanResult } from './types'
+
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { getScanPageResults, saveScanCheckpoint } = require('./scan-repository')
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 function createMockScan(overrides: Partial<ScanResult>): ScanResult {
   return {
@@ -719,22 +729,23 @@ describe('Phase 6B-2 — Durable Full-Plan Crawl Resilience', () => {
     // Step 2: Execute Chunk 1 with size = 2 (crawls root and /p1)
     const chunk1 = await crawlChunk(initialState, 2, mockDeps)
     assert.strictEqual(chunk1.newPages.length, 2)
-    assert.strictEqual(chunk1.state.pageResults.length, 2)
+    assert.strictEqual(chunk1.state.pagesChecked, 2)
     assert.strictEqual(chunk1.state.isDone, false)
 
     // Save checkpoint
     const checkpoint1 = serializeCrawlState(chunk1.state)
-    assert.strictEqual(checkpoint1.pageResults.length, 2)
+    assert.strictEqual(checkpoint1.pageResults, undefined)
+    assert.strictEqual(checkpoint1.pagesChecked, 2)
     assert.strictEqual(checkpoint1.queued.length, 3) // /p2, /p3, /p4
 
     // Step 3: Next chunk resumes from checkpoint1
     const resumedState = deserializeCrawlState(checkpoint1, chunk1.state.robotsPolicy)
-    assert.strictEqual(resumedState.pageResults.length, 2)
+    assert.strictEqual(resumedState.pagesChecked, 2)
 
     // Execute Chunk 2 with size = 2 (crawls /p2 and /p3)
     const chunk2 = await crawlChunk(resumedState, 2, mockDeps)
     assert.strictEqual(chunk2.newPages.length, 2)
-    assert.strictEqual(chunk2.state.pageResults.length, 4)
+    assert.strictEqual(chunk2.state.pagesChecked, 4)
     assert.strictEqual(chunk2.state.isDone, false)
 
     // URLs crawled in chunk 1 were not re-crawled in chunk 2
@@ -745,11 +756,12 @@ describe('Phase 6B-2 — Durable Full-Plan Crawl Resilience', () => {
     // Step 4: Execute Chunk 3 with size = 2 (crawls /p4, queue empty)
     const chunk3 = await crawlChunk(chunk2.state, 2, mockDeps)
     assert.strictEqual(chunk3.newPages.length, 1)
-    assert.strictEqual(chunk3.state.pageResults.length, 5)
+    assert.strictEqual(chunk3.state.pagesChecked, 5)
     assert.strictEqual(chunk3.state.isDone, true)
 
-    // Finalize
-    const finalResult = finalizeCrawl(chunk3.state)
+    // Finalize with reconstructed page results
+    const allPages = [...chunk1.newPages, ...chunk2.newPages, ...chunk3.newPages]
+    const finalResult = finalizeCrawl({ ...chunk3.state, pageResults: allPages })
     assert.strictEqual(finalResult.pagesChecked, 5)
     assert.strictEqual(finalResult.pages.length, 5)
   })
@@ -799,8 +811,9 @@ describe('Phase 6B-2 — Durable Full-Plan Crawl Resilience', () => {
     assert.strictEqual(chunk3.newPages.length, 1)
     assert.strictEqual(chunk3.state.isDone, true)
 
-    // Finalize Full plan
-    const result = finalizeCrawl(chunk3.state)
+    // Finalize Full plan with reconstructed pages
+    const allPages = [...chunk1.newPages, ...chunk2.newPages, ...chunk3.newPages]
+    const result = finalizeCrawl({ ...chunk3.state, pageResults: allPages })
     assert.ok(result.architecture)
 
     // Depth for /deep must be 1 because root links directly to it, beating the length-2 path
@@ -842,7 +855,8 @@ describe('Phase 6B-2 — Durable Full-Plan Crawl Resilience', () => {
     const chunk2 = await crawlChunk(resumed, 1, mockDeps)
     assert.strictEqual(chunk2.state.isDone, true)
 
-    const result = finalizeCrawl(chunk2.state)
+    const allPages = [...chunk1.newPages, ...chunk2.newPages]
+    const result = finalizeCrawl({ ...chunk2.state, pageResults: allPages })
     assert.ok(result.architecture)
     assert.deepStrictEqual(result.architecture.orphanCandidates, [
       'https://example.com/sitemap-orphan',
@@ -921,15 +935,15 @@ describe('Phase 6B-2 — Durable Full-Plan Crawl Resilience', () => {
     const r2 = deserializeCrawlState(cp1, c1.state.robotsPolicy)
     const c2b = await crawlChunk(r2, 1, mockDeps) // also crawls /p1
 
-    assert.strictEqual(c2a.state.pageResults.length, 2)
-    assert.strictEqual(c2b.state.pageResults.length, 2)
+    assert.strictEqual(c2a.state.pagesChecked, 2)
+    assert.strictEqual(c2b.state.pagesChecked, 2)
     assert.deepStrictEqual(
-      c2a.state.pageResults.map((p) => p.finalUrl),
-      ['https://example.com/', 'https://example.com/p1']
+      c2a.newPages.map((p) => p.finalUrl),
+      ['https://example.com/p1']
     )
     assert.deepStrictEqual(
-      c2b.state.pageResults.map((p) => p.finalUrl),
-      ['https://example.com/', 'https://example.com/p1']
+      c2b.newPages.map((p) => p.finalUrl),
+      ['https://example.com/p1']
     )
 
     // Resume chunk 3 from c2a
@@ -937,8 +951,9 @@ describe('Phase 6B-2 — Durable Full-Plan Crawl Resilience', () => {
     const r3 = deserializeCrawlState(cp2, c2a.state.robotsPolicy)
     const c3 = await crawlChunk(r3, 1, mockDeps) // crawls /p2
 
-    assert.strictEqual(c3.state.pageResults.length, 3)
-    const urls = c3.state.pageResults.map((p) => p.finalUrl)
+    assert.strictEqual(c3.state.pagesChecked, 3)
+    const allPages = [...c1.newPages, ...c2a.newPages, ...c3.newPages]
+    const urls = allPages.map((p) => p.finalUrl)
     assert.strictEqual(new Set(urls).size, 3) // no duplicate page entries
   })
 
@@ -1160,26 +1175,29 @@ describe('Phase 6B-2 — Durable Full-Plan Crawl Resilience', () => {
     // Checkpoint 1
     const cp1 = JSON.parse(JSON.stringify(serializeCrawlState(c1.state)))
     assert.strictEqual(cp1.sequence, 1)
+    assert.strictEqual(cp1.pagesChecked, 1)
 
     // Chunk 2: crawls p1 and p2 (size = 2)
     const s1 = deserializeCrawlState(cp1)
     const c2 = await crawlChunk(s1, 2, mockDeps)
     assert.strictEqual(c2.newPages.length, 2)
-    assert.strictEqual(c2.state.pageResults.length, 3)
+    assert.strictEqual(c2.state.pagesChecked, 3)
 
     // Checkpoint 2
     const cp2 = JSON.parse(JSON.stringify(serializeCrawlState(c2.state)))
     assert.strictEqual(cp2.sequence, 2)
+    assert.strictEqual(cp2.pagesChecked, 3)
 
     // Chunk 3: crawls p3 (size = 1)
     const s2 = deserializeCrawlState(cp2)
     const c3 = await crawlChunk(s2, 1, mockDeps)
     assert.strictEqual(c3.newPages.length, 1)
-    assert.strictEqual(c3.state.pageResults.length, 4)
+    assert.strictEqual(c3.state.pagesChecked, 4)
     assert.strictEqual(c3.state.isDone, true)
 
-    // Finalize
-    const finalReport = finalizeCrawl(c3.state)
+    // Finalize with reconstructed page results
+    const allPages = [...c1.newPages, ...c2.newPages, ...c3.newPages]
+    const finalReport = finalizeCrawl({ ...c3.state, pageResults: allPages })
 
     // All 4 pages present
     assert.strictEqual(finalReport.pagesChecked, 4)
@@ -1879,5 +1897,1229 @@ describe('Phase 6B-2 — Production Robots Status Semantics', () => {
     } finally {
       globalThis.fetch = originalFetch
     }
+  })
+})
+
+describe('Phase 6B-2 Remediation — Lean Durable Checkpoint & Resilience', () => {
+  it('A/B: lean checkpoint does not serialize historical pageResults and payload remains tiny (<200KB vs ~3.31MB)', () => {
+    const pageResults: ScanResult[] = []
+    const seen = new Set<string>()
+    const queued: CrawlQueueItem[] = []
+    const internalInboundGraph = new Map<string, Set<string>>()
+    const pageDepthMap = new Map<string, number | null>()
+
+    for (let i = 0; i < 225; i++) {
+      const url = `https://example.com/page-${i}`
+      seen.add(url)
+      pageDepthMap.set(url, (i % 5) + 1)
+      const linked = [
+        `https://example.com/page-${(i + 1) % 225}`,
+        `https://example.com/page-${(i + 2) % 225}`,
+      ]
+      internalInboundGraph.set(url, new Set([`https://example.com/page-${(i + 224) % 225}`]))
+      pageResults.push(
+        createMockScan({
+          url,
+          finalUrl: url,
+          discoveredInternalUrls: linked,
+          pageTitle: `SEO Page Title for ${url} - Comprehensive Guide and Diagnostics`,
+          metaDescription: `Detailed meta description for ${url} containing full search snippets and analysis.`,
+          canonical: url,
+          findings: [
+            {
+              id: `finding-${i}`,
+              title: `Title issue on page ${i}`,
+              category: 'metadata',
+              severity: 'medium',
+              confidence: 'high',
+              summary: 'Summary text',
+              evidence: ['evidence 1', 'evidence 2'],
+              recommendation: 'Fix title tag',
+              diagnosticProblems: ['indexing'],
+            },
+          ],
+        })
+      )
+    }
+
+    const state = {
+      scanId: 'lean-test-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full' as const,
+      diagnosticProblem: 'unknown' as const,
+      maxUrls: 250,
+      sequence: 9,
+      queued,
+      seen,
+      sitemapDiscoveredUrls: new Set(['https://example.com/sitemap-1']),
+      internalInboundGraph,
+      pageDepthMap,
+      pageResults,
+      pagesChecked: 225,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+      robotsPolicy: { rules: [], loaded: true },
+    }
+
+    const checkpoint = serializeCrawlState(state)
+
+    // A: Assert pageResults is NOT serialized into checkpoint
+    assert.strictEqual(checkpoint.pageResults, undefined)
+    assert.strictEqual(checkpoint.pagesChecked, 225)
+
+    // B: Measure serialized size
+    const serializedJson = JSON.stringify(checkpoint)
+    const jsonBytes = Buffer.byteLength(serializedJson, 'utf8')
+
+    // Assert that the checkpoint is tiny (< 150 KB) and nowhere near the previous ~3.31 MB (3,315,251 bytes)
+    assert.ok(
+      jsonBytes < 150 * 1024,
+      `Lean checkpoint payload (${jsonBytes} bytes) must be less than 150 KB, nowhere near the previous 3.31 MB`
+    )
+    assert.ok(
+      jsonBytes < 3_315_251 / 20,
+      'Lean checkpoint payload must be at least 95% smaller than the 3.31 MB bloat'
+    )
+  })
+
+  it('C: new page results are persisted before checkpoint advancement in saveScanCheckpoint', async () => {
+    const callOrder: string[] = []
+
+    const mockSql = async (strings: TemplateStringsArray, ..._values: unknown[]) => {
+      const query = strings.join('?')
+      if (query.includes('insert into seo_scan_urls')) {
+        callOrder.push('persist_pages')
+        return []
+      }
+      if (query.includes('update seo_scans')) {
+        callOrder.push('advance_checkpoint')
+        return [{ id: 'test-scan-id' }]
+      }
+      return []
+    }
+
+    const mockPages: CrawlPage[] = [
+      {
+        url: 'https://example.com/p1',
+        finalUrl: 'https://example.com/p1',
+        httpStatus: 200,
+        durationMs: 50,
+        state: 'complete',
+        resultJson: createMockScan({ url: 'https://example.com/p1' }),
+      },
+    ]
+
+    const checkpoint: CrawlCheckpoint = {
+      scanId: 'test-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 1,
+      queued: [],
+      seen: ['https://example.com/p1'],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [],
+      pageDepthMap: [['https://example.com/p1', 1]],
+      pagesChecked: 1,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+    }
+
+    const saved = await saveScanCheckpoint(
+      {
+        scanId: 'test-scan-id',
+        checkpoint,
+        newPages: mockPages,
+        pagesChecked: 1,
+        pagesDiscovered: 1,
+        progressPercent: 1,
+        expectedSequence: 0,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    assert.strictEqual(saved, true)
+    assert.deepStrictEqual(callOrder, ['persist_pages', 'advance_checkpoint'])
+  })
+
+  it('D/E/F: simulated failure after page persistence but before checkpoint CAS safely recovers on retry with zero page loss', async () => {
+    const storedPages = new Map<string, { url: string; resultJson: unknown }>()
+    let checkpointCommitted = false
+
+    const mockSql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const query = strings.join('?')
+      if (query.includes('insert into seo_scan_urls')) {
+        const url = String(values[1])
+        const resultJson = values[9]
+        storedPages.set(url, { url, resultJson })
+        return []
+      }
+      if (query.includes('update seo_scans')) {
+        if (!checkpointCommitted) {
+          return [] // CAS failure: 0 rows updated
+        }
+        return [{ id: 'test-scan-id' }]
+      }
+      return []
+    }
+
+    const mockPages: CrawlPage[] = [
+      {
+        url: 'https://example.com/crashed-page',
+        finalUrl: 'https://example.com/crashed-page',
+        httpStatus: 200,
+        durationMs: 75,
+        state: 'complete',
+        resultJson: createMockScan({ url: 'https://example.com/crashed-page' }),
+      },
+    ]
+
+    const checkpoint: CrawlCheckpoint = {
+      scanId: 'test-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 1,
+      queued: [],
+      seen: ['https://example.com/crashed-page'],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [],
+      pageDepthMap: [['https://example.com/crashed-page', 1]],
+      pagesChecked: 1,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+    }
+
+    // Attempt 1: Page is persisted, but CAS returns false
+    const attempt1 = await saveScanCheckpoint(
+      {
+        scanId: 'test-scan-id',
+        checkpoint,
+        newPages: mockPages,
+        pagesChecked: 1,
+        pagesDiscovered: 1,
+        progressPercent: 1,
+        expectedSequence: 0,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    // D: Checkpoint was NOT committed
+    assert.strictEqual(attempt1, false)
+    assert.strictEqual(storedPages.size, 1)
+
+    // E: Retry reprocesses the same page
+    checkpointCommitted = true // Second attempt succeeds CAS
+    const attempt2 = await saveScanCheckpoint(
+      {
+        scanId: 'test-scan-id',
+        checkpoint,
+        newPages: mockPages,
+        pagesChecked: 1,
+        pagesDiscovered: 1,
+        progressPercent: 1,
+        expectedSequence: 0,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    // F: Succeeded on retry with exactly 1 unique page row (no duplicate, no loss)
+    assert.strictEqual(attempt2, true)
+    assert.strictEqual(storedPages.size, 1)
+    assert.ok(storedPages.has('https://example.com/crashed-page'))
+  })
+
+  it('G: getScanPageResults loads 250 pages in bounded batches of 50 in deterministic crawl order', async () => {
+    const fakeRows = Array.from({ length: 250 }, (_, i) => ({
+      result_json: createMockScan({
+        url: `https://example.com/p-${i + 1}`,
+        finalUrl: `https://example.com/p-${i + 1}`,
+        pagesChecked: i + 1,
+      }),
+    }))
+
+    const batchCalls: Array<{ limit: number; offset: number }> = []
+
+    const mockSql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const limit = Number(values[1])
+      const offset = Number(values[2])
+      batchCalls.push({ limit, offset })
+      return fakeRows.slice(offset, offset + limit)
+    }
+
+    const reconstructed = await getScanPageResults('test-scan-id', 50, {
+      sql: mockSql as unknown as NonNullable<Parameters<typeof getScanPageResults>[2]>['sql'],
+    })
+
+    assert.strictEqual(reconstructed.length, 250)
+    assert.strictEqual(batchCalls.length, 6) // 5 full batches + 1 empty termination check
+    assert.deepStrictEqual(batchCalls[0], { limit: 50, offset: 0 })
+    assert.deepStrictEqual(batchCalls[1], { limit: 50, offset: 50 })
+    assert.deepStrictEqual(batchCalls[2], { limit: 50, offset: 100 })
+    assert.deepStrictEqual(batchCalls[3], { limit: 50, offset: 150 })
+    assert.deepStrictEqual(batchCalls[4], { limit: 50, offset: 200 })
+    assert.deepStrictEqual(batchCalls[5], { limit: 50, offset: 250 })
+
+    assert.strictEqual(reconstructed[0].url, 'https://example.com/p-1')
+    assert.strictEqual(reconstructed[249].url, 'https://example.com/p-250')
+  })
+
+  it('H/I: Full 250-page crawl state finalizes architecture and duplicate summaries from reconstructed results', () => {
+    const pageResults: ScanResult[] = []
+    const seen = new Set<string>()
+    const internalInboundGraph = new Map<string, Set<string>>()
+    const pageDepthMap = new Map<string, number | null>()
+
+    for (let i = 0; i < 250; i++) {
+      const url = `https://example.com/page-${i}`
+      seen.add(url)
+      pageDepthMap.set(url, (i % 4) + 1)
+      pageResults.push(
+        createMockScan({
+          url,
+          finalUrl: url,
+          pageTitle: i < 5 ? 'Duplicate Shared Title' : `Unique Title ${i}`,
+          metaDescription: i < 5 ? 'Duplicate Shared Description' : `Unique Desc ${i}`,
+          canonical: url,
+          discoveredInternalUrls: [`https://example.com/page-${(i + 1) % 250}`],
+        })
+      )
+    }
+
+    const state = {
+      scanId: 'reconstruction-test',
+      rootUrl: 'https://example.com/',
+      plan: 'full' as const,
+      diagnosticProblem: 'unknown' as const,
+      maxUrls: 250,
+      sequence: 10,
+      queued: [],
+      seen,
+      sitemapDiscoveredUrls: new Set<string>(),
+      internalInboundGraph,
+      pageDepthMap,
+      pageResults,
+      pagesChecked: 250,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: true,
+      startedAt: Date.now() - 50000,
+      robotsPolicy: { rules: [], loaded: true },
+    }
+
+    const finalReport = finalizeCrawl(state)
+
+    assert.strictEqual(finalReport.pagesChecked, 250)
+    assert.strictEqual(finalReport.pages.length, 250)
+    assert.ok(finalReport.architecture)
+    assert.ok(finalReport.duplicates)
+    assert.strictEqual(finalReport.duplicates.titleDuplicateGroups.length, 1)
+    assert.strictEqual(finalReport.duplicates.titleDuplicateGroups[0].urls.length, 5)
+    assert.strictEqual(finalReport.duplicates.descriptionDuplicateGroups.length, 1)
+    assert.strictEqual(finalReport.duplicates.descriptionDuplicateGroups[0].urls.length, 5)
+  })
+
+  it('K: legacy checkpoint containing pageResults remains safe and is not silently corrupted', () => {
+    const legacyPage1 = createMockScan({ url: 'https://example.com/legacy-1' })
+    const legacyPage2 = createMockScan({ url: 'https://example.com/legacy-2' })
+
+    const legacyCheckpoint: CrawlCheckpoint = {
+      scanId: 'legacy-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 2,
+      queued: [],
+      seen: ['https://example.com/legacy-1', 'https://example.com/legacy-2'],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [],
+      pageDepthMap: [],
+      pageResults: [legacyPage1, legacyPage2],
+      pagesChecked: 2,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+    }
+
+    const deserialized = deserializeCrawlState(legacyCheckpoint)
+    assert.strictEqual(deserialized.pagesChecked, 2)
+    assert.strictEqual(deserialized.pageResults.length, 2)
+    assert.strictEqual(deserialized.pageResults[0].url, 'https://example.com/legacy-1')
+    assert.strictEqual(deserialized.pageResults[1].url, 'https://example.com/legacy-2')
+
+    // Serializing it produces the new lean format without corrupting pagesChecked
+    const leanAgain = serializeCrawlState(deserialized)
+    assert.strictEqual(leanAgain.pageResults, undefined)
+    assert.strictEqual(leanAgain.pagesChecked, 2)
+  })
+
+  it('L: legacy migration through actual save path persists page results and makes checkpoint lean', async () => {
+    const legacyPage1 = createMockScan({ url: 'https://example.com/legacy-1', pagesChecked: 1 })
+    const legacyPage2 = createMockScan({ url: 'https://example.com/legacy-2', pagesChecked: 2 })
+
+    const persistedUrlRows = new Map<
+      string,
+      { url: string; normalizedUrl: string; resultJson: ScanResult }
+    >()
+    let savedCheckpointJson: CrawlCheckpoint | null = null
+
+    const mockSql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const query = strings.join('?')
+      if (query.includes('insert into seo_scan_urls')) {
+        const url = String(values[1])
+        const normalizedUrl = String(values[2])
+        const resultJsonStr = values[7]
+        const resultJson = resultJsonStr ? JSON.parse(String(resultJsonStr)) : null
+        persistedUrlRows.set(normalizedUrl, { url, normalizedUrl, resultJson })
+        return []
+      }
+      if (query.includes('update seo_scans')) {
+        savedCheckpointJson = JSON.parse(String(values[3]))
+        return [{ id: 'legacy-scan-id' }]
+      }
+      return []
+    }
+
+    const legacyCheckpoint: CrawlCheckpoint = {
+      scanId: 'legacy-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 2,
+      queued: [],
+      seen: ['https://example.com/legacy-1', 'https://example.com/legacy-2'],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [],
+      pageDepthMap: [
+        ['https://example.com/legacy-1', 0],
+        ['https://example.com/legacy-2', 1],
+      ],
+      pageResults: [legacyPage1, legacyPage2],
+      pagesChecked: 2,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+    }
+
+    const saved = await saveScanCheckpoint(
+      {
+        scanId: 'legacy-scan-id',
+        checkpoint: legacyCheckpoint,
+        newPages: [],
+        pagesChecked: 2,
+        pagesDiscovered: 2,
+        progressPercent: 1,
+        expectedSequence: 1,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    assert.strictEqual(saved, true)
+    // verify both legacy results are persisted to result_json
+    assert.strictEqual(persistedUrlRows.size, 2)
+    assert.ok(persistedUrlRows.has('https://example.com/legacy-1'))
+    assert.ok(persistedUrlRows.has('https://example.com/legacy-2'))
+    assert.strictEqual(
+      persistedUrlRows.get('https://example.com/legacy-1')?.resultJson.url,
+      'https://example.com/legacy-1'
+    )
+    assert.strictEqual(
+      persistedUrlRows.get('https://example.com/legacy-2')?.resultJson.url,
+      'https://example.com/legacy-2'
+    )
+    assert.strictEqual(
+      persistedUrlRows.get('https://example.com/legacy-1')?.resultJson.pagesChecked,
+      1
+    )
+    assert.strictEqual(
+      persistedUrlRows.get('https://example.com/legacy-2')?.resultJson.pagesChecked,
+      2
+    )
+
+    // verify checkpoint becomes lean
+    assert.ok(savedCheckpointJson)
+    assert.strictEqual(savedCheckpointJson.pageResults, undefined)
+    assert.strictEqual(legacyCheckpoint.pageResults?.length, 2)
+    assert.strictEqual(savedCheckpointJson.pagesChecked, 2)
+  })
+
+  it('M: legacy pages + newly crawled pages are persisted with deterministic order and no duplicates', async () => {
+    const legacyPage1 = createMockScan({ url: 'https://example.com/legacy-1', pagesChecked: 1 })
+    const legacyPage2 = createMockScan({ url: 'https://example.com/legacy-2', pagesChecked: 2 })
+    const newPage3 = createMockScan({ url: 'https://example.com/new-3', pagesChecked: 3 })
+
+    const storedPages = new Map<
+      string,
+      { id: number; scan_id: string; normalized_url: string; result_json: ScanResult }
+    >()
+    let nextId = 1
+
+    const mockSql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const query = strings.join('?')
+      if (query.includes('insert into seo_scan_urls')) {
+        const scanId = String(values[0])
+        const url = String(values[1])
+        const normalizedUrl = String(values[2])
+        const resultJsonStr = values[7]
+        const resultJson = resultJsonStr ? JSON.parse(String(resultJsonStr)) : null
+
+        if (storedPages.has(normalizedUrl)) {
+          const existing = storedPages.get(normalizedUrl)!
+          existing.result_json = resultJson ?? existing.result_json
+        } else {
+          storedPages.set(normalizedUrl, {
+            id: nextId++,
+            scan_id: scanId,
+            normalized_url: normalizedUrl,
+            result_json: resultJson,
+          })
+        }
+        return []
+      }
+      if (query.includes('select result_json')) {
+        const rows = Array.from(storedPages.values()).sort(
+          (a, b) =>
+            (a.result_json.pagesChecked ?? 0) - (b.result_json.pagesChecked ?? 0) || a.id - b.id
+        )
+        const limit = Number(values[1])
+        const offset = Number(values[2])
+        return rows.slice(offset, offset + limit)
+      }
+      if (query.includes('update seo_scans')) {
+        return [{ id: 'test-scan-id' }]
+      }
+      return []
+    }
+
+    const legacyCheckpoint: CrawlCheckpoint = {
+      scanId: 'test-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 2,
+      queued: [],
+      seen: [
+        'https://example.com/legacy-1',
+        'https://example.com/legacy-2',
+        'https://example.com/new-3',
+      ],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [],
+      pageDepthMap: [
+        ['https://example.com/legacy-1', 0],
+        ['https://example.com/legacy-2', 1],
+        ['https://example.com/new-3', 2],
+      ],
+      pageResults: [legacyPage1, legacyPage2],
+      pagesChecked: 2,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+    }
+
+    const newPages: CrawlPage[] = [
+      {
+        url: 'https://example.com/new-3',
+        finalUrl: 'https://example.com/new-3',
+        httpStatus: 200,
+        durationMs: 45,
+        state: 'complete',
+        resultJson: newPage3,
+      },
+    ]
+
+    const saved = await saveScanCheckpoint(
+      {
+        scanId: 'test-scan-id',
+        checkpoint: legacyCheckpoint,
+        newPages,
+        pagesChecked: 3,
+        pagesDiscovered: 3,
+        progressPercent: 2,
+        expectedSequence: 1,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    assert.strictEqual(saved, true)
+    assert.strictEqual(storedPages.size, 3)
+
+    // Idempotent re-save to verify no duplicates
+    const resaved = await saveScanCheckpoint(
+      {
+        scanId: 'test-scan-id',
+        checkpoint: legacyCheckpoint,
+        newPages,
+        pagesChecked: 3,
+        pagesDiscovered: 3,
+        progressPercent: 2,
+        expectedSequence: 2,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+    assert.strictEqual(resaved, true)
+    assert.strictEqual(storedPages.size, 3, 'No duplicate rows created after re-save')
+
+    // Query back through real getScanPageResults
+    const retrievedResults = await getScanPageResults('test-scan-id', 50, {
+      sql: mockSql as unknown as NonNullable<Parameters<typeof getScanPageResults>[2]>['sql'],
+    })
+
+    assert.strictEqual(retrievedResults.length, 3)
+    assert.strictEqual(retrievedResults[0].url, 'https://example.com/legacy-1')
+    assert.strictEqual(retrievedResults[0].pagesChecked, 1)
+    assert.strictEqual(retrievedResults[1].url, 'https://example.com/legacy-2')
+    assert.strictEqual(retrievedResults[1].pagesChecked, 2)
+    assert.strictEqual(retrievedResults[2].url, 'https://example.com/new-3')
+    assert.strictEqual(retrievedResults[2].pagesChecked, 3)
+  })
+
+  it('N: legacy crash before checkpoint CAS keeps legacy results durable and recovers safely on retry', async () => {
+    const legacyPage1 = createMockScan({
+      url: 'https://example.com/crash-legacy-1',
+      pagesChecked: 1,
+    })
+    const legacyPage2 = createMockScan({
+      url: 'https://example.com/crash-legacy-2',
+      pagesChecked: 2,
+    })
+
+    const storedPages = new Map<string, { url: string; resultJson: ScanResult }>()
+    let casShouldSucceed = false
+
+    const mockSql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const query = strings.join('?')
+      if (query.includes('insert into seo_scan_urls')) {
+        const url = String(values[1])
+        const resultJsonStr = values[7]
+        const resultJson = resultJsonStr ? JSON.parse(String(resultJsonStr)) : null
+        storedPages.set(url, { url, resultJson })
+        return []
+      }
+      if (query.includes('update seo_scans')) {
+        if (!casShouldSucceed) {
+          return [] // CAS failure simulation
+        }
+        return [{ id: 'test-scan-id' }]
+      }
+      return []
+    }
+
+    const legacyCheckpoint: CrawlCheckpoint = {
+      scanId: 'test-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 1,
+      queued: [],
+      seen: ['https://example.com/crash-legacy-1', 'https://example.com/crash-legacy-2'],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [],
+      pageDepthMap: [],
+      pageResults: [legacyPage1, legacyPage2],
+      pagesChecked: 2,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+    }
+
+    // Attempt 1: Pages are inserted, but CAS fails
+    const attempt1 = await saveScanCheckpoint(
+      {
+        scanId: 'test-scan-id',
+        checkpoint: legacyCheckpoint,
+        newPages: [],
+        pagesChecked: 2,
+        pagesDiscovered: 2,
+        progressPercent: 1,
+        expectedSequence: 0,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    assert.strictEqual(attempt1, false)
+    assert.strictEqual(storedPages.size, 2, 'Legacy page results remain durable after CAS failure')
+    assert.ok(storedPages.has('https://example.com/crash-legacy-1'))
+    assert.ok(storedPages.has('https://example.com/crash-legacy-2'))
+
+    // Attempt 2: Retry with CAS succeeding
+    casShouldSucceed = true
+    const attempt2 = await saveScanCheckpoint(
+      {
+        scanId: 'test-scan-id',
+        checkpoint: legacyCheckpoint,
+        newPages: [],
+        pagesChecked: 2,
+        pagesDiscovered: 2,
+        progressPercent: 1,
+        expectedSequence: 0,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    assert.strictEqual(attempt2, true)
+    assert.strictEqual(storedPages.size, 2, 'No duplicate rows created and zero page loss on retry')
+  })
+
+  it('O: legacy finalization reconstructs all legacy + new results from durable page rows without loss', async () => {
+    const legacyPage1 = createMockScan({
+      url: 'https://example.com/page-1',
+      finalUrl: 'https://example.com/page-1',
+      pagesChecked: 1,
+      pageTitle: 'Page One',
+      findings: [
+        {
+          id: 'missing-meta-description',
+          title: 'Missing Meta Description',
+          category: 'meta',
+          severity: 'medium',
+          confidence: 'high',
+          summary: 'Missing meta description on page 1',
+          evidence: ['<head> has no meta description'],
+          recommendation: 'Add meta description',
+          diagnosticProblems: ['technical'],
+        },
+      ],
+    })
+    const legacyPage2 = createMockScan({
+      url: 'https://example.com/page-2',
+      finalUrl: 'https://example.com/page-2',
+      pagesChecked: 2,
+      pageTitle: 'Page Two',
+      findings: [],
+    })
+    const newPage3 = createMockScan({
+      url: 'https://example.com/page-3',
+      finalUrl: 'https://example.com/page-3',
+      pagesChecked: 3,
+      pageTitle: 'Page Three',
+      findings: [],
+    })
+
+    const durableRows = [
+      { result_json: legacyPage1 },
+      { result_json: legacyPage2 },
+      { result_json: newPage3 },
+    ]
+
+    const mockSql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const query = strings.join('?')
+      if (query.includes('select result_json')) {
+        const limit = Number(values[1])
+        const offset = Number(values[2])
+        return durableRows.slice(offset, offset + limit)
+      }
+      return []
+    }
+
+    // Step 1: Reconstruct all results from durable storage
+    const reconstructedResults = await getScanPageResults('scan-finalization-id', 50, {
+      sql: mockSql as unknown as NonNullable<Parameters<typeof getScanPageResults>[2]>['sql'],
+    })
+
+    assert.strictEqual(reconstructedResults.length, 3)
+
+    // Step 2: Deserialize lean checkpoint with reconstructed results
+    const leanCheckpoint: CrawlCheckpoint = {
+      scanId: 'scan-finalization-id',
+      rootUrl: 'https://example.com/page-1',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 3,
+      queued: [],
+      seen: [
+        'https://example.com/page-1',
+        'https://example.com/page-2',
+        'https://example.com/page-3',
+      ],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [
+        [
+          'https://example.com/page-1',
+          ['https://example.com/page-2', 'https://example.com/page-3'],
+        ],
+        ['https://example.com/page-2', ['https://example.com/page-1']],
+        ['https://example.com/page-3', ['https://example.com/page-1']],
+      ],
+      pageDepthMap: [
+        ['https://example.com/page-1', 0],
+        ['https://example.com/page-2', 1],
+        ['https://example.com/page-3', 1],
+      ],
+      pagesChecked: 3,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/page-1',
+      rootFetchFailed: false,
+      isDone: true,
+      startedAt: Date.now() - 5000,
+      robotsPolicy: { rules: [], loaded: true },
+    }
+
+    const activeState = deserializeCrawlState(leanCheckpoint, undefined, reconstructedResults)
+    assert.strictEqual(activeState.pageResults.length, 3)
+
+    // Step 3: Finalize crawl and verify report
+    const finalReport = finalizeCrawl(activeState)
+
+    assert.strictEqual(finalReport.pagesChecked, 3)
+    assert.strictEqual(finalReport.pages.length, 3)
+    assert.deepStrictEqual(
+      finalReport.pages.map((p) => p.url),
+      ['https://example.com/page-1', 'https://example.com/page-2', 'https://example.com/page-3']
+    )
+    assert.strictEqual(finalReport.findings.length, 1)
+    assert.strictEqual(finalReport.findings[0].id, 'missing-meta-description')
+    assert.ok(finalReport.architecture)
+    assert.ok(finalReport.duplicates)
+  })
+
+  it('P: lean checkpoint excludes internalInboundGraph and pageResults', async () => {
+    const pageResults = [
+      createMockScan({
+        url: 'https://example.com/p1',
+        finalUrl: 'https://example.com/p1',
+        discoveredInternalUrls: ['https://example.com/p2'],
+      }),
+    ]
+    const state = {
+      scanId: 'lean-graph-scan',
+      rootUrl: 'https://example.com/p1',
+      plan: 'full' as const,
+      diagnosticProblem: 'unknown' as const,
+      maxUrls: 250,
+      sequence: 1,
+      queued: [
+        { url: 'https://example.com/p2', depth: 1, discoveredFrom: 'https://example.com/p1' },
+      ],
+      seen: new Set(['https://example.com/p1', 'https://example.com/p2']),
+      sitemapDiscoveredUrls: new Set(['https://example.com/sitemap']),
+      internalInboundGraph: new Map([
+        ['https://example.com/p2', new Set(['https://example.com/p1'])],
+      ]),
+      pageDepthMap: new Map([
+        ['https://example.com/p1', 0],
+        ['https://example.com/p2', 1],
+      ]),
+      pageResults,
+      pagesChecked: 1,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/p1',
+      rootFetchFailed: false,
+      isDone: false,
+      startedAt: Date.now(),
+      robotsPolicy: { rules: [], loaded: true },
+    }
+
+    const checkpoint = serializeCrawlState(state)
+    assert.strictEqual(checkpoint.internalInboundGraph, undefined)
+    assert.strictEqual(checkpoint.pageResults, undefined)
+    assert.strictEqual(checkpoint.pagesChecked, 1)
+
+    // Also verify saveScanCheckpoint defensively strips internalInboundGraph
+    let capturedCheckpointJson: CrawlCheckpoint | null = null
+    const mockSql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const query = strings.join('?')
+      if (query.includes('update seo_scans')) {
+        capturedCheckpointJson = JSON.parse(values[3] as string)
+        return [{ id: 'lean-graph-scan' }]
+      }
+      return []
+    }
+
+    const checkpointWithGraph: CrawlCheckpoint = {
+      ...checkpoint,
+      internalInboundGraph: [['https://example.com/p2', ['https://example.com/p1']]],
+      pageResults,
+    }
+
+    await saveScanCheckpoint(
+      {
+        scanId: 'lean-graph-scan',
+        checkpoint: checkpointWithGraph,
+        newPages: [],
+        pagesChecked: 1,
+        pagesDiscovered: 2,
+        progressPercent: 1,
+        expectedSequence: 1,
+      },
+      { sql: mockSql as unknown as NonNullable<Parameters<typeof saveScanCheckpoint>[1]>['sql'] }
+    )
+
+    assert.ok(capturedCheckpointJson)
+    assert.strictEqual((capturedCheckpointJson as CrawlCheckpoint).internalInboundGraph, undefined)
+    assert.strictEqual((capturedCheckpointJson as CrawlCheckpoint).pageResults, undefined)
+  })
+
+  it('Q: representative 250-page Full checkpoint size is <150 KB (well below previous ~1.35 MB)', () => {
+    const seen = new Set<string>()
+    const queued: CrawlQueueItem[] = []
+    const internalInboundGraph = new Map<string, Set<string>>()
+    const pageDepthMap = new Map<string, number | null>()
+    const sitemapDiscoveredUrls = new Set<string>()
+
+    for (let i = 0; i < 250; i++) {
+      const url = `https://example.com/blog/comprehensive-topic-guide-entry-${i}`
+      seen.add(url)
+      pageDepthMap.set(url, (i % 4) + 1)
+      sitemapDiscoveredUrls.add(`https://example.com/sitemap/page-${i}`)
+
+      if (i >= 200) {
+        queued.push({
+          url,
+          depth: (i % 4) + 1,
+          discoveredFrom: `https://example.com/blog/comprehensive-topic-guide-entry-${(i + 249) % 250}`,
+        })
+      }
+
+      // Graph that would previously be huge
+      internalInboundGraph.set(
+        url,
+        new Set([
+          'https://example.com/',
+          `https://example.com/blog/comprehensive-topic-guide-entry-${(i + 1) % 250}`,
+          `https://example.com/blog/comprehensive-topic-guide-entry-${(i + 2) % 250}`,
+        ])
+      )
+    }
+
+    const state = {
+      scanId: 'size-test-scan-id',
+      rootUrl: 'https://example.com/',
+      plan: 'full' as const,
+      diagnosticProblem: 'unknown' as const,
+      maxUrls: 250,
+      sequence: 10,
+      queued,
+      seen,
+      sitemapDiscoveredUrls,
+      internalInboundGraph,
+      pageDepthMap,
+      pageResults: [],
+      pagesChecked: 250,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: true,
+      startedAt: Date.now() - 60000,
+      robotsPolicy: {
+        rules: [{ pattern: '/private/', allow: false, specificity: 9 }],
+        loaded: true,
+      },
+    }
+
+    const checkpoint = serializeCrawlState(state)
+    assert.strictEqual(checkpoint.internalInboundGraph, undefined)
+
+    const serializedJson = JSON.stringify(checkpoint)
+    const jsonBytes = Buffer.byteLength(serializedJson, 'utf8')
+
+    // Must be comfortably below 150 KB (typically ~35 KB), far below the previous ~1.35 MB
+    assert.ok(
+      jsonBytes < 150 * 1024,
+      `Checkpoint size (${jsonBytes} bytes) must be < 150 KB, target <150 KB`
+    )
+    assert.ok(
+      jsonBytes < 1_355_284 / 10,
+      `Checkpoint size (${jsonBytes} bytes) must be at least 10x smaller than previous 1.35 MB`
+    )
+  })
+
+  it('R: exact graph reconstruction reproduces identical target count, edge count, top-linked pages, and orphan candidates', () => {
+    // Generate realistic multi-link site
+    const pages: ScanResult[] = []
+    const linkMap: Record<string, string[]> = {
+      'https://example.com/': [
+        'https://example.com/popular',
+        'https://example.com/about',
+        'https://example.com/blog/1',
+        'https://example.com/contact',
+      ],
+      'https://example.com/about': ['https://example.com/popular', 'https://example.com/contact'],
+      'https://example.com/blog/1': [
+        'https://example.com/popular',
+        'https://example.com/contact',
+        'https://example.com/redirect-source',
+      ],
+      'https://example.com/popular': ['https://example.com/contact'],
+      'https://example.com/contact': [],
+      'https://example.com/redirect-source': ['https://example.com/popular'],
+    }
+
+    for (const [url, discovered] of Object.entries(linkMap)) {
+      const finalUrl =
+        url === 'https://example.com/redirect-source' ? 'https://example.com/redirect-dest' : url
+      pages.push(
+        createMockScan({
+          url,
+          finalUrl,
+          discoveredInternalUrls: discovered,
+        })
+      )
+    }
+
+    // 1. Build original graph via the crawler loop logic
+    const originalGraph = new Map<string, Set<string>>()
+    for (const page of pages) {
+      const sourceUrl = page.finalUrl
+      for (const discovered of page.discoveredInternalUrls) {
+        if (!originalGraph.has(discovered)) {
+          originalGraph.set(discovered, new Set())
+        }
+        originalGraph.get(discovered)!.add(sourceUrl)
+      }
+    }
+
+    // 2. Reconstruct graph via pure helper
+    const reconstructedGraph = reconstructInternalInboundGraph(pages, 'https://example.com')
+
+    // 3. Verify target count and edge count match exactly
+    assert.strictEqual(reconstructedGraph.size, originalGraph.size)
+    let origEdgeCount = 0
+    let reconEdgeCount = 0
+    for (const [target, sources] of originalGraph.entries()) {
+      origEdgeCount += sources.size
+      const reconSources = reconstructedGraph.get(target)
+      assert.ok(reconSources, `Missing target: ${target}`)
+      assert.strictEqual(reconSources.size, sources.size, `Edge mismatch on ${target}`)
+      for (const src of sources) {
+        assert.ok(reconSources.has(src), `Missing source ${src} for target ${target}`)
+      }
+    }
+    for (const [_, sources] of reconstructedGraph.entries()) {
+      reconEdgeCount += sources.size
+    }
+    assert.strictEqual(reconEdgeCount, origEdgeCount)
+
+    // 4. Verify architecture summary produces identical topLinkedUrls and orphanCandidates
+    const sitemapDiscoveredUrls = new Set([
+      'https://example.com/popular',
+      'https://example.com/orphan-candidate',
+    ])
+    const origSummary = buildArchitectureSummary({
+      pageResults: pages,
+      pageDepthMap: new Map(),
+      internalInboundGraph: originalGraph,
+      sitemapDiscoveredUrls,
+      rootUrl: 'https://example.com/',
+      canonicalRootUrl: 'https://example.com/',
+    })
+    const reconSummary = buildArchitectureSummary({
+      pageResults: pages,
+      pageDepthMap: new Map(),
+      internalInboundGraph: reconstructedGraph,
+      sitemapDiscoveredUrls,
+      rootUrl: 'https://example.com/',
+      canonicalRootUrl: 'https://example.com/',
+    })
+
+    assert.deepStrictEqual(reconSummary.topLinkedUrls, origSummary.topLinkedUrls)
+    assert.deepStrictEqual(reconSummary.orphanCandidates, origSummary.orphanCandidates)
+    assert.deepStrictEqual(reconSummary.orphanCandidates, ['https://example.com/orphan-candidate'])
+  })
+
+  it('S: resume without graph retains 100% BFS behavior, seen-set, depth, and quota completion', async () => {
+    const siteGraph: Record<string, string[]> = {
+      'https://example.com/': ['https://example.com/a', 'https://example.com/b'],
+      'https://example.com/a': ['https://example.com/c'],
+      'https://example.com/b': ['https://example.com/c', 'https://example.com/d'],
+      'https://example.com/c': ['https://example.com/e'],
+      'https://example.com/d': [],
+      'https://example.com/e': [],
+    }
+
+    const mockDeps = {
+      loadRobotsPolicy: async () => ({ rules: [], loaded: true }),
+      discoverSitemapPages: async () => [],
+      runQuickScan: async (url: string) =>
+        createMockScan({
+          url,
+          finalUrl: url,
+          discoveredInternalUrls: siteGraph[url] || [],
+        }),
+    }
+
+    const state0 = await initCrawlState(
+      'https://example.com/',
+      'full',
+      'unknown',
+      'resume-bfs-test',
+      mockDeps
+    )
+
+    // Chunk 1 (batch of 2: root and /a)
+    const chunk1 = await crawlChunk(state0, 2, mockDeps)
+    assert.strictEqual(chunk1.newPages.length, 2)
+    assert.strictEqual(chunk1.state.pagesChecked, 2)
+
+    // Serialize to lean checkpoint (without internalInboundGraph)
+    const cp1 = serializeCrawlState(chunk1.state)
+    assert.strictEqual(cp1.internalInboundGraph, undefined)
+
+    // Deserialize (internalInboundGraph starts fresh/empty)
+    const resumed1 = deserializeCrawlState(cp1, chunk1.state.robotsPolicy)
+    assert.strictEqual(resumed1.internalInboundGraph.size, 0)
+    assert.strictEqual(resumed1.pagesChecked, 2)
+
+    // Chunk 2 (batch of 2: /b and /c)
+    const chunk2 = await crawlChunk(resumed1, 2, mockDeps)
+    assert.strictEqual(chunk2.newPages.length, 2)
+    assert.strictEqual(chunk2.state.pagesChecked, 4)
+
+    // Serialize again
+    const cp2 = serializeCrawlState(chunk2.state)
+    assert.strictEqual(cp2.internalInboundGraph, undefined)
+
+    // Resume again
+    const resumed2 = deserializeCrawlState(cp2, chunk2.state.robotsPolicy)
+
+    // Chunk 3 (batch of 2: /d and /e)
+    const chunk3 = await crawlChunk(resumed2, 2, mockDeps)
+    assert.strictEqual(chunk3.newPages.length, 2)
+    assert.strictEqual(chunk3.state.pagesChecked, 6)
+    assert.strictEqual(chunk3.state.isDone, true)
+
+    // Finalize with all pages
+    const allPages = [...chunk1.newPages, ...chunk2.newPages, ...chunk3.newPages]
+    const finalReport = finalizeCrawl({ ...chunk3.state, pageResults: allPages })
+
+    // Verify BFS depth calculations:
+    // root = 0
+    // a = 1, b = 1
+    // c = 2, d = 2
+    // e = 3
+    assert.strictEqual(finalReport.architecture?.depthDistribution[0], 1)
+    assert.strictEqual(finalReport.architecture?.depthDistribution[1], 2)
+    assert.strictEqual(finalReport.architecture?.depthDistribution[2], 2)
+    assert.strictEqual(finalReport.architecture?.depthDistribution[3], 1)
+    assert.strictEqual(finalReport.architecture?.maxDepth, 3)
+
+    // Inbound links: /c linked by /a and /b
+    const cInbound = finalReport.architecture?.topLinkedUrls.find(
+      (t) => t.url === 'https://example.com/c'
+    )
+    assert.ok(cInbound)
+    assert.strictEqual(cInbound.inboundCount, 2)
+  })
+
+  it('T: legacy checkpoint containing old internalInboundGraph deserializes safely and finalization reconstructs from durable page results', async () => {
+    // Durable pages from database
+    const durablePages = [
+      createMockScan({
+        url: 'https://example.com/',
+        finalUrl: 'https://example.com/',
+        discoveredInternalUrls: ['https://example.com/fresh-target'],
+      }),
+      createMockScan({
+        url: 'https://example.com/fresh-target',
+        finalUrl: 'https://example.com/fresh-target',
+        discoveredInternalUrls: [],
+      }),
+    ]
+
+    // Legacy checkpoint with stale internalInboundGraph
+    const legacyCheckpoint: CrawlCheckpoint = {
+      scanId: 'legacy-compat-scan',
+      rootUrl: 'https://example.com/',
+      plan: 'full',
+      diagnosticProblem: 'unknown',
+      maxUrls: 250,
+      sequence: 2,
+      queued: [],
+      seen: ['https://example.com/', 'https://example.com/fresh-target'],
+      sitemapDiscoveredUrls: [],
+      internalInboundGraph: [
+        ['https://example.com/stale-nonexistent', ['https://example.com/stale-source']],
+      ],
+      pageDepthMap: [
+        ['https://example.com/', 0],
+        ['https://example.com/fresh-target', 1],
+      ],
+      pagesChecked: 2,
+      crawlErrors: 0,
+      urlsBlockedByRobots: 0,
+      finalOrigin: 'https://example.com',
+      canonicalRootUrl: 'https://example.com/',
+      rootFetchFailed: false,
+      isDone: true,
+      startedAt: Date.now() - 10000,
+      robotsPolicy: { rules: [], loaded: true },
+    }
+
+    // Step 1: Deserializing without pageResults (e.g. chunk crawl) does not throw or corrupt
+    const stateDuringCrawl = deserializeCrawlState(legacyCheckpoint)
+    assert.ok(stateDuringCrawl)
+    assert.strictEqual(stateDuringCrawl.pagesChecked, 2)
+
+    // Step 2: Deserializing with durablePageResults (finalization) reconstructs from durable results
+    const stateAtFinalize = deserializeCrawlState(legacyCheckpoint, undefined, durablePages)
+    assert.strictEqual(stateAtFinalize.pageResults.length, 2)
+
+    // Finalize report
+    const finalReport = finalizeCrawl(stateAtFinalize)
+    assert.ok(finalReport.architecture)
+
+    // Stale graph entry must NOT be in topLinkedUrls
+    const staleEntry = finalReport.architecture.topLinkedUrls.find(
+      (t) => t.url === 'https://example.com/stale-nonexistent'
+    )
+    assert.strictEqual(
+      staleEntry,
+      undefined,
+      'Stale legacy graph entry must be ignored in favor of durable results'
+    )
+
+    // Fresh target must be present
+    const freshEntry = finalReport.architecture.topLinkedUrls.find(
+      (t) => t.url === 'https://example.com/fresh-target'
+    )
+    assert.ok(freshEntry, 'Fresh target from durable results must be present')
+    assert.strictEqual(freshEntry.inboundCount, 1)
   })
 })

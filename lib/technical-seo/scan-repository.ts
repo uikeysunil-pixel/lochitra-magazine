@@ -7,6 +7,7 @@ import type {
   DiagnosticProblem,
   Finding,
   PlanId,
+  ScanResult,
 } from './types'
 
 export async function getScanRecord(scanId: string) {
@@ -370,6 +371,7 @@ async function persistCrawledPages(scanId: string, result: CrawlResult) {
         http_status,
         duration_ms,
         scanned_at,
+        result_json,
         updated_at
       )
       values (
@@ -382,6 +384,7 @@ async function persistCrawledPages(scanId: string, result: CrawlResult) {
         ${page.httpStatus},
         ${page.durationMs},
         now(),
+        ${page.resultJson ? JSON.stringify(page.resultJson) : null}::jsonb,
         now()
       )
       on conflict (scan_id, normalized_url) do update set
@@ -392,20 +395,26 @@ async function persistCrawledPages(scanId: string, result: CrawlResult) {
         http_status = excluded.http_status,
         duration_ms = excluded.duration_ms,
         scanned_at = excluded.scanned_at,
+        result_json = coalesce(excluded.result_json, seo_scan_urls.result_json),
         updated_at = now()
     `
   }
 }
 
-export async function saveScanCheckpoint(input: {
-  scanId: string
-  checkpoint: CrawlCheckpoint
-  newPages: CrawlPage[]
-  pagesChecked: number
-  pagesDiscovered: number
-  progressPercent: number
-  expectedSequence?: number | null
-}): Promise<boolean> {
+export async function saveScanCheckpoint(
+  input: {
+    scanId: string
+    checkpoint: CrawlCheckpoint
+    newPages: CrawlPage[]
+    pagesChecked: number
+    pagesDiscovered: number
+    progressPercent: number
+    expectedSequence?: number | null
+    legacyPages?: ScanResult[]
+  },
+  deps?: { sql?: typeof sql }
+): Promise<boolean> {
+  const sqlClient = deps?.sql ?? sql
   const expectedSeq =
     input.expectedSequence !== undefined
       ? input.expectedSequence
@@ -413,39 +422,71 @@ export async function saveScanCheckpoint(input: {
         ? null
         : input.checkpoint.sequence - 1
 
-  const result = await (expectedSeq === null
-    ? sql`
-        update seo_scans
-        set
-          pages_checked = ${input.pagesChecked},
-          pages_discovered = ${input.pagesDiscovered},
-          progress_percent = ${input.progressPercent},
-          checkpoint_json = ${JSON.stringify(input.checkpoint)}::jsonb,
-          updated_at = now()
-        where id = ${input.scanId}::uuid
-          and checkpoint_json is null
-        returning id
-      `
-    : sql`
-        update seo_scans
-        set
-          pages_checked = ${input.pagesChecked},
-          pages_discovered = ${input.pagesDiscovered},
-          progress_percent = ${input.progressPercent},
-          checkpoint_json = ${JSON.stringify(input.checkpoint)}::jsonb,
-          updated_at = now()
-        where id = ${input.scanId}::uuid
-          and checkpoint_json is not null
-          and (checkpoint_json->>'sequence')::int = ${expectedSeq}
-        returning id
-      `)
+  // Extract and normalize any legacy page results from checkpoint or explicit legacyPages input
+  const candidateLegacy: ScanResult[] = [
+    ...(input.checkpoint.pageResults ?? []),
+    ...(input.legacyPages ?? []),
+  ]
 
-  if (result.length === 0) {
-    return false
+  const legacyScanResults: ScanResult[] = []
+  const seenLegacyUrls = new Set<string>()
+
+  for (let i = 0; i < candidateLegacy.length; i++) {
+    const page = candidateLegacy[i]
+    if (!page) continue
+    const key = page.finalUrl || page.url
+    if (!seenLegacyUrls.has(key)) {
+      seenLegacyUrls.add(key)
+      if (typeof page.pagesChecked !== 'number') {
+        page.pagesChecked = i + 1
+      }
+      legacyScanResults.push(page)
+    }
+  }
+
+  const depthMap = input.checkpoint.pageDepthMap
+    ? input.checkpoint.pageDepthMap instanceof Map
+      ? input.checkpoint.pageDepthMap
+      : new Map(input.checkpoint.pageDepthMap)
+    : null
+
+  const legacyCrawlPages: CrawlPage[] = legacyScanResults.map((p) => ({
+    url: p.url,
+    finalUrl: p.finalUrl,
+    httpStatus: p.httpStatus,
+    durationMs: p.durationMs,
+    findingsCount: p.findings?.length ?? 0,
+    state: p.httpStatus >= 400 ? 'failed' : 'complete',
+    depth: depthMap?.get(p.finalUrl) ?? depthMap?.get(p.url) ?? null,
+    resultJson: p,
+  }))
+
+  // Combine legacy and new pages, preserving legacy order and avoiding duplicates
+  const pagesToPersist: CrawlPage[] = []
+  const seenPersistUrls = new Set<string>()
+
+  // New pages override legacy if duplicate URL exists
+  const newUrls = new Set(input.newPages.map((p) => p.finalUrl || p.url))
+
+  for (const page of legacyCrawlPages) {
+    const key = page.finalUrl || page.url
+    if (!newUrls.has(key) && !seenPersistUrls.has(key)) {
+      seenPersistUrls.add(key)
+      pagesToPersist.push(page)
+    }
   }
 
   for (const page of input.newPages) {
-    await sql`
+    const key = page.finalUrl || page.url
+    if (!seenPersistUrls.has(key)) {
+      seenPersistUrls.add(key)
+      pagesToPersist.push(page)
+    }
+  }
+
+  // 1. FIRST: Persist all page results (legacy + new) to seo_scan_urls.result_json using idempotent ON CONFLICT
+  for (const page of pagesToPersist) {
+    await sqlClient`
       insert into seo_scan_urls (
         scan_id,
         url,
@@ -456,6 +497,7 @@ export async function saveScanCheckpoint(input: {
         http_status,
         duration_ms,
         scanned_at,
+        result_json,
         updated_at
       )
       values (
@@ -468,6 +510,7 @@ export async function saveScanCheckpoint(input: {
         ${page.httpStatus},
         ${page.durationMs},
         now(),
+        ${page.resultJson ? JSON.stringify(page.resultJson) : null}::jsonb,
         now()
       )
       on conflict (scan_id, normalized_url) do update set
@@ -478,15 +521,57 @@ export async function saveScanCheckpoint(input: {
         http_status = excluded.http_status,
         duration_ms = excluded.duration_ms,
         scanned_at = excluded.scanned_at,
+        result_json = coalesce(excluded.result_json, seo_scan_urls.result_json),
         updated_at = now()
     `
+  }
+
+  // 2. Prepare lean checkpoint: ensure pageResults and internalInboundGraph are eliminated from checkpoint_json
+  const leanCheckpoint: CrawlCheckpoint = { ...input.checkpoint }
+  delete leanCheckpoint.pageResults
+  delete leanCheckpoint.internalInboundGraph
+
+  // 3. THEN: Perform the CAS checkpoint update on seo_scans with leanCheckpoint
+  const result = await (expectedSeq === null
+    ? sqlClient`
+        update seo_scans
+        set
+          pages_checked = ${input.pagesChecked},
+          pages_discovered = ${input.pagesDiscovered},
+          progress_percent = ${input.progressPercent},
+          checkpoint_json = ${JSON.stringify(leanCheckpoint)}::jsonb,
+          updated_at = now()
+        where id = ${input.scanId}::uuid
+          and checkpoint_json is null
+        returning id
+      `
+    : sqlClient`
+        update seo_scans
+        set
+          pages_checked = ${input.pagesChecked},
+          pages_discovered = ${input.pagesDiscovered},
+          progress_percent = ${input.progressPercent},
+          checkpoint_json = ${JSON.stringify(leanCheckpoint)}::jsonb,
+          updated_at = now()
+        where id = ${input.scanId}::uuid
+          and checkpoint_json is not null
+          and (checkpoint_json->>'sequence')::int = ${expectedSeq}
+        returning id
+      `)
+
+  if (result.length === 0) {
+    return false
   }
 
   return true
 }
 
-export async function getScanCheckpoint(scanId: string): Promise<CrawlCheckpoint | null> {
-  const rows = await sql`
+export async function getScanCheckpoint(
+  scanId: string,
+  deps?: { sql?: typeof sql }
+): Promise<CrawlCheckpoint | null> {
+  const sqlClient = deps?.sql ?? sql
+  const rows = await sqlClient`
     select checkpoint_json
     from seo_scans
     where id = ${scanId}::uuid
@@ -494,6 +579,42 @@ export async function getScanCheckpoint(scanId: string): Promise<CrawlCheckpoint
   `
 
   return (rows[0]?.checkpoint_json as CrawlCheckpoint) ?? null
+}
+
+export async function getScanPageResults(
+  scanId: string,
+  batchSize = 50,
+  deps?: { sql?: typeof sql }
+): Promise<ScanResult[]> {
+  const sqlClient = deps?.sql ?? sql
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(batchSize)))
+  const results: ScanResult[] = []
+  let offset = 0
+
+  while (true) {
+    const rows = await sqlClient`
+      select result_json
+      from seo_scan_urls
+      where scan_id = ${scanId}::uuid
+        and result_json is not null
+      order by coalesce((result_json->>'pagesChecked')::int, 0) asc, id asc
+      limit ${safeLimit}
+      offset ${offset}
+    `
+
+    if (rows.length === 0) break
+
+    for (const row of rows) {
+      if (row.result_json) {
+        results.push(row.result_json as ScanResult)
+      }
+    }
+
+    if (rows.length < safeLimit) break
+    offset += rows.length
+  }
+
+  return results
 }
 
 export async function completeScanRecord(scanId: string, result: CrawlResult) {

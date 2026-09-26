@@ -170,47 +170,384 @@ export default async function TechnicalSEOReportPage({
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
-            <section>
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Findings</h2>
+            <section className="space-y-8">
+              {result.architecture && (
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+                  <div className="flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+                    <div>
+                      <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                        Site Architecture & Structure
+                      </h2>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Crawl depth distribution, canonical configuration, and internal linking
+                        hierarchy.
+                      </p>
+                    </div>
+                    <span className="inline-flex w-fit items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                      Full Plan Diagnostic
+                    </span>
+                  </div>
 
-              {findings.length === 0 ? (
-                <div className="mt-4 rounded-2xl border border-gray-200 p-5 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
-                  No findings were recorded for this scan.
-                </div>
-              ) : (
-                <div className="mt-4 space-y-4">
-                  {findings.map((finding) => (
-                    <article
-                      key={finding.id}
-                      className={`rounded-2xl border p-5 ${severityClass(finding.severity)}`}
-                    >
-                      <div className="text-[11px] font-bold tracking-wide uppercase">
-                        {finding.severity} · {finding.category} · {finding.confidence} confidence
+                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                        {result.architecture.maxDepth ?? 0}{' '}
+                        {result.architecture.maxDepth === 1 ? 'click' : 'clicks'}
                       </div>
-                      <h3 className="mt-2 text-base font-extrabold">{finding.title}</h3>
-                      <p className="mt-2 text-sm leading-6">{finding.summary}</p>
+                      <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                        Max Crawl Depth
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                        {result.architecture.canonicalSummary?.selfCanonicalCount ?? 0}
+                      </div>
+                      <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                        Self-Canonical
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                        {result.architecture.canonicalSummary?.crossPageCanonicalCount ?? 0}
+                      </div>
+                      <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                        Cross-Page Canonical
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                        {result.architecture.canonicalSummary?.missingCanonicalCount ?? 0}
+                      </div>
+                      <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                        Missing Canonical
+                      </div>
+                    </div>
+                  </div>
 
-                      <div className="mt-4">
-                        <div className="text-xs font-bold tracking-wide uppercase opacity-80">
-                          Evidence
+                  {Object.keys(result.architecture.depthDistribution || {}).length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                        Crawl Depth Distribution
+                      </h3>
+                      <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {Object.entries(result.architecture.depthDistribution)
+                          .sort(([a], [b]) => Number(a) - Number(b))
+                          .map(([depth, count]) => (
+                            <div
+                              key={depth}
+                              className="flex items-center justify-between rounded-lg border border-gray-200/80 bg-gray-50/50 px-3 py-2 text-xs dark:border-gray-800 dark:bg-gray-900/40"
+                            >
+                              <span className="font-medium text-gray-600 dark:text-gray-400">
+                                {depth === '0' ? 'Depth 0 (Root)' : `Depth ${depth}`}
+                              </span>
+                              <span className="font-bold text-gray-900 dark:text-gray-100">
+                                {count} {count === 1 ? 'page' : 'pages'}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {result.architecture.sectionDistribution &&
+                    result.architecture.sectionDistribution.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                          Directory & Section Breakdown
+                        </h3>
+                        <div className="mt-2.5 max-h-56 overflow-y-auto rounded-xl border border-gray-200/80 dark:border-gray-800">
+                          <div className="divide-y divide-gray-100 text-xs dark:divide-gray-800/80">
+                            {result.architecture.sectionDistribution.map((sec) => (
+                              <div
+                                key={sec.path}
+                                className="flex items-center justify-between px-3.5 py-2"
+                              >
+                                <span className="font-mono text-gray-700 dark:text-gray-300">
+                                  {sec.path}
+                                </span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  {sec.pageCount} {sec.pageCount === 1 ? 'page' : 'pages'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <ul className="mt-1 space-y-1 text-sm">
-                          {finding.evidence.map((item) => (
-                            <li key={item}>• {item}</li>
+                      </div>
+                    )}
+
+                  {result.architecture.topLinkedUrls &&
+                    result.architecture.topLinkedUrls.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                          Top Internally Linked URLs
+                        </h3>
+                        <div className="mt-2.5 max-h-64 overflow-y-auto rounded-xl border border-gray-200/80 dark:border-gray-800">
+                          <div className="divide-y divide-gray-100 text-xs dark:divide-gray-800/80">
+                            {result.architecture.topLinkedUrls.slice(0, 15).map((item, idx) => (
+                              <div
+                                key={item.url}
+                                className="flex items-center justify-between gap-3 px-3.5 py-2"
+                              >
+                                <span className="truncate font-mono text-gray-600 dark:text-gray-400">
+                                  {idx + 1}. {item.url}
+                                </span>
+                                <span className="shrink-0 rounded bg-blue-50 px-2 py-0.5 font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                  {item.inboundCount} links
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  <div className="mt-6">
+                    <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                      Orphan Page Candidates
+                    </h3>
+                    {!result.architecture.orphanCandidates ||
+                    result.architecture.orphanCandidates.length === 0 ? (
+                      <div className="mt-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                        ✓ No orphan candidates identified. All discovered sitemap URLs are reachable
+                        via internal links.
+                      </div>
+                    ) : (
+                      <div className="mt-2.5 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs dark:border-amber-900/60 dark:bg-amber-950/30">
+                        <div className="font-bold text-amber-900 dark:text-amber-200">
+                          {result.architecture.orphanCandidates.length} sitemap URLs with 0 inbound
+                          crawl links:
+                        </div>
+                        <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto font-mono text-amber-800 dark:text-amber-300">
+                          {result.architecture.orphanCandidates.map((url) => (
+                            <li key={url} className="truncate">
+                              • {url}
+                            </li>
                           ))}
                         </ul>
                       </div>
-
-                      <div className="mt-4">
-                        <div className="text-xs font-bold tracking-wide uppercase opacity-80">
-                          Recommended action
-                        </div>
-                        <p className="mt-1 text-sm leading-6">{finding.recommendation}</p>
-                      </div>
-                    </article>
-                  ))}
+                    )}
+                  </div>
                 </div>
               )}
+
+              {result.duplicates && (
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+                  <div className="flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+                    <div>
+                      <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                        Duplicate & Canonical Conflict Analysis
+                      </h2>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Content collision detection, tracking parameter variants, and conflicting
+                        canonical tags.
+                      </p>
+                    </div>
+                    <span className="inline-flex w-fit items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                      Full Plan Diagnostic
+                    </span>
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                      Duplicate Title Groups ({result.duplicates.titleDuplicateGroups?.length ?? 0})
+                    </h3>
+                    {!result.duplicates.titleDuplicateGroups ||
+                    result.duplicates.titleDuplicateGroups.length === 0 ? (
+                      <div className="mt-2 rounded-xl border border-gray-200/80 bg-gray-50/50 p-3.5 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-400">
+                        ✓ No duplicate title groups identified. All crawled pages have unique title
+                        tags.
+                      </div>
+                    ) : (
+                      <div className="mt-2 space-y-3">
+                        {result.duplicates.titleDuplicateGroups.map((group, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-xl border border-gray-200/80 p-3.5 text-xs dark:border-gray-800"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-bold text-gray-900 dark:text-gray-100">
+                                "{group.title}"
+                              </span>
+                              <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                {group.urls.length} pages
+                              </span>
+                            </div>
+                            <ul className="mt-2 space-y-1 font-mono text-gray-600 dark:text-gray-400">
+                              {group.urls.map((u) => (
+                                <li key={u} className="truncate">
+                                  • {u}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                      Duplicate Meta-Description Groups (
+                      {result.duplicates.descriptionDuplicateGroups?.length ?? 0})
+                    </h3>
+                    {!result.duplicates.descriptionDuplicateGroups ||
+                    result.duplicates.descriptionDuplicateGroups.length === 0 ? (
+                      <div className="mt-2 rounded-xl border border-gray-200/80 bg-gray-50/50 p-3.5 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-400">
+                        ✓ No duplicate meta-description groups identified. All crawled pages have
+                        unique descriptions.
+                      </div>
+                    ) : (
+                      <div className="mt-2 space-y-3">
+                        {result.duplicates.descriptionDuplicateGroups.map((group, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-xl border border-gray-200/80 p-3.5 text-xs dark:border-gray-800"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="text-gray-800 italic dark:text-gray-200">
+                                "{group.description}"
+                              </span>
+                              <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                {group.urls.length} pages
+                              </span>
+                            </div>
+                            <ul className="mt-2 space-y-1 font-mono text-gray-600 dark:text-gray-400">
+                              {group.urls.map((u) => (
+                                <li key={u} className="truncate">
+                                  • {u}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                      URL Parameter Variations (
+                      {result.duplicates.parameterVariationGroups?.length ?? 0})
+                    </h3>
+                    {!result.duplicates.parameterVariationGroups ||
+                    result.duplicates.parameterVariationGroups.length === 0 ? (
+                      <div className="mt-2 rounded-xl border border-gray-200/80 bg-gray-50/50 p-3.5 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-400">
+                        ✓ No parameter variation groups identified. No query parameter duplicate
+                        variations detected.
+                      </div>
+                    ) : (
+                      <div className="mt-2 space-y-3">
+                        {result.duplicates.parameterVariationGroups.map((group, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-xl border border-gray-200/80 p-3.5 text-xs dark:border-gray-800"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-mono font-bold text-gray-900 dark:text-gray-100">
+                                Base: {group.baseUrl}
+                              </span>
+                              <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                {group.variations.length} variations
+                              </span>
+                            </div>
+                            <ul className="mt-2 space-y-1 font-mono text-gray-600 dark:text-gray-400">
+                              {group.variations.map((v) => (
+                                <li key={v} className="truncate">
+                                  • {v}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                      Canonical Conflict Groups (
+                      {result.duplicates.canonicalConflictGroups?.length ?? 0})
+                    </h3>
+                    {!result.duplicates.canonicalConflictGroups ||
+                    result.duplicates.canonicalConflictGroups.length === 0 ? (
+                      <div className="mt-2 rounded-xl border border-gray-200/80 bg-gray-50/50 p-3.5 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-400">
+                        ✓ No canonical conflict groups identified. Canonical declarations point to
+                        consistent targets.
+                      </div>
+                    ) : (
+                      <div className="mt-2 space-y-3">
+                        {result.duplicates.canonicalConflictGroups.map((group, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-xl border border-gray-200/80 p-3.5 text-xs dark:border-gray-800"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-mono font-bold text-gray-900 dark:text-gray-100">
+                                Target: {group.canonicalUrl}
+                              </span>
+                              <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                {group.declaredOnUrls.length} pages
+                              </span>
+                            </div>
+                            <ul className="mt-2 space-y-1 font-mono text-gray-600 dark:text-gray-400">
+                              {group.declaredOnUrls.map((u) => (
+                                <li key={u} className="truncate">
+                                  • Declared on: {u}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                  Findings
+                </h2>
+
+                {findings.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-gray-200 p-5 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
+                    No findings were recorded for this scan.
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    {findings.map((finding) => (
+                      <article
+                        key={finding.id}
+                        className={`rounded-2xl border p-5 ${severityClass(finding.severity)}`}
+                      >
+                        <div className="text-[11px] font-bold tracking-wide uppercase">
+                          {finding.severity} · {finding.category} · {finding.confidence} confidence
+                        </div>
+                        <h3 className="mt-2 text-base font-extrabold">{finding.title}</h3>
+                        <p className="mt-2 text-sm leading-6">{finding.summary}</p>
+
+                        <div className="mt-4">
+                          <div className="text-xs font-bold tracking-wide uppercase opacity-80">
+                            Evidence
+                          </div>
+                          <ul className="mt-1 space-y-1 text-sm">
+                            {finding.evidence.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="mt-4">
+                          <div className="text-xs font-bold tracking-wide uppercase opacity-80">
+                            Recommended action
+                          </div>
+                          <p className="mt-1 text-sm leading-6">{finding.recommendation}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
             </section>
 
             <aside className="h-fit rounded-2xl border border-gray-200 p-5 dark:border-gray-800">

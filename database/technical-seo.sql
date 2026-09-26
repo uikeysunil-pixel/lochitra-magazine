@@ -55,6 +55,7 @@ create table if not exists seo_scan_urls (
   duration_ms integer,
   scanned_at timestamptz,
   last_error text,
+  result_json jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (scan_id, normalized_url)

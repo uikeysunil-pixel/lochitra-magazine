@@ -96,6 +96,7 @@ export interface CrawlPage {
   findingsCount?: number
   state: 'complete' | 'failed'
   depth?: number | null
+  resultJson?: ScanResult | null
 }
 
 export interface CrawlQueueItem {
@@ -114,9 +115,10 @@ export interface CrawlCheckpoint {
   queued: CrawlQueueItem[]
   seen: string[]
   sitemapDiscoveredUrls: string[]
-  internalInboundGraph: Array<[string, string[]]>
+  internalInboundGraph?: Array<[string, string[]]>
   pageDepthMap: Array<[string, number | null]>
-  pageResults: ScanResult[]
+  pageResults?: ScanResult[]
+  pagesChecked: number
   crawlErrors: number
   urlsBlockedByRobots: number
   finalOrigin: string | null

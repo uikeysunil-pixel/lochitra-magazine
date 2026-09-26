@@ -1,7 +1,13 @@
 import PDFDocument from 'pdfkit'
 import { NextResponse } from 'next/server'
 import { getScanRecord, verifyReportAccessToken } from '@/lib/technical-seo/scan-repository'
-import type { CrawlResult, DiagnosticProblem, Finding } from '@/lib/technical-seo/types'
+import type {
+  ArchitectureSummary,
+  CrawlResult,
+  DiagnosticProblem,
+  DuplicateCandidateSummary,
+  Finding,
+} from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -446,7 +452,437 @@ function drawFooters(doc: PDFKit.PDFDocument) {
   }
 }
 
-async function buildPdf(input: {
+function drawArchitecture(doc: PDFKit.PDFDocument, architecture: ArchitectureSummary) {
+  const left = doc.page.margins.left
+  const width = doc.page.width - doc.page.margins.left - doc.page.margins.right
+
+  ensureSpace(doc, 50)
+  doc.font('Helvetica-Bold').fontSize(8).fillColor(PALETTE.textMuted)
+  doc.text('SITE ARCHITECTURE & STRUCTURE', left, doc.y, { lineBreak: true })
+  doc.y += 5
+
+  // 1. Stat cards: Max Depth + Canonical Summary (4 cards)
+  const gap = 8
+  const cardWidth = (width - gap * 3) / 4
+  const cardHeight = 36
+  const cardsY = doc.y
+
+  const archCards = [
+    {
+      label: 'MAX CRAWL DEPTH',
+      value: `${architecture.maxDepth ?? 0} ${architecture.maxDepth === 1 ? 'click' : 'clicks'}`,
+    },
+    {
+      label: 'SELF-CANONICAL',
+      value: String(architecture.canonicalSummary?.selfCanonicalCount ?? 0),
+    },
+    {
+      label: 'CROSS-PAGE CANONICAL',
+      value: String(architecture.canonicalSummary?.crossPageCanonicalCount ?? 0),
+    },
+    {
+      label: 'MISSING CANONICAL',
+      value: String(architecture.canonicalSummary?.missingCanonicalCount ?? 0),
+    },
+  ]
+
+  archCards.forEach((c, i) => {
+    const cardX = left + i * (cardWidth + gap)
+    doc
+      .roundedRect(cardX, cardsY, cardWidth, cardHeight, 4)
+      .fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+    doc.font('Helvetica-Bold').fontSize(13).fillColor(PALETTE.textPrimary)
+    doc.text(c.value, cardX, cardsY + 6, {
+      width: cardWidth,
+      align: 'center',
+      lineBreak: false,
+    })
+    doc.font('Helvetica-Bold').fontSize(6).fillColor(PALETTE.textMuted)
+    doc.text(c.label, cardX, cardsY + 22, {
+      width: cardWidth,
+      align: 'center',
+      lineBreak: false,
+    })
+  })
+
+  doc.y = cardsY + cardHeight + 10
+
+  // 2. Crawl Depth Distribution
+  const depthEntries = Object.entries(architecture.depthDistribution || {}).sort(
+    ([a], [b]) => Number(a) - Number(b)
+  )
+
+  if (depthEntries.length > 0) {
+    const totalPages = depthEntries.reduce((acc, [_, count]) => acc + count, 0)
+    const boxHeight = 32
+    ensureSpace(doc, boxHeight + 18)
+
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+    doc.text('CRAWL DEPTH DISTRIBUTION', left, doc.y, { lineBreak: true })
+    doc.y += 3
+
+    const dBoxY = doc.y
+    doc
+      .roundedRect(left, dBoxY, width, boxHeight, 4)
+      .fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+
+    const numCols = Math.min(depthEntries.length, 6)
+    const colW = (width - 16) / numCols
+
+    depthEntries.slice(0, numCols).forEach(([depth, count], idx) => {
+      const pct = totalPages > 0 ? Math.round((count / totalPages) * 100) : 0
+      const cX = left + 8 + idx * colW
+      const label = depth === '0' ? 'Depth 0 (Root)' : `Depth ${depth}`
+      doc.font('Helvetica-Bold').fontSize(6.5).fillColor(PALETTE.textMuted)
+      doc.text(label, cX, dBoxY + 5, { width: colW, lineBreak: false })
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PALETTE.textPrimary)
+      doc.text(`${count} (${pct}%)`, cX, dBoxY + 16, { width: colW, lineBreak: false })
+    })
+
+    doc.y = dBoxY + boxHeight + 10
+  }
+
+  // 3. Section Distribution
+  const sections = (architecture.sectionDistribution || []).slice(0, 8)
+  if (sections.length > 0) {
+    const rowH = 14
+    const boxH = Math.ceil(sections.length / 2) * rowH + 10
+    ensureSpace(doc, boxH + 18)
+
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+    doc.text('DIRECTORY & SECTION BREAKDOWN', left, doc.y, { lineBreak: true })
+    doc.y += 3
+
+    const sBoxY = doc.y
+    doc.roundedRect(left, sBoxY, width, boxH, 4).fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+
+    const half = Math.ceil(sections.length / 2)
+    const colW = (width - 24) / 2
+
+    for (let i = 0; i < sections.length; i++) {
+      const isRight = i >= half
+      const rowIdx = isRight ? i - half : i
+      const colX = isRight ? left + width / 2 + 6 : left + 8
+      const itemY = sBoxY + 6 + rowIdx * rowH
+
+      doc.font('Helvetica').fontSize(7).fillColor(PALETTE.textSecondary)
+      doc.text(cleanText(sections[i].path), colX, itemY, { width: colW - 55, lineBreak: false })
+      doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+      doc.text(`${sections[i].pageCount} pages`, colX, itemY, {
+        width: colW,
+        align: 'right',
+        lineBreak: false,
+      })
+    }
+
+    doc.y = sBoxY + boxH + 10
+  }
+
+  // 4. Top Internally Linked URLs
+  const topLinks = (architecture.topLinkedUrls || []).slice(0, 8)
+  if (topLinks.length > 0) {
+    const rowH = 14
+    const boxH = topLinks.length * rowH + 10
+    ensureSpace(doc, boxH + 18)
+
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+    doc.text('TOP INTERNALLY LINKED PAGES', left, doc.y, { lineBreak: true })
+    doc.y += 3
+
+    const tBoxY = doc.y
+    doc.roundedRect(left, tBoxY, width, boxH, 4).fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+
+    topLinks.forEach((item, idx) => {
+      const itemY = tBoxY + 6 + idx * rowH
+      doc.font('Helvetica').fontSize(7).fillColor(PALETTE.textSecondary)
+      doc.text(`${idx + 1}. ${cleanText(item.url)}`, left + 8, itemY, {
+        width: width - 85,
+        lineBreak: false,
+      })
+      doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.brand)
+      doc.text(`${item.inboundCount} links`, left + 8, itemY, {
+        width: width - 16,
+        align: 'right',
+        lineBreak: false,
+      })
+    })
+
+    doc.y = tBoxY + boxH + 10
+  }
+
+  // 5. Orphan Candidates
+  const orphans = architecture.orphanCandidates || []
+  ensureSpace(doc, 40)
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+  doc.text(`ORPHAN PAGE CANDIDATES (${orphans.length})`, left, doc.y, { lineBreak: true })
+  doc.y += 3
+
+  if (orphans.length === 0) {
+    const boxH = 22
+    doc.roundedRect(left, doc.y, width, boxH, 4).fillAndStroke('#F0FDF4', '#BBF7D0')
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor('#166534')
+      .text(
+        'No orphan candidates identified. All discovered sitemap URLs are reachable via internal links.',
+        left + 10,
+        doc.y + 7,
+        {
+          width: width - 20,
+          lineBreak: false,
+        }
+      )
+    doc.y += boxH + 12
+  } else {
+    const displayOrphans = orphans.slice(0, 6)
+    const boxH = displayOrphans.length * 13 + 18
+    doc.roundedRect(left, doc.y, width, boxH, 4).fillAndStroke('#FEF2F2', '#FECACA')
+    doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#991B1B')
+    doc.text('Sitemap URLs with 0 inbound internal links identified:', left + 8, doc.y + 6, {
+      width: width - 16,
+      lineBreak: false,
+    })
+    displayOrphans.forEach((u, i) => {
+      doc.font('Helvetica').fontSize(6.5).fillColor('#7F1D1D')
+      doc.text(`• ${cleanText(u)}`, left + 12, doc.y + 16 + i * 13, {
+        width: width - 24,
+        lineBreak: false,
+      })
+    })
+    if (orphans.length > displayOrphans.length) {
+      doc.font('Helvetica-Oblique').fontSize(6).fillColor('#991B1B')
+      doc.text(
+        `+ ${orphans.length - displayOrphans.length} more orphan candidate URLs`,
+        left + 12,
+        doc.y + 16 + displayOrphans.length * 13,
+        {
+          width: width - 24,
+          lineBreak: false,
+        }
+      )
+    }
+    doc.y += boxH + 12
+  }
+}
+
+function drawDuplicates(doc: PDFKit.PDFDocument, duplicates: DuplicateCandidateSummary) {
+  const left = doc.page.margins.left
+  const width = doc.page.width - doc.page.margins.left - doc.page.margins.right
+
+  ensureSpace(doc, 45)
+  doc.font('Helvetica-Bold').fontSize(8).fillColor(PALETTE.textMuted)
+  doc.text('DUPLICATE & CANONICAL CONFLICT ANALYSIS', left, doc.y, { lineBreak: true })
+  doc.y += 5
+
+  // 1. Duplicate Title Groups
+  const titleGroups = duplicates.titleDuplicateGroups || []
+  ensureSpace(doc, 35)
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+  doc.text(`DUPLICATE TITLE GROUPS (${titleGroups.length})`, left, doc.y, { lineBreak: true })
+  doc.y += 3
+
+  if (titleGroups.length === 0) {
+    const boxH = 22
+    doc.roundedRect(left, doc.y, width, boxH, 4).fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor(PALETTE.textMuted)
+      .text(
+        'No duplicate title groups identified. All crawled pages have unique title tags.',
+        left + 10,
+        doc.y + 7,
+        {
+          width: width - 20,
+          lineBreak: false,
+        }
+      )
+    doc.y += boxH + 8
+  } else {
+    titleGroups.slice(0, 4).forEach((group) => {
+      const urls = (group.urls || []).slice(0, 3)
+      const cardH = 20 + urls.length * 12
+      ensureSpace(doc, cardH + 5)
+      const cY = doc.y
+      doc.roundedRect(left, cY, width, cardH, 4).fillAndStroke('#FFFFFF', PALETTE.border)
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PALETTE.textPrimary)
+      doc.text(`"${cleanText(group.title)}" (${group.urls.length} pages)`, left + 8, cY + 5, {
+        width: width - 16,
+        lineBreak: false,
+      })
+      urls.forEach((u, i) => {
+        doc.font('Helvetica').fontSize(6.5).fillColor(PALETTE.textSecondary)
+        doc.text(`• ${cleanText(u)}`, left + 12, cY + 18 + i * 12, {
+          width: width - 24,
+          lineBreak: false,
+        })
+      })
+      doc.y = cY + cardH + 6
+    })
+    doc.y += 4
+  }
+
+  // 2. Duplicate Meta-Description Groups
+  const descGroups = duplicates.descriptionDuplicateGroups || []
+  ensureSpace(doc, 35)
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+  doc.text(`DUPLICATE META-DESCRIPTION GROUPS (${descGroups.length})`, left, doc.y, {
+    lineBreak: true,
+  })
+  doc.y += 3
+
+  if (descGroups.length === 0) {
+    const boxH = 22
+    doc.roundedRect(left, doc.y, width, boxH, 4).fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor(PALETTE.textMuted)
+      .text(
+        'No duplicate meta-description groups identified. All crawled pages have unique descriptions.',
+        left + 10,
+        doc.y + 7,
+        {
+          width: width - 20,
+          lineBreak: false,
+        }
+      )
+    doc.y += boxH + 8
+  } else {
+    descGroups.slice(0, 4).forEach((group) => {
+      const urls = (group.urls || []).slice(0, 3)
+      const cardH = 20 + urls.length * 12
+      ensureSpace(doc, cardH + 5)
+      const cY = doc.y
+      doc.roundedRect(left, cY, width, cardH, 4).fillAndStroke('#FFFFFF', PALETTE.border)
+      doc.font('Helvetica-Oblique').fontSize(7).fillColor(PALETTE.textPrimary)
+      const descSnippet =
+        group.description.length > 90 ? group.description.slice(0, 87) + '...' : group.description
+      doc.text(`"${cleanText(descSnippet)}" (${group.urls.length} pages)`, left + 8, cY + 5, {
+        width: width - 16,
+        lineBreak: false,
+      })
+      urls.forEach((u, i) => {
+        doc.font('Helvetica').fontSize(6.5).fillColor(PALETTE.textSecondary)
+        doc.text(`• ${cleanText(u)}`, left + 12, cY + 18 + i * 12, {
+          width: width - 24,
+          lineBreak: false,
+        })
+      })
+      doc.y = cY + cardH + 6
+    })
+    doc.y += 4
+  }
+
+  // 3. Parameter Variation Groups
+  const paramGroups = duplicates.parameterVariationGroups || []
+  ensureSpace(doc, 35)
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+  doc.text(`URL PARAMETER VARIATIONS (${paramGroups.length})`, left, doc.y, { lineBreak: true })
+  doc.y += 3
+
+  if (paramGroups.length === 0) {
+    const boxH = 22
+    doc.roundedRect(left, doc.y, width, boxH, 4).fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor(PALETTE.textMuted)
+      .text(
+        'No parameter variation groups identified. No query parameter duplicate variations detected.',
+        left + 10,
+        doc.y + 7,
+        {
+          width: width - 20,
+          lineBreak: false,
+        }
+      )
+    doc.y += boxH + 8
+  } else {
+    paramGroups.slice(0, 4).forEach((group) => {
+      const vars = (group.variations || []).slice(0, 3)
+      const cardH = 20 + vars.length * 12
+      ensureSpace(doc, cardH + 5)
+      const cY = doc.y
+      doc.roundedRect(left, cY, width, cardH, 4).fillAndStroke('#FFFFFF', PALETTE.border)
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PALETTE.textPrimary)
+      doc.text(
+        `Base: ${cleanText(group.baseUrl)} (${group.variations.length} variations)`,
+        left + 8,
+        cY + 5,
+        {
+          width: width - 16,
+          lineBreak: false,
+        }
+      )
+      vars.forEach((v, i) => {
+        doc.font('Helvetica').fontSize(6.5).fillColor(PALETTE.textSecondary)
+        doc.text(`• ${cleanText(v)}`, left + 12, cY + 18 + i * 12, {
+          width: width - 24,
+          lineBreak: false,
+        })
+      })
+      doc.y = cY + cardH + 6
+    })
+    doc.y += 4
+  }
+
+  // 4. Canonical Conflict Groups
+  const canonGroups = duplicates.canonicalConflictGroups || []
+  ensureSpace(doc, 35)
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(PALETTE.textPrimary)
+  doc.text(`CANONICAL CONFLICT GROUPS (${canonGroups.length})`, left, doc.y, { lineBreak: true })
+  doc.y += 3
+
+  if (canonGroups.length === 0) {
+    const boxH = 22
+    doc.roundedRect(left, doc.y, width, boxH, 4).fillAndStroke(PALETTE.surfaceBg, PALETTE.border)
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor(PALETTE.textMuted)
+      .text(
+        'No canonical conflict groups identified. Canonical declarations point to consistent targets.',
+        left + 10,
+        doc.y + 7,
+        {
+          width: width - 20,
+          lineBreak: false,
+        }
+      )
+    doc.y += boxH + 12
+  } else {
+    canonGroups.slice(0, 4).forEach((group) => {
+      const urls = (group.declaredOnUrls || []).slice(0, 3)
+      const cardH = 20 + urls.length * 12
+      ensureSpace(doc, cardH + 5)
+      const cY = doc.y
+      doc.roundedRect(left, cY, width, cardH, 4).fillAndStroke('#FFFFFF', PALETTE.border)
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PALETTE.textPrimary)
+      doc.text(
+        `Target: ${cleanText(group.canonicalUrl)} (${group.declaredOnUrls.length} pages)`,
+        left + 8,
+        cY + 5,
+        {
+          width: width - 16,
+          lineBreak: false,
+        }
+      )
+      urls.forEach((u, i) => {
+        doc.font('Helvetica').fontSize(6.5).fillColor(PALETTE.textSecondary)
+        doc.text(`• Declared on: ${cleanText(u)}`, left + 12, cY + 18 + i * 12, {
+          width: width - 24,
+          lineBreak: false,
+        })
+      })
+      doc.y = cY + cardH + 6
+    })
+    doc.y += 8
+  }
+}
+
+export async function buildPdf(input: {
   scan: ScanRecord
   result: CrawlResult
   problemLabel: string
@@ -483,9 +919,20 @@ async function buildPdf(input: {
   // 3. Scan Coverage 2-column metrics
   drawCoverage(doc, scan, result)
 
-  // 4. Findings Section
+  // 4. Site Architecture & Structure (Full Plan)
+  if (result.architecture) {
+    drawArchitecture(doc, result.architecture)
+  }
+
+  // 5. Duplicate & Canonical Conflict Analysis (Full Plan)
+  if (result.duplicates) {
+    drawDuplicates(doc, result.duplicates)
+  }
+
+  // 6. Findings Section
   const left = doc.page.margins.left
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right
+  ensureSpace(doc, 30)
   doc.font('Helvetica-Bold').fontSize(8).fillColor(PALETTE.textMuted)
   doc.text(`FINDINGS (${result.findings.length})`, left, doc.y, { lineBreak: true })
   doc.y += 5
@@ -522,7 +969,7 @@ async function buildPdf(input: {
     { align: 'center', width }
   )
 
-  // 5. Global Footers across all pages
+  // 7. Global Footers across all pages
   drawFooters(doc)
 
   doc.end()

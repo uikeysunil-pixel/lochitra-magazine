@@ -12,6 +12,7 @@ import {
   completeScanRecord,
   failScanRecord,
   getScanCheckpoint,
+  getScanPageResults,
   markScanRunning,
   saveScanCheckpoint,
 } from '@/lib/technical-seo/scan-repository'
@@ -84,14 +85,11 @@ export const technicalSeoScan = inngest.createFunction(
 
           const serialized = serializeCrawlState(updatedState)
           const progressPercent =
-            updatedState.pageResults.length === 0
+            updatedState.pagesChecked === 0
               ? 0
               : Math.min(
                   99,
-                  Math.max(
-                    1,
-                    Math.round((updatedState.pageResults.length / updatedState.maxUrls) * 100)
-                  )
+                  Math.max(1, Math.round((updatedState.pagesChecked / updatedState.maxUrls) * 100))
                 )
 
           const crawlPages: CrawlPage[] = newPages.map((p) => ({
@@ -105,13 +103,18 @@ export const technicalSeoScan = inngest.createFunction(
               updatedState.pageDepthMap.get(p.finalUrl) ??
               updatedState.pageDepthMap.get(p.url) ??
               null,
+            resultJson: p,
           }))
+
+          const legacyPages =
+            latest.pageResults && latest.pageResults.length > 0 ? latest.pageResults : undefined
 
           const saved = await saveScanCheckpoint({
             scanId: data.scanId,
             checkpoint: serialized,
             newPages: crawlPages,
-            pagesChecked: updatedState.pageResults.length,
+            legacyPages,
+            pagesChecked: updatedState.pagesChecked,
             pagesDiscovered: serialized.seen.length,
             progressPercent,
             expectedSequence: expectedPreviousSequence,
@@ -138,7 +141,21 @@ export const technicalSeoScan = inngest.createFunction(
 
       const result = await step.run('finalize-scan', async () => {
         const latest = (await getScanCheckpoint(data.scanId)) ?? checkpoint
-        const activeState = deserializeCrawlState(latest)
+        let pageResults = await getScanPageResults(data.scanId, 50)
+        if (pageResults.length === 0 && latest.pageResults && latest.pageResults.length > 0) {
+          await saveScanCheckpoint({
+            scanId: data.scanId,
+            checkpoint: latest,
+            newPages: [],
+            legacyPages: latest.pageResults,
+            pagesChecked: latest.pagesChecked ?? latest.pageResults.length,
+            pagesDiscovered: latest.seen.length,
+            progressPercent: 100,
+            expectedSequence: latest.sequence,
+          })
+          pageResults = await getScanPageResults(data.scanId, 50)
+        }
+        const activeState = deserializeCrawlState(latest, undefined, pageResults)
         const finalResult = finalizeCrawl(activeState)
         await completeScanRecord(data.scanId, finalResult)
         return {

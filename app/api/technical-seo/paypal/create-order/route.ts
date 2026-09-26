@@ -27,7 +27,41 @@ const PROBLEMS = new Set<DiagnosticProblem>([
   'unknown',
 ])
 
-export async function POST(request: Request) {
+export type SupportedPaidPlan = 'quick' | 'full'
+
+export const PAYPAL_PAID_PLAN_CONFIG: Record<
+  SupportedPaidPlan,
+  {
+    amount: string
+    maxUrls: number
+    currency: 'USD'
+  }
+> = {
+  quick: {
+    amount: '49.00',
+    maxUrls: CRAWL_LIMITS.quick,
+    currency: 'USD',
+  },
+  full: {
+    amount: '99.00',
+    maxUrls: CRAWL_LIMITS.full,
+    currency: 'USD',
+  },
+}
+
+export interface CreateOrderDependencies {
+  createScanRecord?: typeof createScanRecord
+  createPayPalOrder?: typeof createPayPalOrder
+  markPaymentOrderCreated?: typeof markPaymentOrderCreated
+  markCheckoutCancelled?: typeof markCheckoutCancelled
+}
+
+export async function handleCreateOrder(request: Request, deps: CreateOrderDependencies = {}) {
+  const createScanRecordFn = deps.createScanRecord ?? createScanRecord
+  const createPayPalOrderFn = deps.createPayPalOrder ?? createPayPalOrder
+  const markPaymentOrderCreatedFn = deps.markPaymentOrderCreated ?? markPaymentOrderCreated
+  const markCheckoutCancelledFn = deps.markCheckoutCancelled ?? markCheckoutCancelled
+
   let scanId: string | null = null
 
   try {
@@ -49,7 +83,7 @@ export async function POST(request: Request) {
 
     const url = typeof body.url === 'string' ? body.url.trim() : ''
     const problem = typeof body.problem === 'string' ? body.problem : 'unknown'
-    const plan = typeof body.plan === 'string' ? body.plan : 'quick'
+    const plan = typeof body.plan === 'string' ? body.plan : ''
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })
@@ -59,12 +93,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid diagnostic problem.' }, { status: 400 })
     }
 
-    if (plan !== 'quick') {
+    if (plan !== 'quick' && plan !== 'full') {
       return NextResponse.json(
-        { error: 'Only the Targeted Troubleshoot $49 plan is enabled in this test build.' },
+        {
+          error:
+            'Only the Targeted Troubleshoot ($49) and Full Troubleshoot ($99) plans are available for paid checkout.',
+        },
         { status: 400 }
       )
     }
+
+    const planConfig = PAYPAL_PAID_PLAN_CONFIG[plan as SupportedPaidPlan]
 
     const accessKey = createReportAccessToken()
     const scanTokenHash = hashReportAccessToken(accessKey)
@@ -74,31 +113,31 @@ export async function POST(request: Request) {
     const returnUrl = `${origin}${statusUrl}&provider=paypal`
     const cancelUrl = `${origin}/technical-seo/cancelled/`
 
-    await createScanRecord({
+    await createScanRecordFn({
       scanId,
       websiteUrl: url,
       problem: problem as DiagnosticProblem,
-      plan: 'quick',
-      maxUrls: CRAWL_LIMITS.quick,
+      plan: plan as SupportedPaidPlan,
+      maxUrls: planConfig.maxUrls,
       accessMode: 'private',
       reportTokenHash: scanTokenHash,
       paymentStatus: 'pending',
       initialStatus: 'awaiting_payment',
-      paymentCurrency: 'USD',
+      paymentCurrency: planConfig.currency,
     })
 
-    const { orderId, approvalUrl } = await createPayPalOrder({
-      amount: '49.00',
+    const { orderId, approvalUrl } = await createPayPalOrderFn({
+      amount: planConfig.amount,
       scanId,
       returnUrl,
       cancelUrl,
     })
 
-    await markPaymentOrderCreated({
+    await markPaymentOrderCreatedFn({
       scanId,
       paymentProvider: 'paypal',
       paymentReference: orderId,
-      paymentCurrency: 'USD',
+      paymentCurrency: planConfig.currency,
     })
 
     return NextResponse.json({
@@ -109,7 +148,7 @@ export async function POST(request: Request) {
       checkoutUrl: approvalUrl,
       provider: 'paypal',
       orderId,
-      plan: 'quick',
+      plan,
     })
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : 'Unable to start PayPal Checkout.'
@@ -119,7 +158,7 @@ export async function POST(request: Request) {
 
     if (scanId) {
       try {
-        await markCheckoutCancelled(scanId, message)
+        await markCheckoutCancelledFn(scanId, message)
       } catch {
         // Preserve the original checkout error.
       }
@@ -127,4 +166,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: message }, { status: 500 })
   }
+}
+
+export async function POST(request: Request) {
+  return handleCreateOrder(request)
 }

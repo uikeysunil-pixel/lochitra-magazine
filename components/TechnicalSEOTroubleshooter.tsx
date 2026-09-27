@@ -119,7 +119,7 @@ const PLANS: Array<{
       'Duplicate candidates',
       'Detailed report',
     ],
-    enabled: false,
+    enabled: process.env.NEXT_PUBLIC_TECHNICAL_SEO_FULL_ENABLED === 'true',
   },
   {
     id: 'deep',
@@ -270,6 +270,11 @@ export default function TechnicalSEOTroubleshooter() {
 
     if (plan === 'quick') {
       await initiatePayPalCheckout(url, problem, 'quick')
+      return
+    }
+
+    if (plan === 'full') {
+      await initiatePayPalCheckout(url, problem, 'full')
       return
     }
 
@@ -446,7 +451,7 @@ export default function TechnicalSEOTroubleshooter() {
               className="rounded-full bg-gray-900 px-7 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
             >
               {loading
-                ? plan === 'quick'
+                ? plan === 'quick' || plan === 'full'
                   ? 'Opening secure checkout…'
                   : scanStatus === 'queued'
                     ? 'Queued…'
@@ -455,7 +460,9 @@ export default function TechnicalSEOTroubleshooter() {
                       : 'Crawling website…'
                 : plan === 'quick'
                   ? 'Continue to secure checkout — $49'
-                  : 'Troubleshoot My Website'}
+                  : plan === 'full'
+                    ? 'Continue to secure checkout — $99'
+                    : 'Troubleshoot My Website'}
             </button>
             {loading && (
               <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-800 dark:bg-gray-900">

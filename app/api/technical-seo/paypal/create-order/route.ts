@@ -111,7 +111,7 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
     const origin = new URL(request.url).origin
     const statusUrl = `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessKey)}`
     const returnUrl = `${origin}${statusUrl}&provider=paypal`
-    const cancelUrl = `${origin}/technical-seo/cancelled/`
+    const cancelUrl = `${origin}/technical-seo/cancelled/?plan=${encodeURIComponent(plan)}`
 
     await createScanRecordFn({
       scanId,

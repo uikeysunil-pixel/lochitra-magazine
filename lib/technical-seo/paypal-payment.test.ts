@@ -93,6 +93,11 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.ok(createdOrder)
       assert.strictEqual(createdOrder.amount, '49.00')
       assert.strictEqual(createdOrder.amount, PAYPAL_PAID_PLAN_CONFIG.quick.amount)
+      assert.ok(
+        typeof (createdOrder as Record<string, unknown>)?.cancelUrl === 'string' &&
+          ((createdOrder as Record<string, unknown>).cancelUrl as string).includes('?plan=quick'),
+        'Quick order cancelUrl must contain ?plan=quick'
+      )
 
       assert.ok(markedOrder)
       assert.strictEqual(markedOrder.paymentReference, 'mock-order-quick')
@@ -156,6 +161,11 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.ok(createdOrder)
       assert.strictEqual(createdOrder.amount, '99.00')
       assert.strictEqual(createdOrder.amount, PAYPAL_PAID_PLAN_CONFIG.full.amount)
+      assert.ok(
+        typeof (createdOrder as Record<string, unknown>)?.cancelUrl === 'string' &&
+          ((createdOrder as Record<string, unknown>).cancelUrl as string).includes('?plan=full'),
+        'Full order cancelUrl must contain ?plan=full'
+      )
 
       assert.ok(markedOrder)
       assert.strictEqual(markedOrder.paymentReference, 'mock-order-full')

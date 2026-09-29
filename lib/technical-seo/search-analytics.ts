@@ -334,6 +334,48 @@ export function parseSearchAnalyticsPageRows(
 }
 
 /**
+ * Measures the byte length of a value as persisted in PostgreSQL (jsonb::text).
+ *
+ * PostgreSQL jsonb::text renders structural separators with spaces (": " and ", ").
+ * This helper calculates the UTF-8 byte length of JSON.stringify(value) and adds
+ * 1 byte for every ':' and ',' occurring outside quoted strings, accurately
+ * accounting for escaped characters and string boundaries.
+ */
+export function measurePersistedSearchAnalyticsBytes(value: unknown): number {
+  const serialized = JSON.stringify(value)
+  if (typeof serialized !== 'string') {
+    return 0
+  }
+
+  const baseBytes = Buffer.byteLength(serialized, 'utf8')
+  let extraBytes = 0
+  let inString = false
+  let escaped = false
+
+  for (let i = 0; i < serialized.length; i++) {
+    const char = serialized[i]
+
+    if (inString) {
+      if (escaped) {
+        escaped = false
+      } else if (char === '\\') {
+        escaped = true
+      } else if (char === '"') {
+        inString = false
+      }
+    } else {
+      if (char === '"') {
+        inString = true
+      } else if (char === ':' || char === ',') {
+        extraBytes++
+      }
+    }
+  }
+
+  return baseBytes + extraBytes
+}
+
+/**
  * Enforces the application-level safety bound of 25 KB for persisted diagnostics.
  * If serialized payload exceeds 25 KB, deterministically reduces retained rows.
  */
@@ -343,8 +385,7 @@ export function boundSearchAnalyticsPayload(
   const maxBytes = SEARCH_ANALYTICS_CONSTANTS.MAX_PERSISTED_SEARCH_ANALYTICS_BYTES
 
   let current = { ...diagnostics }
-  let jsonStr = JSON.stringify(current)
-  if (Buffer.byteLength(jsonStr, 'utf8') <= maxBytes) {
+  if (measurePersistedSearchAnalyticsBytes(current) <= maxBytes) {
     return current
   }
 
@@ -357,8 +398,7 @@ export function boundSearchAnalyticsPayload(
     queryCount: Math.min(current.queryCount, 75),
     pageCount: Math.min(current.pageCount, 75),
   }
-  jsonStr = JSON.stringify(current)
-  if (Buffer.byteLength(jsonStr, 'utf8') <= maxBytes) {
+  if (measurePersistedSearchAnalyticsBytes(current) <= maxBytes) {
     return current
   }
 
@@ -371,8 +411,7 @@ export function boundSearchAnalyticsPayload(
     queryCount: Math.min(current.queryCount, 50),
     pageCount: Math.min(current.pageCount, 50),
   }
-  jsonStr = JSON.stringify(current)
-  if (Buffer.byteLength(jsonStr, 'utf8') <= maxBytes) {
+  if (measurePersistedSearchAnalyticsBytes(current) <= maxBytes) {
     return current
   }
 
@@ -385,8 +424,7 @@ export function boundSearchAnalyticsPayload(
     queryCount: Math.min(current.queryCount, 25),
     pageCount: Math.min(current.pageCount, 25),
   }
-  jsonStr = JSON.stringify(current)
-  if (Buffer.byteLength(jsonStr, 'utf8') <= maxBytes) {
+  if (measurePersistedSearchAnalyticsBytes(current) <= maxBytes) {
     return current
   }
 

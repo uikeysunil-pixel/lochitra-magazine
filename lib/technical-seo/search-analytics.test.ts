@@ -15,6 +15,7 @@ const {
   parseSearchAnalyticsQueryRows,
   parseSearchAnalyticsPageRows,
   boundSearchAnalyticsPayload,
+  measurePersistedSearchAnalyticsBytes,
   executeSearchAnalyticsDiagnostics,
   defaultQuerySearchAnalytics,
   SearchAnalyticsError,
@@ -344,6 +345,92 @@ describe('Phase 10D — Search Analytics Diagnostics', () => {
     })
   })
 
+  describe('Persisted Search Analytics Byte Measurement', () => {
+    it('counts separator spaces for colons and commas outside JSON strings', () => {
+      // Simple object: {"a":1,"b":2} -> 2 colons and 1 comma outside string = 3 extra spaces
+      const obj = { a: 1, b: 2 }
+      const rawSerialized = JSON.stringify(obj)
+      const rawBytes = Buffer.byteLength(rawSerialized, 'utf8')
+      const persistedBytes = measurePersistedSearchAnalyticsBytes(obj)
+
+      assert.strictEqual(rawSerialized, '{"a":1,"b":2}')
+      assert.strictEqual(rawBytes, 13)
+      // PostgreSQL jsonb::text formats this as '{"a": 1, "b": 2}', adding 1 space per separator
+      assert.strictEqual(persistedBytes, 16)
+      assert.strictEqual(persistedBytes, rawBytes + 3)
+      assert.strictEqual(persistedBytes, Buffer.byteLength('{"a": 1, "b": 2}', 'utf8'))
+
+      // Arrays: [1,2,3] -> 2 commas outside string = 2 extra spaces
+      const arr = [1, 2, 3]
+      const arrRawBytes = Buffer.byteLength(JSON.stringify(arr), 'utf8')
+      assert.strictEqual(arrRawBytes, 7) // '[1,2,3]'
+      assert.strictEqual(measurePersistedSearchAnalyticsBytes(arr), 9) // '[1, 2, 3]'
+      assert.strictEqual(
+        measurePersistedSearchAnalyticsBytes(arr),
+        Buffer.byteLength('[1, 2, 3]', 'utf8')
+      )
+
+      // Nested structure: {"queries":[{"q":"test","c":10}]}
+      const nested = { queries: [{ q: 'test', c: 10 }] }
+      const nestedRawBytes = Buffer.byteLength(JSON.stringify(nested), 'utf8')
+      // Outside strings:
+      // - ':' after "queries"
+      // - ':' after "q"
+      // - ',' between object properties in array
+      // - ':' after "c"
+      // Total 4 separators outside strings
+      assert.strictEqual(measurePersistedSearchAnalyticsBytes(nested), nestedRawBytes + 4)
+    })
+
+    it('does not count commas or colons inside quoted strings', () => {
+      // Colons and commas within string keys and values
+      const payload = {
+        'keyword:with:colons,and,commas': 'value:with:colons,and,commas',
+        nested: 'path/to:resource,id:123',
+      }
+      const rawSerialized = JSON.stringify(payload)
+      const rawBytes = Buffer.byteLength(rawSerialized, 'utf8')
+
+      // Separators outside string:
+      // - ':' after "keyword:with:colons,and,commas"
+      // - ',' between top-level properties
+      // - ':' after "nested"
+      // Exactly 3 separators outside strings; all interior colons/commas must NOT be counted
+      const persistedBytes = measurePersistedSearchAnalyticsBytes(payload)
+      assert.strictEqual(persistedBytes, rawBytes + 3)
+
+      // Escaped quotes inside strings: '\"quoted:colon,comma\"'
+      const withEscapedQuotes = {
+        title: 'Report: \\"Sub:title, with comma\\" finished',
+      }
+      const escRawBytes = Buffer.byteLength(JSON.stringify(withEscapedQuotes), 'utf8')
+      // Outside strings: only ':' after "title" -> 1 separator
+      assert.strictEqual(measurePersistedSearchAnalyticsBytes(withEscapedQuotes), escRawBytes + 1)
+
+      // Escaped backslashes preceding string closing quote: '\\'
+      const withEscapedBackslash = {
+        folder: 'C:\\\\temp\\\\',
+        status: 'done',
+      }
+      const backslashRawBytes = Buffer.byteLength(JSON.stringify(withEscapedBackslash), 'utf8')
+      // Outside strings: ':' after "folder", ',' between properties, ':' after "status" -> 3 separators
+      assert.strictEqual(
+        measurePersistedSearchAnalyticsBytes(withEscapedBackslash),
+        backslashRawBytes + 3
+      )
+    })
+
+    it('handles non-stringifiable or empty inputs gracefully', () => {
+      assert.strictEqual(measurePersistedSearchAnalyticsBytes(undefined), 0)
+      assert.strictEqual(measurePersistedSearchAnalyticsBytes(null), 4) // "null"
+      assert.strictEqual(measurePersistedSearchAnalyticsBytes(123), 3) // "123"
+      assert.strictEqual(
+        measurePersistedSearchAnalyticsBytes('simple:string,test'),
+        Buffer.byteLength('"simple:string,test"', 'utf8')
+      )
+    })
+  })
+
   describe('Payload Bounding & Safety Limit (25 KB)', () => {
     it('retains normal diagnostic payload intact when under 25 KB', () => {
       const diagnostics = {
@@ -422,13 +509,128 @@ describe('Phase 10D — Search Analytics Diagnostics', () => {
         isDataAvailable: true,
       }
 
-      const rawBytes = Buffer.byteLength(JSON.stringify(oversized), 'utf8')
+      const rawBytes = measurePersistedSearchAnalyticsBytes(oversized)
       assert.ok(rawBytes > 25 * 1024, `Initial payload should exceed 25 KB (got ${rawBytes})`)
 
       const bounded = boundSearchAnalyticsPayload(oversized)
-      const boundedBytes = Buffer.byteLength(JSON.stringify(bounded), 'utf8')
+      const boundedBytes = measurePersistedSearchAnalyticsBytes(bounded)
       assert.ok(boundedBytes <= 25 * 1024, `Bounded payload must be <= 25 KB (got ${boundedBytes})`)
       assert.ok(bounded.topQueries.length < 100, 'Rows should have been deterministically reduced')
+    })
+
+    it('bounds the oversized fixture using the new persisted-size measurement to <= 25 * 1024', () => {
+      const hugeQueries = Array.from({ length: 100 }, (_, i) => ({
+        query: `diagnostic-query-${i}-${'q'.repeat(180)}`,
+        clicks: 15,
+        impressions: 150,
+        ctr: 0.1,
+        position: 4.5,
+        rankingBand: 'firstPage' as const,
+      }))
+      const hugePages = Array.from({ length: 100 }, (_, i) => ({
+        page: `https://example.com/landing/page/${i}/${'p'.repeat(140)}`,
+        normalizedPath: `/page-${i}`,
+        clicks: 15,
+        impressions: 150,
+        ctr: 0.1,
+        position: 4.5,
+      }))
+
+      const oversized = {
+        property: 'sc-domain:example.com',
+        fetchedAt: new Date().toISOString(),
+        dateRange: calculateSearchAnalyticsDateRange(),
+        summary: { clicks: 150, impressions: 3000, ctr: 0.05, position: 6.0 },
+        topQueries: hugeQueries,
+        topPages: hugePages,
+        opportunitySignals: Array.from({ length: 20 }, (_, i) => ({
+          type: 'low_ctr_striking' as const,
+          query: `opportunity-${i}-${'s'.repeat(80)}`,
+          clicks: 2,
+          impressions: 200,
+          ctr: 0.01,
+          position: 5.0,
+          reason: 'High first-page visibility with below-expected click-through rate',
+        })),
+        queryCount: 100,
+        pageCount: 100,
+        isDataAvailable: true,
+      }
+
+      // Prove the initial oversized fixture exceeds the 25 KB persisted limit
+      const rawPersistedBytes = measurePersistedSearchAnalyticsBytes(oversized)
+      assert.ok(
+        rawPersistedBytes > SEARCH_ANALYTICS_CONSTANTS.MAX_PERSISTED_SEARCH_ANALYTICS_BYTES,
+        `Initial payload persisted bytes must exceed 25 KB (got ${rawPersistedBytes})`
+      )
+
+      // Bound using the new persisted-size measurement
+      const bounded = boundSearchAnalyticsPayload(oversized)
+      const boundedPersistedBytes = measurePersistedSearchAnalyticsBytes(bounded)
+
+      // Prove bounded size is <= 25 * 1024
+      assert.ok(
+        boundedPersistedBytes <= SEARCH_ANALYTICS_CONSTANTS.MAX_PERSISTED_SEARCH_ANALYTICS_BYTES,
+        `Bounded payload persisted bytes must be <= 25 * 1024 (got ${boundedPersistedBytes})`
+      )
+      assert.ok(
+        boundedPersistedBytes <= 25 * 1024,
+        `Bounded payload must satisfy <= 25 * 1024 bound (got ${boundedPersistedBytes})`
+      )
+      assert.ok(
+        bounded.topQueries.length <= 75,
+        'Payload was successfully reduced by reduction stages'
+      )
+    })
+
+    it('triggers bounding when raw JSON is <= 25 KB but persisted size exceeds 25 KB due to separators', () => {
+      // Craft a payload where Buffer.byteLength(JSON.stringify(payload)) <= 25 * 1024,
+      // but measurePersistedSearchAnalyticsBytes(payload) > 25 * 1024.
+      const queryCount = 80
+      const queries = Array.from({ length: queryCount }, (_, i) => ({
+        query: `query-target-${i}-${'k'.repeat(205)}`,
+        clicks: 5,
+        impressions: 50,
+        ctr: 0.1,
+        position: 4.0,
+        rankingBand: 'firstPage' as const,
+      }))
+
+      const payload = {
+        property: 'sc-domain:example.com',
+        fetchedAt: new Date().toISOString(),
+        dateRange: calculateSearchAnalyticsDateRange(),
+        summary: { clicks: 100, impressions: 2000, ctr: 0.05, position: 7.5 },
+        topQueries: queries,
+        topPages: [],
+        opportunitySignals: [],
+        queryCount: queries.length,
+        pageCount: 0,
+        isDataAvailable: true,
+      }
+
+      const rawBytes = Buffer.byteLength(JSON.stringify(payload), 'utf8')
+      const persistedBytes = measurePersistedSearchAnalyticsBytes(payload)
+      const limit = SEARCH_ANALYTICS_CONSTANTS.MAX_PERSISTED_SEARCH_ANALYTICS_BYTES // 25600
+
+      assert.ok(
+        rawBytes <= limit,
+        `Raw JSON byteLength must be <= 25 KB to demonstrate the blindspot (got ${rawBytes})`
+      )
+      assert.ok(
+        persistedBytes > limit,
+        `Persisted bytes with separator spaces must exceed 25 KB (got ${persistedBytes})`
+      )
+
+      // The new boundSearchAnalyticsPayload must catch this and reduce it
+      const bounded = boundSearchAnalyticsPayload(payload)
+      const boundedPersistedBytes = measurePersistedSearchAnalyticsBytes(bounded)
+
+      assert.ok(
+        boundedPersistedBytes <= limit,
+        `Bounded payload persisted bytes must be <= 25 KB (got ${boundedPersistedBytes})`
+      )
+      assert.strictEqual(bounded.topQueries.length, 75, 'Stage 1 reduction should have taken place')
     })
   })
 

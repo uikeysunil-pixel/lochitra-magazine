@@ -193,6 +193,69 @@ export interface CrawlResult {
   findings: Finding[]
   architecture?: ArchitectureSummary
   duplicates?: DuplicateCandidateSummary
+  searchAnalytics?: SearchAnalyticsDiagnostics
+}
+
+export type RankingBand = 'top3' | 'firstPage' | 'strikingDistance' | 'beyondPage2'
+
+export type OpportunitySignalType = 'low_ctr_striking' | 'striking_distance'
+
+export interface SearchAnalyticsDateRange {
+  startDate: string
+  endDate: string
+  days: number
+  dataState: 'final'
+  timezone: string
+}
+
+export interface SearchAnalyticsSummary {
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+}
+
+export interface SearchAnalyticsQueryRow {
+  query: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  rankingBand: RankingBand
+}
+
+export interface SearchAnalyticsPageRow {
+  page: string
+  normalizedPath: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  isCrawledUrl?: boolean
+}
+
+export interface SearchAnalyticsOpportunitySignal {
+  type: OpportunitySignalType
+  query: string
+  page?: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  reason: string
+}
+
+export interface SearchAnalyticsDiagnostics {
+  property: string
+  fetchedAt: string
+  dateRange: SearchAnalyticsDateRange
+  summary: SearchAnalyticsSummary
+  topQueries: SearchAnalyticsQueryRow[]
+  topPages: SearchAnalyticsPageRow[]
+  opportunitySignals: SearchAnalyticsOpportunitySignal[]
+  queryCount: number
+  pageCount: number
+  isDataAvailable: boolean
 }
 
 export interface CrawlReportResult extends CrawlResult {

@@ -8,6 +8,7 @@ import type {
   Finding,
   PlanId,
   ScanResult,
+  SearchAnalyticsDiagnostics,
 } from './types'
 
 export async function getScanRecord(scanId: string) {
@@ -43,6 +44,7 @@ export async function getScanRecord(scanId: string) {
       error_message,
       report_json,
       checkpoint_json,
+      gsc_search_analytics_json,
       created_at,
       updated_at
     from seo_scans
@@ -701,5 +703,18 @@ async function insertFinding(scanId: string, finding: Finding) {
       affected_urls = excluded.affected_urls,
       evidence = excluded.evidence,
       updated_at = now()
+  `
+}
+
+export async function saveScanSearchAnalytics(
+  scanId: string,
+  diagnostics: SearchAnalyticsDiagnostics
+): Promise<void> {
+  await sql`
+    update seo_scans
+    set
+      gsc_search_analytics_json = ${JSON.stringify(diagnostics)}::jsonb,
+      updated_at = now()
+    where id = ${scanId}::uuid
   `
 }

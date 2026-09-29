@@ -40,6 +40,7 @@ create table if not exists seo_scans (
   gsc_token_expires_at timestamptz,
   gsc_connected_at timestamptz,
   gsc_oauth_state_hash text,
+  gsc_search_analytics_json jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

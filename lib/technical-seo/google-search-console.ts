@@ -506,3 +506,168 @@ export async function getGoogleSearchConsoleConnection(
       : null,
   }
 }
+
+export const ALLOWED_SEARCH_CONSOLE_PERMISSIONS = new Set([
+  'siteOwner',
+  'siteFullUser',
+  'siteRestrictedUser',
+])
+
+export type SearchConsolePropertyType = 'domain' | 'url_prefix'
+
+export interface AnnotatedGscProperty {
+  siteUrl: string
+  permissionLevel: string | null
+  propertyType: SearchConsolePropertyType
+  isMatch: boolean
+  isSelectable: boolean
+}
+
+/**
+ * Validates whether a Google Search Console property covers a given target URL.
+ *
+ * Rules:
+ * Target:
+ * - Must be a valid absolute http: or https: URL. Does not infer protocols.
+ * - Hostname is normalized to lowercase.
+ * - Default ports are normalized (80 for http, 443 for https).
+ * - Fragment is ignored.
+ *
+ * Domain property:
+ * - Must start with /^sc-domain:/i.
+ * - Matches targetHost === domain OR targetHost.endsWith('.' + domain).
+ * - Protocol and path do not restrict domain matching.
+ * - Arbitrary scheme-less strings (e.g. "example.com/path" or "example.com") are NOT domain properties.
+ *
+ * URL-prefix property:
+ * - Must parse as http: or https: URL.
+ * - Protocol, hostname, and effective port must match exactly.
+ * - Path defines prefix scope; trailing slashes normalized to avoid false matches (e.g. /blog/ vs /blog-news).
+ */
+export function isSearchConsolePropertyMatch(property: string, targetUrl: string): boolean {
+  if (typeof property !== 'string' || typeof targetUrl !== 'string') {
+    return false
+  }
+
+  const trimmedProp = property.trim()
+  const trimmedTarget = targetUrl.trim()
+
+  if (!trimmedProp || !trimmedTarget) {
+    return false
+  }
+
+  // Parse target URL. Target must be a valid absolute http/https URL.
+  let parsedTarget: URL
+  try {
+    parsedTarget = new URL(trimmedTarget)
+  } catch {
+    return false
+  }
+
+  if (parsedTarget.protocol !== 'http:' && parsedTarget.protocol !== 'https:') {
+    return false
+  }
+
+  const targetHost = parsedTarget.hostname.toLowerCase()
+  if (!targetHost) {
+    return false
+  }
+
+  // 1. Domain Property: Must strictly start with /^sc-domain:/i
+  if (/^sc-domain:/i.test(trimmedProp)) {
+    const rawDomain = trimmedProp.slice(10).trim().toLowerCase()
+    if (
+      !rawDomain ||
+      rawDomain.includes('/') ||
+      rawDomain.includes(':') ||
+      rawDomain.startsWith('.') ||
+      rawDomain.endsWith('.')
+    ) {
+      return false
+    }
+
+    const labels = rawDomain.split('.')
+    if (
+      labels.some(
+        (label) =>
+          !label || label.startsWith('-') || label.endsWith('-') || !/^[a-z0-9-]+$/.test(label)
+      )
+    ) {
+      return false
+    }
+
+    return targetHost === rawDomain || targetHost.endsWith(`.${rawDomain}`)
+  }
+
+  // 2. URL-Prefix Property: Must parse as http:// or https:// URL
+  if (/^https?:\/\//i.test(trimmedProp)) {
+    let parsedProp: URL
+    try {
+      parsedProp = new URL(trimmedProp)
+    } catch {
+      return false
+    }
+
+    if (parsedProp.protocol !== 'http:' && parsedProp.protocol !== 'https:') {
+      return false
+    }
+
+    // Protocol must match exactly
+    if (parsedProp.protocol !== parsedTarget.protocol) {
+      return false
+    }
+
+    // Hostname must match exactly
+    if (parsedProp.hostname.toLowerCase() !== targetHost) {
+      return false
+    }
+
+    // Port check with default port normalization
+    const propPort = parsedProp.port || (parsedProp.protocol === 'https:' ? '443' : '80')
+    const targetPort = parsedTarget.port || (parsedTarget.protocol === 'https:' ? '443' : '80')
+    if (propPort !== targetPort) {
+      return false
+    }
+
+    // Path prefix check
+    const propPath = parsedProp.pathname
+    const targetPath = parsedTarget.pathname
+
+    if (propPath === '/' || propPath === '') {
+      return true
+    }
+
+    const normalizedPropPrefix = propPath.endsWith('/') ? propPath : `${propPath}/`
+    const normalizedTarget = targetPath.endsWith('/') ? targetPath : `${targetPath}/`
+
+    if (normalizedTarget.startsWith(normalizedPropPrefix)) {
+      return true
+    }
+
+    if (propPath.endsWith('/') && targetPath === propPath.slice(0, -1)) {
+      return true
+    }
+
+    return false
+  }
+
+  // Arbitrary scheme-less strings are NOT recognized as domain properties
+  return false
+}
+
+/**
+ * Persists the confirmed Google Search Console property identifier to the scan.
+ * Stores the exact string returned by Google (e.g. 'sc-domain:example.com').
+ */
+export async function saveScanSearchConsoleProperty(
+  scanId: string,
+  property: string
+): Promise<void> {
+  await sql`
+    update seo_scans
+    set
+      gsc_property = ${property},
+      updated_at = now()
+    where id = ${scanId}::uuid
+  `
+}

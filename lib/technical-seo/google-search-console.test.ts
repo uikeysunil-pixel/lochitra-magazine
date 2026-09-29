@@ -17,9 +17,16 @@ const {
   verifyOAuthState,
   GOOGLE_SEARCH_CONSOLE_RO_SCOPE,
   createSearchConsoleClient,
+  isSearchConsolePropertyMatch,
+  saveScanSearchConsoleProperty,
+  ALLOWED_SEARCH_CONSOLE_PERMISSIONS,
 } = require('./google-search-console')
 const { handleGoogleConnect } = require('../../app/api/technical-seo/google/connect/route')
 const { handleGoogleCallback } = require('../../app/api/technical-seo/google/callback/route')
+const {
+  handleGooglePropertiesGet,
+  handleGooglePropertiesPost,
+} = require('../../app/api/technical-seo/google/properties/route')
 const { hashReportAccessToken } = require('./scan-repository')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -740,6 +747,517 @@ describe('Phase 10B — Google Search Console OAuth Foundation', () => {
       const hash2 = hashOAuthState('test-state-string')
       assert.strictEqual(hash1, hash2)
       assert.strictEqual(hash1.length, 64)
+    })
+  })
+})
+
+describe('Phase 10C — Google Search Console Property Selection', () => {
+  describe('Pure Property Matcher (isSearchConsolePropertyMatch)', () => {
+    // 1. sc-domain:example.com -> https://example.com/
+    it('1. sc-domain:example.com matches https://example.com/', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:example.com', 'https://example.com/'),
+        true
+      )
+    })
+
+    // 2. sc-domain:example.com -> https://www.example.com/
+    it('2. sc-domain:example.com matches https://www.example.com/', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:example.com', 'https://www.example.com/'),
+        true
+      )
+    })
+
+    // 3. sc-domain:example.com -> https://blog.example.com/article
+    it('3. sc-domain:example.com matches https://blog.example.com/article', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:example.com', 'https://blog.example.com/article'),
+        true
+      )
+    })
+
+    // 4. sc-domain:example.com does NOT match https://badexample.com/
+    it('4. sc-domain:example.com does NOT match https://badexample.com/', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:example.com', 'https://badexample.com/'),
+        false
+      )
+    })
+
+    // 5. sc-domain:www.example.com does NOT match https://example.com/
+    it('5. sc-domain:www.example.com does NOT match https://example.com/', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:www.example.com', 'https://example.com/'),
+        false
+      )
+    })
+
+    // 6. https://www.example.com/ -> https://www.example.com/article
+    it('6. https://www.example.com/ matches https://www.example.com/article', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://www.example.com/', 'https://www.example.com/article'),
+        true
+      )
+    })
+
+    // 7. https://www.example.com/ does NOT match https://example.com/
+    it('7. https://www.example.com/ does NOT match https://example.com/', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://www.example.com/', 'https://example.com/'),
+        false
+      )
+    })
+
+    // 8. http://example.com/ does NOT match https://example.com/
+    it('8. http://example.com/ does NOT match https://example.com/', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('http://example.com/', 'https://example.com/'),
+        false
+      )
+    })
+
+    // 9. https://example.com/blog/ -> https://example.com/blog/post
+    it('9. https://example.com/blog/ matches https://example.com/blog/post', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com/blog/', 'https://example.com/blog/post'),
+        true
+      )
+    })
+
+    // 10. https://example.com/blog/ does NOT match https://example.com/blog-news
+    it('10. https://example.com/blog/ does NOT match https://example.com/blog-news', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com/blog/', 'https://example.com/blog-news'),
+        false
+      )
+    })
+
+    // 11. https://example.com/blog/ does NOT match https://example.com/
+    it('11. https://example.com/blog/ does NOT match https://example.com/', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com/blog/', 'https://example.com/'),
+        false
+      )
+    })
+
+    // 12. protocol mismatch
+    it('12. protocol mismatch returns false', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com/', 'http://example.com/'),
+        false
+      )
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('http://example.com/', 'https://example.com/'),
+        false
+      )
+    })
+
+    // 13. port mismatch where meaningful
+    it('13. port mismatch returns false', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com:8443/', 'https://example.com/'),
+        false
+      )
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com:443/', 'https://example.com/'),
+        true
+      )
+    })
+
+    // 14. trailing slash handling
+    it('14. trailing slash normalization behaves safely', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com', 'https://example.com/'),
+        true
+      )
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('https://example.com/', 'https://example.com'),
+        true
+      )
+    })
+
+    // 15. malformed target returns false
+    it('15. malformed target returns false without throwing', () => {
+      assert.strictEqual(isSearchConsolePropertyMatch('sc-domain:example.com', ''), false)
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:example.com', 'not-a-valid-url'),
+        false
+      )
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:example.com', 'javascript:alert(1)'),
+        false
+      )
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:example.com', 'example.com'),
+        false
+      )
+    })
+
+    // 16. malformed property returns false
+    it('16. malformed property returns false without throwing', () => {
+      assert.strictEqual(isSearchConsolePropertyMatch('', 'https://example.com/'), false)
+      assert.strictEqual(isSearchConsolePropertyMatch('sc-domain:', 'https://example.com/'), false)
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('sc-domain:..', 'https://example.com/'),
+        false
+      )
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('not-a-property', 'https://example.com/'),
+        false
+      )
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('ftp://example.com/', 'https://example.com/'),
+        false
+      )
+    })
+
+    // 17. arbitrary example.com/path is NOT treated as a domain property
+    it('17. arbitrary scheme-less example.com/path is NOT treated as a domain property', () => {
+      assert.strictEqual(
+        isSearchConsolePropertyMatch('example.com/path', 'https://example.com/path'),
+        false
+      )
+      assert.strictEqual(isSearchConsolePropertyMatch('example.com', 'https://example.com/'), false)
+    })
+  })
+
+  describe('Target URL Resolution & Property Selection Security', () => {
+    function createMockScan(overrides?: Record<string, unknown>) {
+      return {
+        id: TEST_SCAN_ID,
+        website_url: 'https://example.com/',
+        final_url: null,
+        plan: 'deep',
+        report_token_hash: TEST_KEY_HASH,
+        access_mode: 'private',
+        status: 'queued',
+        ...overrides,
+      }
+    }
+
+    function createMockConnection(overrides?: Record<string, unknown>) {
+      return {
+        property: null,
+        encryptedRefreshToken: encryptToken('test-refresh-token', TEST_CONFIG.tokenEncryptionKey),
+        tokenExpiresAt: null,
+        connectedAt: new Date().toISOString(),
+        ...overrides,
+      }
+    }
+
+    // 18. final_url is preferred over website_url
+    it('18. final_url is preferred over website_url and strictly enforced', async () => {
+      const scanWithRedirect = createMockScan({
+        website_url: 'https://example.com/',
+        final_url: 'https://www.example.com/',
+      })
+
+      const reqGet = new Request(
+        `https://www.locitra.com/api/technical-seo/google/properties?scanId=${TEST_SCAN_ID}&key=${TEST_ACCESS_KEY}`
+      )
+
+      const response = await handleGooglePropertiesGet(reqGet, {
+        getScanRecord: async () => scanWithRedirect as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () => createMockConnection() as never,
+        decryptToken: () => 'test-refresh-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'https://example.com/', permissionLevel: 'siteOwner' },
+          { siteUrl: 'https://www.example.com/', permissionLevel: 'siteOwner' },
+        ],
+      })
+
+      assert.strictEqual(response.status, 200)
+      const data = await response.json()
+      assert.strictEqual(data.targetUrl, 'https://www.example.com/')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const apexProp = data.properties.find((p: any) => p.siteUrl === 'https://example.com/')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wwwProp = data.properties.find((p: any) => p.siteUrl === 'https://www.example.com/')
+
+      // Because final_url is https://www.example.com/, apex is NOT a match
+      assert.strictEqual(apexProp.isMatch, false)
+      assert.strictEqual(apexProp.isSelectable, false)
+      assert.strictEqual(wwwProp.isMatch, true)
+      assert.strictEqual(wwwProp.isSelectable, true)
+    })
+
+    // 19. missing scan -> rejection
+    it('19. missing scan is rejected with 404', async () => {
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () => null,
+      })
+      assert.strictEqual(response.status, 404)
+    })
+
+    // 20. invalid access key -> rejection
+    it('20. invalid access key is rejected with 403', async () => {
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: 'wrong-key',
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () => createMockScan() as never,
+        verifyReportAccessToken: () => false,
+      })
+      assert.strictEqual(response.status, 403)
+    })
+
+    // 21. non-Deep scan -> rejection
+    it('21. non-Deep scan is rejected with 400', async () => {
+      const quickScan = createMockScan({ plan: 'quick' })
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () => quickScan as never,
+        verifyReportAccessToken: () => true,
+      })
+      assert.strictEqual(response.status, 400)
+      const data = await response.json()
+      assert.match(data.error, /Deep Investigation/)
+    })
+
+    // 22. no Google connection -> rejection
+    it('22. no Google connection is rejected with 400', async () => {
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () => createMockScan() as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () => null,
+      })
+      assert.strictEqual(response.status, 400)
+      const data = await response.json()
+      assert.match(data.error, /not connected/)
+    })
+
+    // 23. selected property not returned by Google -> rejection
+    it('23. selected property not returned by Google is rejected with 400', async () => {
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:unauthorized.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () => createMockScan() as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () => createMockConnection() as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+      })
+      assert.strictEqual(response.status, 400)
+      const data = await response.json()
+      assert.match(data.error, /not found in the connected Google/)
+    })
+
+    // 24. returned property that does not match target -> rejection
+    it('24. returned property that does not match target is rejected with 400', async () => {
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:other-domain.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () => createMockScan({ website_url: 'https://example.com/' }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () => createMockConnection() as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:other-domain.com', permissionLevel: 'siteOwner' },
+        ],
+      })
+      assert.strictEqual(response.status, 400)
+      const data = await response.json()
+      assert.match(data.error, /does not match the website analyzed/)
+    })
+
+    // 25. siteUnverifiedUser -> rejection
+    it('25. siteUnverifiedUser permission level is rejected with 400', async () => {
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () => createMockScan({ website_url: 'https://example.com/' }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () => createMockConnection() as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteUnverifiedUser' },
+        ],
+      })
+      assert.strictEqual(response.status, 400)
+      const data = await response.json()
+      assert.match(data.error, /unverified/)
+    })
+
+    // 26. valid matching property -> persisted exactly as Google returned it
+    it('26. valid matching property is persisted exactly as Google returned it', async () => {
+      let savedScanId: string | null = null
+      let savedProperty: string | null = null
+
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () =>
+          createMockScan({ website_url: 'https://www.example.com/' }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () => createMockConnection() as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+        saveScanSearchConsoleProperty: async (id: string, prop: string) => {
+          savedScanId = id
+          savedProperty = prop
+        },
+      })
+
+      assert.strictEqual(response.status, 200)
+      const data = await response.json()
+      assert.strictEqual(data.success, true)
+      assert.strictEqual(data.property, 'sc-domain:example.com')
+      assert.strictEqual(savedScanId, TEST_SCAN_ID)
+      assert.strictEqual(savedProperty, 'sc-domain:example.com')
+    })
+
+    // 27-29. SECRET SAFETY
+    it('27-29. properties GET and POST responses never contain tokens, secrets, or encryption keys', async () => {
+      const secretToken = 'secret-refresh-token-xyz-123'
+      const encryptedSecret = encryptToken(secretToken, TEST_CONFIG.tokenEncryptionKey)
+
+      const reqGet = new Request(
+        `https://www.locitra.com/api/technical-seo/google/properties?scanId=${TEST_SCAN_ID}&key=${TEST_ACCESS_KEY}`
+      )
+
+      const resGet = await handleGooglePropertiesGet(reqGet, {
+        getScanRecord: async () => createMockScan() as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ encryptedRefreshToken: encryptedSecret }) as never,
+        decryptToken: () => secretToken,
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+      })
+
+      const getText = await resGet.text()
+      assert.strictEqual(getText.includes(secretToken), false, 'GET must not contain plain token')
+      assert.strictEqual(
+        getText.includes(encryptedSecret),
+        false,
+        'GET must not contain encrypted token'
+      )
+      assert.strictEqual(
+        getText.includes(TEST_CONFIG.tokenEncryptionKey),
+        false,
+        'GET must not contain encryption key'
+      )
+      assert.strictEqual(
+        getText.includes(TEST_CONFIG.clientSecret),
+        false,
+        'GET must not contain client secret'
+      )
+
+      const reqPost = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const resPost = await handleGooglePropertiesPost(reqPost, {
+        getScanRecord: async () => createMockScan() as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ encryptedRefreshToken: encryptedSecret }) as never,
+        decryptToken: () => secretToken,
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+        saveScanSearchConsoleProperty: async () => {},
+      })
+
+      const postText = await resPost.text()
+      assert.strictEqual(postText.includes(secretToken), false, 'POST must not contain plain token')
+      assert.strictEqual(
+        postText.includes(encryptedSecret),
+        false,
+        'POST must not contain encrypted token'
+      )
+      assert.strictEqual(
+        postText.includes(TEST_CONFIG.tokenEncryptionKey),
+        false,
+        'POST must not contain encryption key'
+      )
+      assert.strictEqual(
+        postText.includes(TEST_CONFIG.clientSecret),
+        false,
+        'POST must not contain client secret'
+      )
     })
   })
 })

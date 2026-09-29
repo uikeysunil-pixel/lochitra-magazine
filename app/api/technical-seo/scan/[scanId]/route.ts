@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getScanRecord, verifyReportAccessToken } from '@/lib/technical-seo/scan-repository'
+import { getGoogleSearchConsoleConnection } from '@/lib/technical-seo/google-search-console'
 import type { CrawlResult, DiagnosticProblem } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
@@ -50,6 +51,15 @@ export async function GET(_request: Request, context: { params: Promise<{ scanId
       )
     }
 
+    let gscConnected = false
+    let gscProperty: string | null = null
+
+    if (row.plan === 'deep') {
+      const gscConn = await getGoogleSearchConsoleConnection(scanId)
+      gscConnected = Boolean(gscConn?.connectedAt && gscConn?.encryptedRefreshToken)
+      gscProperty = gscConn?.property ?? null
+    }
+
     const base = {
       scanId,
       websiteUrl: row.website_url,
@@ -57,6 +67,12 @@ export async function GET(_request: Request, context: { params: Promise<{ scanId
       paymentStatus: row.payment_status,
       problem: row.problem,
       plan: row.plan,
+      ...(row.plan === 'deep'
+        ? {
+            gscConnected,
+            gscProperty,
+          }
+        : {}),
       createdAt: row.created_at,
       completedAt: row.completed_at,
       progressPercent: row.progress_percent,

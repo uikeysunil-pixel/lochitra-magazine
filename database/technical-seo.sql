@@ -31,6 +31,15 @@ create table if not exists seo_scans (
   error_message text,
   report_json jsonb,
   checkpoint_json jsonb,
+  payment_provider text,
+  payment_reference text,
+  payment_transaction_id text,
+  payment_currency text,
+  gsc_property text,
+  gsc_refresh_token_encrypted text,
+  gsc_token_expires_at timestamptz,
+  gsc_connected_at timestamptz,
+  gsc_oauth_state_hash text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

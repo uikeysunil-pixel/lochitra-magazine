@@ -8,6 +8,7 @@ type ScanSummary = {
   scanId: string
   websiteUrl: string
   status:
+    | 'awaiting_gsc'
     | 'awaiting_payment'
     | 'queued'
     | 'running'
@@ -28,6 +29,7 @@ type ScanSummary = {
 }
 
 const STATUS_LABELS: Record<ScanSummary['status'], string> = {
+  awaiting_gsc: 'Google Search Console connection required',
   awaiting_payment: 'Awaiting payment',
   queued: 'Queued',
   running: 'Running',

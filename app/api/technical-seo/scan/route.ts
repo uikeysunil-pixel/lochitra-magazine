@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server'
-import { inngest } from '@/inngest/client'
-import { createScanRecord, failScanRecord } from '@/lib/technical-seo/scan-repository'
-import type { DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 import { randomUUID } from 'crypto'
+import { inngest } from '@/inngest/client'
+import {
+  createReportAccessToken,
+  createScanRecord,
+  failScanRecord,
+  hashReportAccessToken,
+} from '@/lib/technical-seo/scan-repository'
+import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
+import type { DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,20 +28,37 @@ const PROBLEMS = new Set<DiagnosticProblem>([
 
 const PLANS = new Set<PlanId>(['free', 'quick', 'full', 'deep'])
 
-const PROBLEM_LABELS: Record<DiagnosticProblem, string> = {
-  indexing: "My pages aren't getting indexed",
-  'traffic-drop': 'My organic traffic dropped',
-  'wrong-page': 'Google is showing the wrong page',
-  slow: 'My website is slow',
-  technical: 'I have technical SEO errors',
-  schema: 'My schema / structured data has problems',
-  migration: 'I recently redesigned or migrated my website',
-  'broken-links': 'I have broken pages or links',
-  duplicates: 'I have duplicate or low-value pages',
-  unknown: "I don't know — find the important problems",
+export interface ScanRouteDependencies {
+  createScanRecord?: typeof createScanRecord
+  sendInngestEvent?: (event: {
+    id: string
+    name: 'technical-seo/scan.requested'
+    data: {
+      scanId: string
+      url: string
+      problem: DiagnosticProblem
+      plan: PlanId
+    }
+  }) => Promise<unknown>
+  failScanRecord?: typeof failScanRecord
 }
 
-export async function POST(request: Request) {
+export async function handleCreateScan(request: Request, deps: ScanRouteDependencies = {}) {
+  const createScanRecordFn = deps.createScanRecord ?? createScanRecord
+  const sendInngestEventFn =
+    deps.sendInngestEvent ??
+    ((event: {
+      id: string
+      name: 'technical-seo/scan.requested'
+      data: {
+        scanId: string
+        url: string
+        problem: DiagnosticProblem
+        plan: PlanId
+      }
+    }) => inngest.send(event))
+  const failScanRecordFn = deps.failScanRecord ?? failScanRecord
+
   try {
     const body = (await request.json()) as {
       url?: unknown
@@ -59,19 +82,56 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
     }
 
-    if (plan !== 'free') {
+    if (plan === 'quick' || plan === 'full') {
       return NextResponse.json(
         {
           error:
-            'Paid scans are not enabled yet. The crawler is being validated first; billing and paid crawl limits will be enabled after the MVP passes real-site testing.',
+            'Targeted ($49) and Full ($99) scans must be initiated through the secure checkout flow.',
         },
-        { status: 402 }
+        { status: 400 }
+      )
+    }
+
+    if (plan !== 'free' && plan !== 'deep') {
+      return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
+    }
+
+    if (plan === 'deep') {
+      const scanId = randomUUID()
+      const accessKey = createReportAccessToken()
+      const reportTokenHash = hashReportAccessToken(accessKey)
+
+      await createScanRecordFn({
+        scanId,
+        websiteUrl: url,
+        problem: problem as DiagnosticProblem,
+        plan: 'deep',
+        maxUrls: CRAWL_LIMITS.deep,
+        accessMode: 'private',
+        reportTokenHash,
+        paymentStatus: 'unpaid',
+        initialStatus: 'awaiting_gsc',
+      })
+
+      const statusUrl = `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessKey)}`
+
+      return NextResponse.json(
+        {
+          scanId,
+          accessKey,
+          status: 'awaiting_gsc',
+          statusUrl,
+          plan: 'deep',
+          requiresGoogleSearchConsole: true,
+          message: 'Connect Google Search Console to continue your Deep Investigation.',
+        },
+        { status: 201 }
       )
     }
 
     const scanId = randomUUID()
 
-    await createScanRecord({
+    await createScanRecordFn({
       scanId,
       websiteUrl: url,
       problem: problem as DiagnosticProblem,
@@ -80,7 +140,7 @@ export async function POST(request: Request) {
     })
 
     try {
-      await inngest.send({
+      await sendInngestEventFn({
         id: scanId,
         name: 'technical-seo/scan.requested',
         data: {
@@ -93,7 +153,7 @@ export async function POST(request: Request) {
     } catch (eventError) {
       const message =
         eventError instanceof Error ? eventError.message : 'Unable to queue the Technical SEO scan.'
-      await failScanRecord(scanId, message)
+      await failScanRecordFn(scanId, message)
       throw eventError
     }
 
@@ -111,4 +171,8 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : 'Unable to analyze the website.'
     return NextResponse.json({ error: message }, { status: 400 })
   }
+}
+
+export async function POST(request: Request) {
+  return handleCreateScan(request)
 }

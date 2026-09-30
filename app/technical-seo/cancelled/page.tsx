@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   },
 }
 
-type PlanType = 'quick' | 'full'
+type PlanType = 'quick' | 'full' | 'deep'
 
 interface PlanDetails {
   name: string
@@ -26,6 +26,10 @@ const PLAN_DETAILS: Record<PlanType, PlanDetails> = {
     name: 'Full Troubleshoot',
     price: '$99',
   },
+  deep: {
+    name: 'Deep Investigation',
+    price: '$199',
+  },
 }
 
 interface PayPalCancelledPageProps {
@@ -34,7 +38,8 @@ interface PayPalCancelledPageProps {
 
 export default async function PayPalCancelledPage(props: PayPalCancelledPageProps) {
   const resolvedParams = props.searchParams ? await props.searchParams : undefined
-  const planKey: PlanType = resolvedParams?.plan === 'full' ? 'full' : 'quick'
+  const planParam = resolvedParams?.plan
+  const planKey: PlanType = planParam === 'deep' ? 'deep' : planParam === 'full' ? 'full' : 'quick'
   const plan = PLAN_DETAILS[planKey]
 
   return (

@@ -1097,7 +1097,7 @@ export function finalizeCrawl(state: ActiveCrawlState): CrawlResult {
     findings,
   }
 
-  if (plan === 'full') {
+  if (plan === 'full' || plan === 'deep') {
     const effectiveInboundGraph =
       pageResults && pageResults.length > 0
         ? reconstructInternalInboundGraph(pageResults, finalOrigin)

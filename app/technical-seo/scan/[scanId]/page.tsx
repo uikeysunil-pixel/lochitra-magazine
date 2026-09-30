@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 
 type Status =
+  | 'awaiting_gsc'
   | 'awaiting_payment'
   | 'queued'
   | 'running'
@@ -13,7 +14,8 @@ type Status =
   | 'cancelled'
 
 const STATUS_LABELS: Record<Status, string> = {
-  awaiting_payment: 'Awaiting payment',
+  awaiting_gsc: 'Google Search Console connection required',
+  awaiting_payment: 'Payment required',
   queued: 'Queued',
   running: 'Running',
   analyzing: 'Analyzing',
@@ -24,8 +26,10 @@ const STATUS_LABELS: Record<Status, string> = {
 
 function getHeadingText(status: Status | undefined): string {
   switch (status) {
+    case 'awaiting_gsc':
+      return 'Google Search Console connection required'
     case 'awaiting_payment':
-      return 'Confirming payment…'
+      return 'Payment required'
     case 'queued':
       return 'Your scan is queued'
     case 'running':
@@ -51,6 +55,16 @@ interface Payload {
   reportUrl?: string | null
   paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
   plan?: string
+  gscConnected?: boolean
+  gscProperty?: string | null
+}
+
+interface PropertyItem {
+  siteUrl: string
+  permissionLevel: string | null
+  propertyType: 'domain' | 'url_prefix'
+  isMatch: boolean
+  isSelectable: boolean
 }
 
 const MAX_POLL_ATTEMPTS = 240
@@ -67,6 +81,17 @@ export default function TechnicalSEOScanStatusPage({
   const [accessKey, setAccessKey] = useState<string | null>(null)
   const [pollingCeilingReached, setPollingCeilingReached] = useState(false)
   const captureAttemptedRef = useRef(false)
+
+  // Phase 10C: Google Search Console property selection state
+  const [properties, setProperties] = useState<PropertyItem[]>([])
+  const [loadingProperties, setLoadingProperties] = useState(false)
+  const [propertiesError, setPropertiesError] = useState('')
+  const [selectedProperty, setSelectedProperty] = useState<string>('')
+  const [submittingProperty, setSubmittingProperty] = useState(false)
+
+  // Phase Deep-01: PayPal checkout state for Deep Investigation
+  const [initiatingPayment, setInitiatingPayment] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
@@ -192,6 +217,119 @@ export default function TechnicalSEOScanStatusPage({
     }
   }, [scanId, accessKey])
 
+  useEffect(() => {
+    if (
+      data?.plan !== 'deep' ||
+      !data?.gscConnected ||
+      data?.gscProperty ||
+      !scanId ||
+      !accessKey
+    ) {
+      return
+    }
+
+    let cancelled = false
+    setLoadingProperties(true)
+    setPropertiesError('')
+
+    fetch(
+      `/api/technical-seo/google/properties?scanId=${scanId}&key=${encodeURIComponent(accessKey)}`
+    )
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok) {
+          throw new Error(json.error || 'Failed to load Google Search Console properties.')
+        }
+        return json
+      })
+      .then((payload) => {
+        if (cancelled) return
+        setProperties(payload.properties || [])
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setPropertiesError(err instanceof Error ? err.message : 'Failed to load properties.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProperties(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data?.plan, data?.gscConnected, data?.gscProperty, scanId, accessKey])
+
+  async function handleConfirmProperty() {
+    if (!scanId || !accessKey || !selectedProperty || submittingProperty) return
+
+    setSubmittingProperty(true)
+    setPropertiesError('')
+
+    try {
+      const res = await fetch('/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId,
+          key: accessKey,
+          property: selectedProperty,
+        }),
+      })
+
+      const payload = await res.json()
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to select Search Console property.')
+      }
+
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              gscProperty: payload.property,
+              status: prev.status === 'awaiting_gsc' ? 'awaiting_payment' : prev.status,
+            }
+          : prev
+      )
+    } catch (err) {
+      setPropertiesError(err instanceof Error ? err.message : 'Failed to select property.')
+    } finally {
+      setSubmittingProperty(false)
+    }
+  }
+
+  async function handleProceedToPayPal() {
+    if (!scanId || !accessKey || initiatingPayment) return
+
+    setInitiatingPayment(true)
+    setPaymentError('')
+
+    try {
+      const response = await fetch('/api/technical-seo/paypal/create-order', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          scanId,
+          key: accessKey,
+          plan: 'deep',
+        }),
+      })
+
+      const payload = (await response.json()) as {
+        checkoutUrl?: string
+        error?: string
+      }
+
+      if (!response.ok || !payload.checkoutUrl) {
+        throw new Error(payload.error || 'Unable to start PayPal checkout.')
+      }
+
+      window.location.assign(payload.checkoutUrl)
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Unable to start PayPal checkout.')
+      setInitiatingPayment(false)
+    }
+  }
+
   const progress = Math.max(0, Math.min(100, data?.progressPercent ?? 0))
 
   return (
@@ -252,6 +390,174 @@ export default function TechnicalSEOScanStatusPage({
                 {progress}% complete · {data.pagesChecked} pages checked · {data.pagesDiscovered}{' '}
                 URLs discovered
               </p>
+
+              {data.plan === 'deep' && (
+                <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50/50 p-6 text-left dark:border-gray-800 dark:bg-gray-900/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                        Google Search Console Connection
+                      </h2>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Deep Investigation requires verified Search Console access for indexing and
+                        performance data.
+                      </p>
+                    </div>
+                    {data.gscProperty ? (
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20 ring-inset dark:bg-emerald-950/40 dark:text-emerald-300">
+                        Connected
+                      </span>
+                    ) : data.gscConnected ? (
+                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-600/20 ring-inset dark:bg-blue-950/40 dark:text-blue-300">
+                        Select Property
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-600/20 ring-inset dark:bg-amber-950/40 dark:text-amber-300">
+                        Action Required
+                      </span>
+                    )}
+                  </div>
+
+                  {!data.gscConnected && (
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Connect your Google account to allow Locitra to inspect your Search Console
+                        properties in read-only mode.
+                      </p>
+                      <div className="mt-4">
+                        <a
+                          href={`/api/technical-seo/google/connect?scanId=${scanId}&key=${encodeURIComponent(accessKey || '')}`}
+                          className="inline-flex items-center rounded-xl bg-gray-900 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                        >
+                          Connect Google Search Console
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {data.gscConnected && !data.gscProperty && (
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        Your Google account is connected. Select the Search Console property that
+                        corresponds to this scan:
+                      </p>
+
+                      {loadingProperties ? (
+                        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                          Loading properties from Google Search Console…
+                        </p>
+                      ) : propertiesError ? (
+                        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+                          {propertiesError}
+                        </div>
+                      ) : properties.length === 0 ? (
+                        <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+                          No Search Console properties were found in your connected Google account.
+                        </p>
+                      ) : (
+                        <div className="mt-4 space-y-2">
+                          {properties.map((prop) => (
+                            <label
+                              htmlFor={`gsc-prop-${prop.siteUrl}`}
+                              key={prop.siteUrl}
+                              className={`flex items-start gap-3 rounded-xl border p-3 transition ${
+                                prop.isSelectable
+                                  ? selectedProperty === prop.siteUrl
+                                    ? 'border-primary-500 bg-primary-50/30 dark:border-primary-400 dark:bg-primary-950/20'
+                                    : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                                  : 'cursor-not-allowed border-gray-100 bg-gray-50 opacity-60 dark:border-gray-800 dark:bg-gray-900'
+                              }`}
+                            >
+                              <span className="sr-only">Select property {prop.siteUrl}</span>
+                              <input
+                                id={`gsc-prop-${prop.siteUrl}`}
+                                type="radio"
+                                name="gscProperty"
+                                value={prop.siteUrl}
+                                disabled={!prop.isSelectable}
+                                checked={selectedProperty === prop.siteUrl}
+                                onChange={() => setSelectedProperty(prop.siteUrl)}
+                                className="text-primary-600 focus:ring-primary-500 mt-0.5"
+                              />
+                              <div className="flex-1 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-gray-900 dark:text-gray-100">
+                                    {prop.siteUrl}
+                                  </span>
+                                  <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold text-gray-700 uppercase dark:bg-gray-800 dark:text-gray-300">
+                                    {prop.propertyType === 'domain' ? 'Domain' : 'URL-prefix'}
+                                  </span>
+                                </div>
+                                <div className="mt-1 text-gray-500 dark:text-gray-400">
+                                  {prop.isSelectable ? (
+                                    <span className="text-emerald-600 dark:text-emerald-400">
+                                      Matches target website ({prop.permissionLevel})
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400 dark:text-gray-500">
+                                      {!prop.isMatch
+                                        ? 'Does not match target website'
+                                        : `Unverified (${prop.permissionLevel})`}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </label>
+                          ))}
+
+                          <div className="mt-4 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={handleConfirmProperty}
+                              disabled={!selectedProperty || submittingProperty}
+                              className="inline-flex items-center rounded-xl bg-gray-900 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                            >
+                              {submittingProperty ? 'Confirming…' : 'Confirm Property'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {data.gscConnected && data.gscProperty && (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                      <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                        Property Confirmed for Deep Investigation
+                      </p>
+                      <p className="mt-1 font-mono text-sm font-bold text-emerald-950 dark:text-emerald-100">
+                        {data.gscProperty}
+                      </p>
+                      <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
+                        Locitra will use this property to correlate crawl signals with Google Search
+                        Console data.
+                      </p>
+
+                      {data.plan === 'deep' && data.status === 'awaiting_payment' && (
+                        <div className="mt-5 border-t border-emerald-200/60 pt-4 dark:border-emerald-800/40">
+                          <p className="mb-3 text-xs text-gray-700 dark:text-gray-300">
+                            Search Console property confirmed. Complete checkout to begin your Deep
+                            Investigation.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleProceedToPayPal}
+                            disabled={initiatingPayment}
+                            className="inline-flex items-center rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                          >
+                            {initiatingPayment ? 'Opening PayPal…' : 'Proceed to PayPal — $199'}
+                          </button>
+                          {paymentError && (
+                            <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                              {paymentError}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {pollingCeilingReached &&
                 data.status !== 'complete' &&

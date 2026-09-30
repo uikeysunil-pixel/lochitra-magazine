@@ -8,6 +8,7 @@ import type {
   Finding,
   PlanId,
   ScanResult,
+  SearchAnalyticsDiagnostics,
 } from './types'
 
 export async function getScanRecord(scanId: string) {
@@ -43,8 +44,29 @@ export async function getScanRecord(scanId: string) {
       error_message,
       report_json,
       checkpoint_json,
+      gsc_search_analytics_json,
       created_at,
       updated_at
+    from seo_scans
+    where id = ${scanId}::uuid
+    limit 1
+  `
+
+  return rows[0] ?? null
+}
+
+export async function getDeepScanAuthorizationRecord(scanId: string) {
+  const rows = await sql`
+    select
+      id,
+      plan,
+      status,
+      report_token_hash,
+      payment_status,
+      payment_provider,
+      payment_reference,
+      gsc_property,
+      gsc_refresh_token_encrypted
     from seo_scans
     where id = ${scanId}::uuid
     limit 1
@@ -112,7 +134,7 @@ export async function createScanRecord(input: {
   customerEmail?: string | null
   paidAt?: string | null
   backgroundEventSentAt?: string | null
-  initialStatus?: 'awaiting_payment' | 'queued'
+  initialStatus?: 'awaiting_gsc' | 'awaiting_payment' | 'queued'
 }) {
   const rows = await sql`
     insert into seo_scans (
@@ -256,7 +278,7 @@ export async function markPaymentOrderCreated(input: {
       updated_at = now()
     where id = ${input.scanId}::uuid
       and status = 'awaiting_payment'
-      and payment_status = 'pending'
+      and payment_status in ('pending', 'unpaid')
       and payment_provider is null
       and payment_reference is null
     returning
@@ -358,9 +380,13 @@ export async function markScanRunning(scanId: string) {
   `
 }
 
-async function persistCrawledPages(scanId: string, result: CrawlResult) {
+async function persistCrawledPages(
+  scanId: string,
+  result: CrawlResult,
+  sqlClient: typeof sql = sql
+) {
   for (const page of result.pages) {
-    await sql`
+    await sqlClient`
       insert into seo_scan_urls (
         scan_id,
         url,
@@ -617,19 +643,37 @@ export async function getScanPageResults(
   return results
 }
 
-export async function completeScanRecord(scanId: string, result: CrawlResult) {
-  await persistCrawledPages(scanId, result)
+export async function completeScanRecord(
+  scanId: string,
+  result: CrawlResult,
+  deps?: { sql?: typeof sql }
+) {
+  const sqlClient = deps?.sql ?? sql
 
-  await sql`
+  await persistCrawledPages(scanId, result, sqlClient)
+
+  await sqlClient`
     delete from seo_scan_findings
     where scan_id = ${scanId}::uuid
   `
 
   for (const finding of result.findings) {
-    await insertFinding(scanId, finding)
+    await insertFinding(scanId, finding, sqlClient)
   }
 
-  await sql`
+  if (!result.searchAnalytics) {
+    const scanRows = await sqlClient`
+      select gsc_search_analytics_json
+      from seo_scans
+      where id = ${scanId}::uuid
+      limit 1
+    `
+    if (scanRows[0]?.gsc_search_analytics_json) {
+      result.searchAnalytics = scanRows[0].gsc_search_analytics_json as SearchAnalyticsDiagnostics
+    }
+  }
+
+  await sqlClient`
     update seo_scans
     set
       final_url = ${result.finalUrl},
@@ -659,11 +703,11 @@ export async function failScanRecord(scanId: string, message: string) {
   `
 }
 
-async function insertFinding(scanId: string, finding: Finding) {
+async function insertFinding(scanId: string, finding: Finding, sqlClient: typeof sql = sql) {
   const evidence = finding.evidence || []
   const affectedUrls = finding.affectedUrls || []
 
-  await sql`
+  await sqlClient`
     insert into seo_scan_findings (
       scan_id,
       finding_key,
@@ -701,5 +745,18 @@ async function insertFinding(scanId: string, finding: Finding) {
       affected_urls = excluded.affected_urls,
       evidence = excluded.evidence,
       updated_at = now()
+  `
+}
+
+export async function saveScanSearchAnalytics(
+  scanId: string,
+  diagnostics: SearchAnalyticsDiagnostics
+): Promise<void> {
+  await sql`
+    update seo_scans
+    set
+      gsc_search_analytics_json = ${JSON.stringify(diagnostics)}::jsonb,
+      updated_at = now()
+    where id = ${scanId}::uuid
   `
 }

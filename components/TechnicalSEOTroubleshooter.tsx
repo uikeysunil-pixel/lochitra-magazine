@@ -2,18 +2,16 @@
 
 import { useMemo, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
-import type { CrawlReportResult, DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
+import type {
+  CrawlReportResult,
+  DiagnosticProblem,
+  PlanId,
+  ScanStatus,
+} from '@/lib/technical-seo/types'
 
 type ScanStatusPayload = {
   scanId: string
-  status:
-    | 'awaiting_payment'
-    | 'queued'
-    | 'running'
-    | 'analyzing'
-    | 'complete'
-    | 'failed'
-    | 'cancelled'
+  status: ScanStatus
   progressPercent: number
   pagesChecked: number
   pagesDiscovered: number
@@ -127,7 +125,7 @@ const PLANS: Array<{
     price: '$199',
     description: 'Deeper diagnosis with Google Search Console data.',
     features: ['Search Console', 'URL Inspection', 'Deep diagnostics', 'Likely-cause analysis'],
-    enabled: false,
+    enabled: true,
   },
 ]
 
@@ -275,6 +273,47 @@ export default function TechnicalSEOTroubleshooter() {
 
     if (plan === 'full') {
       await initiatePayPalCheckout(url, problem, 'full')
+      return
+    }
+
+    if (plan === 'deep') {
+      setLoading(true)
+
+      try {
+        const response = await fetch('/api/technical-seo/scan', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: url.trim(), problem, plan: 'deep' }),
+        })
+
+        const data = (await response.json()) as {
+          scanId?: string
+          accessKey?: string
+          status?: ScanStatusPayload['status']
+          statusUrl?: string
+          plan?: string
+          requiresGoogleSearchConsole?: boolean
+          error?: string
+        }
+
+        if (!response.ok || !data.scanId) {
+          throw new Error(data.error || 'Unable to start Deep Investigation.')
+        }
+
+        rememberScan(data.scanId, data.accessKey)
+        setScanStatus(data.status || 'awaiting_gsc')
+        const targetUrl =
+          data.statusUrl ||
+          `/technical-seo/scan/${data.scanId}/${data.accessKey ? `?key=${encodeURIComponent(data.accessKey)}` : ''}`
+        setStatusUrl(targetUrl)
+
+        window.location.assign(targetUrl)
+      } catch (scanError) {
+        setError(
+          scanError instanceof Error ? scanError.message : 'Unable to start Deep Investigation.'
+        )
+        setLoading(false)
+      }
       return
     }
 
@@ -453,16 +492,20 @@ export default function TechnicalSEOTroubleshooter() {
               {loading
                 ? plan === 'quick' || plan === 'full'
                   ? 'Opening secure checkout…'
-                  : scanStatus === 'queued'
-                    ? 'Queued…'
-                    : scanStatus === 'analyzing'
-                      ? 'Building report…'
-                      : 'Crawling website…'
+                  : plan === 'deep'
+                    ? 'Starting Deep Investigation…'
+                    : scanStatus === 'queued'
+                      ? 'Queued…'
+                      : scanStatus === 'analyzing'
+                        ? 'Building report…'
+                        : 'Crawling website…'
                 : plan === 'quick'
                   ? 'Continue to secure checkout — $49'
                   : plan === 'full'
                     ? 'Continue to secure checkout — $99'
-                    : 'Troubleshoot My Website'}
+                    : plan === 'deep'
+                      ? 'Start Deep Investigation — $199'
+                      : 'Troubleshoot My Website'}
             </button>
             {loading && (
               <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-800 dark:bg-gray-900">

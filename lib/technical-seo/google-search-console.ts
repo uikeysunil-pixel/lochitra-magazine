@@ -658,16 +658,42 @@ export function isSearchConsolePropertyMatch(property: string, targetUrl: string
 /**
  * Persists the confirmed Google Search Console property identifier to the scan.
  * Stores the exact string returned by Google (e.g. 'sc-domain:example.com').
+ * If the scan currently has status = 'awaiting_gsc', transitions status to 'awaiting_payment'.
+ * Otherwise preserves current scan status.
+ *
+ * Enforces locking at the database boundary:
+ * Once gsc_property is set, a different property CANNOT overwrite it.
+ * Re-confirming the same property is an idempotent no-op or updates updated_at only if awaiting_gsc.
  */
 export async function saveScanSearchConsoleProperty(
   scanId: string,
-  property: string
-): Promise<void> {
-  await sql`
+  property: string,
+  sqlClient = sql
+): Promise<{ success: boolean; modified: boolean }> {
+  const result = await sqlClient`
     update seo_scans
     set
       gsc_property = ${property},
-      updated_at = now()
+      status = case
+        when status = 'awaiting_gsc' then 'awaiting_payment'
+        else status
+      end,
+      updated_at = case
+        when status = 'awaiting_gsc' or gsc_property is null then now()
+        else updated_at
+      end
     where id = ${scanId}::uuid
+      and (
+        (status = 'awaiting_gsc' and gsc_property is null)
+        or gsc_property = ${property}
+      )
+    returning id, status, gsc_property
   `
+
+  return {
+    success: true,
+    modified: Array.isArray(result)
+      ? result.length > 0
+      : Boolean((result as { count?: number })?.count),
+  }
 }

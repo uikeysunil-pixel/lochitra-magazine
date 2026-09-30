@@ -68,7 +68,10 @@ export default async function TechnicalSEOReportPage({
     let statusTitle = 'Scan in progress'
     let statusDescription = 'This scan is still being processed.'
 
-    if (scan.status === 'awaiting_payment') {
+    if (scan.status === 'awaiting_gsc') {
+      statusTitle = 'Google Search Console connection required'
+      statusDescription = 'Connect Google Search Console and confirm your property to continue.'
+    } else if (scan.status === 'awaiting_payment') {
       statusTitle = 'Payment confirmation pending'
       statusDescription = 'Payment has not yet been confirmed for this scan.'
     } else if (scan.status === 'queued') {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 
 type Status =
+  | 'awaiting_gsc'
   | 'awaiting_payment'
   | 'queued'
   | 'running'
@@ -13,7 +14,8 @@ type Status =
   | 'cancelled'
 
 const STATUS_LABELS: Record<Status, string> = {
-  awaiting_payment: 'Awaiting payment',
+  awaiting_gsc: 'Google Search Console connection required',
+  awaiting_payment: 'Payment required',
   queued: 'Queued',
   running: 'Running',
   analyzing: 'Analyzing',
@@ -24,8 +26,10 @@ const STATUS_LABELS: Record<Status, string> = {
 
 function getHeadingText(status: Status | undefined): string {
   switch (status) {
+    case 'awaiting_gsc':
+      return 'Google Search Console connection required'
     case 'awaiting_payment':
-      return 'Confirming payment…'
+      return 'Payment required'
     case 'queued':
       return 'Your scan is queued'
     case 'running':
@@ -84,6 +88,10 @@ export default function TechnicalSEOScanStatusPage({
   const [propertiesError, setPropertiesError] = useState('')
   const [selectedProperty, setSelectedProperty] = useState<string>('')
   const [submittingProperty, setSubmittingProperty] = useState(false)
+
+  // Phase Deep-01: PayPal checkout state for Deep Investigation
+  const [initiatingPayment, setInitiatingPayment] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
@@ -273,11 +281,52 @@ export default function TechnicalSEOScanStatusPage({
         throw new Error(payload.error || 'Failed to select Search Console property.')
       }
 
-      setData((prev) => (prev ? { ...prev, gscProperty: payload.property } : prev))
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              gscProperty: payload.property,
+              status: prev.status === 'awaiting_gsc' ? 'awaiting_payment' : prev.status,
+            }
+          : prev
+      )
     } catch (err) {
       setPropertiesError(err instanceof Error ? err.message : 'Failed to select property.')
     } finally {
       setSubmittingProperty(false)
+    }
+  }
+
+  async function handleProceedToPayPal() {
+    if (!scanId || !accessKey || initiatingPayment) return
+
+    setInitiatingPayment(true)
+    setPaymentError('')
+
+    try {
+      const response = await fetch('/api/technical-seo/paypal/create-order', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          scanId,
+          key: accessKey,
+          plan: 'deep',
+        }),
+      })
+
+      const payload = (await response.json()) as {
+        checkoutUrl?: string
+        error?: string
+      }
+
+      if (!response.ok || !payload.checkoutUrl) {
+        throw new Error(payload.error || 'Unable to start PayPal checkout.')
+      }
+
+      window.location.assign(payload.checkoutUrl)
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Unable to start PayPal checkout.')
+      setInitiatingPayment(false)
     }
   }
 
@@ -483,6 +532,28 @@ export default function TechnicalSEOScanStatusPage({
                         Locitra will use this property to correlate crawl signals with Google Search
                         Console data.
                       </p>
+
+                      {data.plan === 'deep' && data.status === 'awaiting_payment' && (
+                        <div className="mt-5 border-t border-emerald-200/60 pt-4 dark:border-emerald-800/40">
+                          <p className="mb-3 text-xs text-gray-700 dark:text-gray-300">
+                            Search Console property confirmed. Complete checkout to begin your Deep
+                            Investigation.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleProceedToPayPal}
+                            disabled={initiatingPayment}
+                            className="inline-flex items-center rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                          >
+                            {initiatingPayment ? 'Opening PayPal…' : 'Proceed to PayPal — $199'}
+                          </button>
+                          {paymentError && (
+                            <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                              {paymentError}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

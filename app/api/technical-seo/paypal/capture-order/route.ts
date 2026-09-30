@@ -27,6 +27,10 @@ export const PAYPAL_PLAN_PRICING: Record<
     amount: '99.00',
     currency: 'USD',
   },
+  deep: {
+    amount: '199.00',
+    currency: 'USD',
+  },
 }
 
 const ALLOWED_AMOUNTS = new Set(Object.values(PAYPAL_PLAN_PRICING).map((p) => p.amount))
@@ -165,6 +169,28 @@ export async function handleCaptureOrder(request: Request, deps: CaptureOrderDep
 
     // STEP 3 — IDEMPOTENT ALREADY-PAID CHECK
     if (scan.payment_status === 'paid') {
+      if (!scan.background_event_sent_at) {
+        try {
+          await sendInngestEventFn({
+            id: `technical-seo-paid-scan-${scan.id}`,
+            name: 'technical-seo/scan.requested',
+            data: {
+              scanId: scan.id,
+              url: scan.website_url,
+              problem: scan.problem as DiagnosticProblem,
+              plan: scan.plan as PlanId,
+            },
+          })
+
+          await markBackgroundEventSentFn(scan.id)
+        } catch (eventError) {
+          console.error(
+            'Failed to dispatch missing Inngest scan event for already-paid scan:',
+            eventError
+          )
+        }
+      }
+
       return NextResponse.json({
         success: true,
         scanId,

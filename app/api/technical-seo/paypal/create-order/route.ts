@@ -3,9 +3,12 @@ import { randomUUID } from 'crypto'
 import {
   createReportAccessToken,
   createScanRecord,
+  getDeepScanAuthorizationRecord,
+  getScanRecord,
   hashReportAccessToken,
   markCheckoutCancelled,
   markPaymentOrderCreated,
+  verifyReportAccessToken,
 } from '@/lib/technical-seo/scan-repository'
 import { createPayPalOrder } from '@/lib/paypal/orders'
 import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
@@ -27,7 +30,7 @@ const PROBLEMS = new Set<DiagnosticProblem>([
   'unknown',
 ])
 
-export type SupportedPaidPlan = 'quick' | 'full'
+export type SupportedPaidPlan = 'quick' | 'full' | 'deep'
 
 export const PAYPAL_PAID_PLAN_CONFIG: Record<
   SupportedPaidPlan,
@@ -47,6 +50,11 @@ export const PAYPAL_PAID_PLAN_CONFIG: Record<
     maxUrls: CRAWL_LIMITS.full,
     currency: 'USD',
   },
+  deep: {
+    amount: '199.00',
+    maxUrls: CRAWL_LIMITS.deep,
+    currency: 'USD',
+  },
 }
 
 export interface CreateOrderDependencies {
@@ -54,6 +62,9 @@ export interface CreateOrderDependencies {
   createPayPalOrder?: typeof createPayPalOrder
   markPaymentOrderCreated?: typeof markPaymentOrderCreated
   markCheckoutCancelled?: typeof markCheckoutCancelled
+  getScanRecord?: typeof getScanRecord
+  getDeepScanAuthorizationRecord?: typeof getDeepScanAuthorizationRecord
+  verifyReportAccessToken?: typeof verifyReportAccessToken
 }
 
 export async function handleCreateOrder(request: Request, deps: CreateOrderDependencies = {}) {
@@ -61,29 +72,134 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
   const createPayPalOrderFn = deps.createPayPalOrder ?? createPayPalOrder
   const markPaymentOrderCreatedFn = deps.markPaymentOrderCreated ?? markPaymentOrderCreated
   const markCheckoutCancelledFn = deps.markCheckoutCancelled ?? markCheckoutCancelled
+  const getScanRecordFn = deps.getScanRecord ?? getScanRecord
+  const getDeepScanAuthRecordFn =
+    deps.getDeepScanAuthorizationRecord ??
+    (deps.getScanRecord
+      ? (deps.getScanRecord as unknown as typeof getDeepScanAuthorizationRecord)
+      : getDeepScanAuthorizationRecord)
+  const verifyReportAccessTokenFn = deps.verifyReportAccessToken ?? verifyReportAccessToken
 
   let scanId: string | null = null
+  let planForCancellation: string | null = null
 
   try {
-    let body: {
-      url?: unknown
-      problem?: unknown
-      plan?: unknown
-    }
+    let body: Record<string, unknown>
 
     try {
-      body = (await request.json()) as {
-        url?: unknown
-        problem?: unknown
-        plan?: unknown
-      }
+      body = (await request.json()) as Record<string, unknown>
     } catch {
       return NextResponse.json({ error: 'Invalid JSON request body.' }, { status: 400 })
     }
 
+    const plan = typeof body.plan === 'string' ? body.plan : ''
+    planForCancellation = plan
+
+    if (plan === 'deep') {
+      const scanIdInput = typeof body.scanId === 'string' ? body.scanId.trim() : ''
+      const keyInput = typeof body.key === 'string' ? body.key.trim() : ''
+
+      if (!scanIdInput) {
+        return NextResponse.json(
+          { error: 'scanId is required for Deep plan checkout.' },
+          { status: 400 }
+        )
+      }
+
+      const scan = await getDeepScanAuthRecordFn(scanIdInput)
+      if (!scan) {
+        return NextResponse.json({ error: 'Scan not found.' }, { status: 404 })
+      }
+
+      if (!keyInput || !verifyReportAccessTokenFn(keyInput, scan.report_token_hash)) {
+        return NextResponse.json({ error: 'Invalid access key.' }, { status: 403 })
+      }
+
+      if (scan.plan !== 'deep') {
+        return NextResponse.json({ error: 'Scan plan mismatch.' }, { status: 400 })
+      }
+
+      if (scan.status !== 'awaiting_payment') {
+        return NextResponse.json(
+          { error: `Scan is not awaiting payment (current status: '${scan.status}').` },
+          { status: 400 }
+        )
+      }
+
+      if (!scan.gsc_property || !scan.gsc_property.trim()) {
+        return NextResponse.json(
+          { error: 'Google Search Console property must be selected before payment.' },
+          { status: 400 }
+        )
+      }
+
+      if (!scan.gsc_refresh_token_encrypted || !scan.gsc_refresh_token_encrypted.trim()) {
+        return NextResponse.json(
+          { error: 'Google Search Console must be connected before payment.' },
+          { status: 400 }
+        )
+      }
+
+      if (scan.payment_status === 'paid') {
+        return NextResponse.json({ error: 'Scan is already paid.' }, { status: 409 })
+      }
+
+      if (
+        (scan.payment_provider && scan.payment_provider !== 'paypal') ||
+        (scan.payment_reference && scan.payment_provider !== 'paypal') ||
+        scan.payment_reference
+      ) {
+        return NextResponse.json(
+          { error: 'Payment provider or reference has already been bound.' },
+          { status: 409 }
+        )
+      }
+
+      const existingScanId = scan.id as string
+      scanId = existingScanId
+      const origin = new URL(request.url).origin
+      const statusUrl = `/technical-seo/scan/${existingScanId}/?key=${encodeURIComponent(keyInput)}`
+      const returnUrl = `${origin}${statusUrl}&provider=paypal`
+      const cancelUrl = `${origin}/technical-seo/cancelled/?plan=deep`
+
+      const { orderId, approvalUrl } = await createPayPalOrderFn({
+        amount: PAYPAL_PAID_PLAN_CONFIG.deep.amount,
+        scanId: existingScanId,
+        returnUrl,
+        cancelUrl,
+      })
+
+      const updatedScan = await markPaymentOrderCreatedFn({
+        scanId: existingScanId,
+        paymentProvider: 'paypal',
+        paymentReference: orderId,
+        paymentCurrency: PAYPAL_PAID_PLAN_CONFIG.deep.currency,
+      })
+
+      if (!updatedScan) {
+        return NextResponse.json(
+          {
+            error:
+              'Failed to bind payment order to scan. The scan may already have an active payment order or is no longer awaiting payment.',
+          },
+          { status: 409 }
+        )
+      }
+
+      return NextResponse.json({
+        scanId: existingScanId,
+        status: 'awaiting_payment',
+        statusUrl,
+        accessKey: keyInput,
+        checkoutUrl: approvalUrl,
+        provider: 'paypal',
+        orderId,
+        plan: 'deep',
+      })
+    }
+
     const url = typeof body.url === 'string' ? body.url.trim() : ''
     const problem = typeof body.problem === 'string' ? body.problem : 'unknown'
-    const plan = typeof body.plan === 'string' ? body.plan : ''
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })
@@ -107,14 +223,15 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
 
     const accessKey = createReportAccessToken()
     const scanTokenHash = hashReportAccessToken(accessKey)
-    scanId = randomUUID()
+    const newScanId = randomUUID()
+    scanId = newScanId
     const origin = new URL(request.url).origin
-    const statusUrl = `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessKey)}`
+    const statusUrl = `/technical-seo/scan/${newScanId}/?key=${encodeURIComponent(accessKey)}`
     const returnUrl = `${origin}${statusUrl}&provider=paypal`
     const cancelUrl = `${origin}/technical-seo/cancelled/?plan=${encodeURIComponent(plan)}`
 
     await createScanRecordFn({
-      scanId,
+      scanId: newScanId,
       websiteUrl: url,
       problem: problem as DiagnosticProblem,
       plan: plan as SupportedPaidPlan,
@@ -128,20 +245,20 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
 
     const { orderId, approvalUrl } = await createPayPalOrderFn({
       amount: planConfig.amount,
-      scanId,
+      scanId: newScanId,
       returnUrl,
       cancelUrl,
     })
 
     await markPaymentOrderCreatedFn({
-      scanId,
+      scanId: newScanId,
       paymentProvider: 'paypal',
       paymentReference: orderId,
       paymentCurrency: planConfig.currency,
     })
 
     return NextResponse.json({
-      scanId,
+      scanId: newScanId,
       status: 'awaiting_payment',
       statusUrl,
       accessKey,
@@ -156,7 +273,7 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
       ? 'PayPal configuration error.'
       : rawMessage
 
-    if (scanId) {
+    if (scanId && planForCancellation !== 'deep') {
       try {
         await markCheckoutCancelledFn(scanId, message)
       } catch {

@@ -752,6 +752,29 @@ describe('Phase 10B — Google Search Console OAuth Foundation', () => {
 })
 
 describe('Phase 10C — Google Search Console Property Selection', () => {
+  function createMockScan(overrides?: Record<string, unknown>) {
+    return {
+      id: TEST_SCAN_ID,
+      website_url: 'https://example.com/',
+      final_url: null,
+      plan: 'deep',
+      report_token_hash: TEST_KEY_HASH,
+      access_mode: 'private',
+      status: 'queued',
+      ...overrides,
+    }
+  }
+
+  function createMockConnection(overrides?: Record<string, unknown>) {
+    return {
+      property: null,
+      encryptedRefreshToken: encryptToken('test-refresh-token', TEST_CONFIG.tokenEncryptionKey),
+      tokenExpiresAt: null,
+      connectedAt: new Date().toISOString(),
+      ...overrides,
+    }
+  }
+
   describe('Pure Property Matcher (isSearchConsolePropertyMatch)', () => {
     // 1. sc-domain:example.com -> https://example.com/
     it('1. sc-domain:example.com matches https://example.com/', () => {
@@ -923,29 +946,6 @@ describe('Phase 10C — Google Search Console Property Selection', () => {
   })
 
   describe('Target URL Resolution & Property Selection Security', () => {
-    function createMockScan(overrides?: Record<string, unknown>) {
-      return {
-        id: TEST_SCAN_ID,
-        website_url: 'https://example.com/',
-        final_url: null,
-        plan: 'deep',
-        report_token_hash: TEST_KEY_HASH,
-        access_mode: 'private',
-        status: 'queued',
-        ...overrides,
-      }
-    }
-
-    function createMockConnection(overrides?: Record<string, unknown>) {
-      return {
-        property: null,
-        encryptedRefreshToken: encryptToken('test-refresh-token', TEST_CONFIG.tokenEncryptionKey),
-        tokenExpiresAt: null,
-        connectedAt: new Date().toISOString(),
-        ...overrides,
-      }
-    }
-
     // 18. final_url is preferred over website_url
     it('18. final_url is preferred over website_url and strictly enforced', async () => {
       const scanWithRedirect = createMockScan({
@@ -1170,6 +1170,7 @@ describe('Phase 10C — Google Search Console Property Selection', () => {
         saveScanSearchConsoleProperty: async (id: string, prop: string) => {
           savedScanId = id
           savedProperty = prop
+          return { success: true, modified: true }
         },
       })
 
@@ -1238,7 +1239,7 @@ describe('Phase 10C — Google Search Console Property Selection', () => {
         listSearchConsoleProperties: async () => [
           { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
         ],
-        saveScanSearchConsoleProperty: async () => {},
+        saveScanSearchConsoleProperty: async () => ({ success: true, modified: true }),
       })
 
       const postText = await resPost.text()
@@ -1258,6 +1259,433 @@ describe('Phase 10C — Google Search Console Property Selection', () => {
         false,
         'POST must not contain client secret'
       )
+    })
+  })
+
+  describe('Phase Deep-01 — Property Confirmation Persistence & State Transition', () => {
+    it('exact validated property is persisted unchanged to gsc_property', async () => {
+      let executedQuery = ''
+      const executedParams: unknown[] = []
+
+      const mockSql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+        executedQuery = strings.join('?')
+        executedParams.push(...values)
+        return Promise.resolve([])
+      }) as unknown as typeof import('./db').sql
+
+      const targetProperty = 'sc-domain:example.com'
+      await saveScanSearchConsoleProperty(TEST_SCAN_ID, targetProperty, mockSql)
+
+      assert.ok(executedQuery.includes('gsc_property = ?'))
+      assert.ok(executedQuery.includes("when status = 'awaiting_gsc' then 'awaiting_payment'"))
+      assert.strictEqual(executedParams[0], targetProperty)
+      assert.strictEqual(executedParams[1], TEST_SCAN_ID)
+    })
+
+    it('awaiting_gsc status transitions to awaiting_payment when property is confirmed', async () => {
+      let scanStatus = 'awaiting_gsc'
+      let savedProperty: string | null = null
+
+      const mockSql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+        const query = strings.join('?')
+        if (query.includes("when status = 'awaiting_gsc' then 'awaiting_payment'")) {
+          savedProperty = values[0] as string
+          if (scanStatus === 'awaiting_gsc') {
+            scanStatus = 'awaiting_payment'
+          }
+        }
+        return Promise.resolve([])
+      }) as unknown as typeof import('./db').sql
+
+      await saveScanSearchConsoleProperty(TEST_SCAN_ID, 'sc-domain:locitra.com', mockSql)
+
+      assert.strictEqual(savedProperty, 'sc-domain:locitra.com')
+      assert.strictEqual(scanStatus, 'awaiting_payment')
+    })
+
+    it('existing non-awaiting_gsc status is not overwritten on property confirmation', async () => {
+      const nonAwaitingGscStatuses = ['queued', 'running', 'analyzing', 'complete', 'failed']
+
+      for (const initialStatus of nonAwaitingGscStatuses) {
+        let scanStatus = initialStatus
+        let savedProperty: string | null = null
+
+        const mockSql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+          const query = strings.join('?')
+          if (query.includes("when status = 'awaiting_gsc' then 'awaiting_payment'")) {
+            savedProperty = values[0] as string
+            if (scanStatus === 'awaiting_gsc') {
+              scanStatus = 'awaiting_payment'
+            }
+          }
+          return Promise.resolve([])
+        }) as unknown as typeof import('./db').sql
+
+        await saveScanSearchConsoleProperty(TEST_SCAN_ID, 'https://example.com/', mockSql)
+
+        assert.strictEqual(savedProperty, 'https://example.com/')
+        assert.strictEqual(
+          scanStatus,
+          initialStatus,
+          `Status ${initialStatus} must not be overwritten`
+        )
+      }
+    })
+  })
+
+  describe('Phase Deep-01 Remediation — GSC Property Locking & State Transitions', () => {
+    it('A. awaiting_gsc + new property -> saves property + transitions to awaiting_payment', async () => {
+      let savedProperty: string | null = null
+      let savedScanId: string | null = null
+
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () =>
+          createMockScan({
+            status: 'awaiting_gsc',
+            website_url: 'https://example.com/',
+          }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ property: null }) as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+        saveScanSearchConsoleProperty: async (id: string, prop: string) => {
+          savedScanId = id
+          savedProperty = prop
+          return { success: true, modified: true }
+        },
+      })
+
+      assert.strictEqual(response.status, 200)
+      const data = await response.json()
+      assert.strictEqual(data.success, true)
+      assert.strictEqual(data.property, 'sc-domain:example.com')
+      assert.strictEqual(savedScanId, TEST_SCAN_ID)
+      assert.strictEqual(savedProperty, 'sc-domain:example.com')
+    })
+
+    it('B. awaiting_payment + same property -> idempotent success, status unchanged', async () => {
+      let saveCalled = false
+
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () =>
+          createMockScan({
+            status: 'awaiting_payment',
+            website_url: 'https://example.com/',
+          }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ property: 'sc-domain:example.com' }) as never,
+        saveScanSearchConsoleProperty: async () => {
+          saveCalled = true
+          return { success: true, modified: false }
+        },
+      })
+
+      assert.strictEqual(response.status, 200)
+      const data = await response.json()
+      assert.strictEqual(data.success, true)
+      assert.strictEqual(data.property, 'sc-domain:example.com')
+      assert.strictEqual(
+        saveCalled,
+        false,
+        'Should not re-invoke save on already-confirmed property'
+      )
+    })
+
+    it('C. awaiting_payment + different property -> rejected', async () => {
+      let saveCalled = false
+
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:different.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () =>
+          createMockScan({
+            status: 'awaiting_payment',
+            website_url: 'https://example.com/',
+          }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ property: 'sc-domain:example.com' }) as never,
+        saveScanSearchConsoleProperty: async () => {
+          saveCalled = true
+          return { success: true, modified: false }
+        },
+      })
+
+      assert.strictEqual(response.status, 409)
+      const data = await response.json()
+      assert.ok(data.error.includes('cannot be changed'))
+      assert.strictEqual(saveCalled, false)
+    })
+
+    it('D. queued/complete/etc + same property -> no mutation', async () => {
+      const nonAwaitingStatuses = [
+        'queued',
+        'running',
+        'analyzing',
+        'complete',
+        'failed',
+        'cancelled',
+      ]
+
+      for (const status of nonAwaitingStatuses) {
+        let saveCalled = false
+
+        const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scanId: TEST_SCAN_ID,
+            key: TEST_ACCESS_KEY,
+            property: 'sc-domain:example.com',
+          }),
+        })
+
+        const response = await handleGooglePropertiesPost(req, {
+          getScanRecord: async () =>
+            createMockScan({
+              status,
+              website_url: 'https://example.com/',
+            }) as never,
+          verifyReportAccessToken: () => true,
+          getGoogleSearchConsoleConnection: async () =>
+            createMockConnection({ property: 'sc-domain:example.com' }) as never,
+          saveScanSearchConsoleProperty: async () => {
+            saveCalled = true
+            return { success: true, modified: false }
+          },
+        })
+
+        assert.strictEqual(response.status, 200)
+        const data = await response.json()
+        assert.strictEqual(data.success, true)
+        assert.strictEqual(data.property, 'sc-domain:example.com')
+        assert.strictEqual(saveCalled, false, `Must not mutate when scan status is ${status}`)
+      }
+    })
+
+    it('E. queued/complete/etc + different property -> rejected', async () => {
+      const nonAwaitingStatuses = [
+        'queued',
+        'running',
+        'analyzing',
+        'complete',
+        'failed',
+        'cancelled',
+      ]
+
+      for (const status of nonAwaitingStatuses) {
+        let saveCalled = false
+
+        const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scanId: TEST_SCAN_ID,
+            key: TEST_ACCESS_KEY,
+            property: 'sc-domain:malicious-overwrite.com',
+          }),
+        })
+
+        const response = await handleGooglePropertiesPost(req, {
+          getScanRecord: async () =>
+            createMockScan({
+              status,
+              website_url: 'https://example.com/',
+            }) as never,
+          verifyReportAccessToken: () => true,
+          getGoogleSearchConsoleConnection: async () =>
+            createMockConnection({ property: 'sc-domain:example.com' }) as never,
+          saveScanSearchConsoleProperty: async () => {
+            saveCalled = true
+            return { success: true, modified: false }
+          },
+        })
+
+        assert.strictEqual(
+          response.status,
+          409,
+          `Must reject overwrite when scan status is ${status}`
+        )
+        const data = await response.json()
+        assert.ok(data.error.includes('cannot be changed'))
+        assert.strictEqual(saveCalled, false)
+      }
+    })
+
+    it('F. concurrency race: losing request with simulated modified=false is rejected with 409', async () => {
+      let saveCalled = false
+
+      const req = new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: TEST_SCAN_ID,
+          key: TEST_ACCESS_KEY,
+          property: 'sc-domain:example.com',
+        }),
+      })
+
+      const response = await handleGooglePropertiesPost(req, {
+        getScanRecord: async () =>
+          createMockScan({
+            status: 'awaiting_gsc',
+            website_url: 'https://example.com/',
+          }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ property: null }) as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+        saveScanSearchConsoleProperty: async () => {
+          saveCalled = true
+          return { success: true, modified: false }
+        },
+      })
+
+      assert.strictEqual(saveCalled, true, 'Handler must call saveScanSearchConsoleProperty')
+      assert.strictEqual(
+        response.status,
+        409,
+        'Must return HTTP 409 when repository reports modified=false'
+      )
+      const data = await response.json()
+      assert.strictEqual(data.success, undefined, 'No success flag allowed on conflict')
+      assert.strictEqual(data.property, undefined, 'No confirmed property allowed on conflict')
+      assert.ok(data.error, 'Must provide a safe conflict message')
+    })
+
+    it('repository boundary: where clause enforces property lock on seo_scans update', async () => {
+      let executedQuery = ''
+      const executedParams: unknown[] = []
+
+      const mockSql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+        executedQuery = strings.join('?')
+        executedParams.push(...values)
+        return Promise.resolve([])
+      }) as unknown as typeof import('./db').sql
+
+      const res = await saveScanSearchConsoleProperty(
+        TEST_SCAN_ID,
+        'sc-domain:example.com',
+        mockSql
+      )
+
+      assert.ok(
+        /\(\s*\(status = 'awaiting_gsc' and gsc_property is null\)\s+or gsc_property = \?\s*\)/.test(
+          executedQuery
+        ),
+        'Database update must enforce status=awaiting_gsc when gsc_property is null and guard against overwriting'
+      )
+      assert.strictEqual(executedParams[2], 'sc-domain:example.com')
+      assert.strictEqual(res.success, true)
+      assert.strictEqual(res.modified, false, 'Should return modified=false when 0 rows returned')
+    })
+
+    it('repository boundary: returns modified=true when row is updated', async () => {
+      const mockSql = ((_strings: TemplateStringsArray, ..._values: unknown[]) => {
+        return Promise.resolve([
+          { id: TEST_SCAN_ID, status: 'awaiting_payment', gsc_property: 'sc-domain:example.com' },
+        ])
+      }) as unknown as typeof import('./db').sql
+
+      const res = await saveScanSearchConsoleProperty(
+        TEST_SCAN_ID,
+        'sc-domain:example.com',
+        mockSql
+      )
+      assert.strictEqual(res.success, true)
+      assert.strictEqual(res.modified, true)
+    })
+
+    it('http boundary: verifies HTTP handler checks repository modified flag', async () => {
+      const createReq = () =>
+        new Request('https://www.locitra.com/api/technical-seo/google/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scanId: TEST_SCAN_ID,
+            key: TEST_ACCESS_KEY,
+            property: 'sc-domain:example.com',
+          }),
+        })
+
+      // 1. When repository returns modified=false, handler checks it and returns 409
+      const responseConflict = await handleGooglePropertiesPost(createReq(), {
+        getScanRecord: async () =>
+          createMockScan({ status: 'awaiting_gsc', website_url: 'https://example.com/' }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ property: null }) as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+        saveScanSearchConsoleProperty: async () => ({ success: true, modified: false }),
+      })
+      assert.strictEqual(
+        responseConflict.status,
+        409,
+        'Handler must check modified=false and return 409'
+      )
+      const conflictBody = await responseConflict.json()
+      assert.strictEqual(conflictBody.success, undefined)
+      assert.ok(conflictBody.error)
+
+      // 2. When repository returns modified=true, handler checks it and returns 200
+      const responseSuccess = await handleGooglePropertiesPost(createReq(), {
+        getScanRecord: async () =>
+          createMockScan({ status: 'awaiting_gsc', website_url: 'https://example.com/' }) as never,
+        verifyReportAccessToken: () => true,
+        getGoogleSearchConsoleConnection: async () =>
+          createMockConnection({ property: null }) as never,
+        decryptToken: () => 'test-token',
+        listSearchConsoleProperties: async () => [
+          { siteUrl: 'sc-domain:example.com', permissionLevel: 'siteOwner' },
+        ],
+        saveScanSearchConsoleProperty: async () => ({ success: true, modified: true }),
+      })
+      assert.strictEqual(
+        responseSuccess.status,
+        200,
+        'Handler must check modified=true and return 200'
+      )
+      const successBody = await responseSuccess.json()
+      assert.strictEqual(successBody.success, true)
+      assert.strictEqual(successBody.property, 'sc-domain:example.com')
     })
   })
 })

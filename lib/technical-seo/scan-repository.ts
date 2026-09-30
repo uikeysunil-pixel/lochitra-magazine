@@ -55,6 +55,26 @@ export async function getScanRecord(scanId: string) {
   return rows[0] ?? null
 }
 
+export async function getDeepScanAuthorizationRecord(scanId: string) {
+  const rows = await sql`
+    select
+      id,
+      plan,
+      status,
+      report_token_hash,
+      payment_status,
+      payment_provider,
+      payment_reference,
+      gsc_property,
+      gsc_refresh_token_encrypted
+    from seo_scans
+    where id = ${scanId}::uuid
+    limit 1
+  `
+
+  return rows[0] ?? null
+}
+
 export async function listRecentScans(limit = 10) {
   const safeLimit = Math.max(1, Math.min(50, Math.floor(limit)))
   return sql`
@@ -114,7 +134,7 @@ export async function createScanRecord(input: {
   customerEmail?: string | null
   paidAt?: string | null
   backgroundEventSentAt?: string | null
-  initialStatus?: 'awaiting_payment' | 'queued'
+  initialStatus?: 'awaiting_gsc' | 'awaiting_payment' | 'queued'
 }) {
   const rows = await sql`
     insert into seo_scans (
@@ -258,7 +278,7 @@ export async function markPaymentOrderCreated(input: {
       updated_at = now()
     where id = ${input.scanId}::uuid
       and status = 'awaiting_payment'
-      and payment_status = 'pending'
+      and payment_status in ('pending', 'unpaid')
       and payment_provider is null
       and payment_reference is null
     returning

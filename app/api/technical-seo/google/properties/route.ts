@@ -223,6 +223,28 @@ export async function handleGooglePropertiesPost(
       )
     }
 
+    const existingProperty = connection.property
+
+    // 1. If an existing property is present and differs from submitted property, reject with 409
+    if (existingProperty && existingProperty !== trimmedProperty) {
+      return NextResponse.json(
+        {
+          error:
+            'A different Search Console property is already confirmed for this scan and cannot be changed.',
+        },
+        { status: 409 }
+      )
+    }
+
+    // 2. If it is the same property and scan has already moved beyond awaiting_gsc:
+    // return success idempotently without mutation or re-running full Google revalidation
+    if (existingProperty === trimmedProperty && scan.status !== 'awaiting_gsc') {
+      return NextResponse.json({
+        success: true,
+        property: trimmedProperty,
+      })
+    }
+
     let plainRefreshToken: string
     try {
       plainRefreshToken = decryptTokenFn(connection.encryptedRefreshToken)
@@ -290,7 +312,16 @@ export async function handleGooglePropertiesPost(
     }
 
     // Persist exact Google siteUrl
-    await savePropertyFn(scanId, trimmedProperty)
+    const saveResult = await savePropertyFn(scanId, trimmedProperty)
+    if (!saveResult?.modified) {
+      return NextResponse.json(
+        {
+          error:
+            'A different Search Console property is already confirmed for this scan and cannot be changed.',
+        },
+        { status: 409 }
+      )
+    }
 
     return NextResponse.json({
       success: true,

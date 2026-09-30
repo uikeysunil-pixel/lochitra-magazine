@@ -12,6 +12,16 @@ export type DiagnosticProblem =
 
 export type PlanId = 'free' | 'quick' | 'full' | 'deep'
 
+export type ScanStatus =
+  | 'awaiting_gsc'
+  | 'awaiting_payment'
+  | 'queued'
+  | 'running'
+  | 'analyzing'
+  | 'complete'
+  | 'failed'
+  | 'cancelled'
+
 export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info'
 
 export type FindingConfidence = 'high' | 'medium' | 'needs-review'

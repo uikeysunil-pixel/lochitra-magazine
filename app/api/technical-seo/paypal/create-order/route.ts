@@ -8,9 +8,11 @@ import {
   hashReportAccessToken,
   markCheckoutCancelled,
   markPaymentOrderCreated,
+  replacePaymentOrder,
   verifyReportAccessToken,
 } from '@/lib/technical-seo/scan-repository'
-import { createPayPalOrder } from '@/lib/paypal/orders'
+import { createPayPalOrder, getPayPalOrder } from '@/lib/paypal/orders'
+import { OrderStatus, type Order } from '@paypal/paypal-server-sdk'
 import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem } from '@/lib/technical-seo/types'
 
@@ -60,7 +62,9 @@ export const PAYPAL_PAID_PLAN_CONFIG: Record<
 export interface CreateOrderDependencies {
   createScanRecord?: typeof createScanRecord
   createPayPalOrder?: typeof createPayPalOrder
+  getPayPalOrder?: typeof getPayPalOrder
   markPaymentOrderCreated?: typeof markPaymentOrderCreated
+  replacePaymentOrder?: typeof replacePaymentOrder
   markCheckoutCancelled?: typeof markCheckoutCancelled
   getScanRecord?: typeof getScanRecord
   getDeepScanAuthorizationRecord?: typeof getDeepScanAuthorizationRecord
@@ -70,7 +74,9 @@ export interface CreateOrderDependencies {
 export async function handleCreateOrder(request: Request, deps: CreateOrderDependencies = {}) {
   const createScanRecordFn = deps.createScanRecord ?? createScanRecord
   const createPayPalOrderFn = deps.createPayPalOrder ?? createPayPalOrder
+  const getPayPalOrderFn = deps.getPayPalOrder ?? getPayPalOrder
   const markPaymentOrderCreatedFn = deps.markPaymentOrderCreated ?? markPaymentOrderCreated
+  const replacePaymentOrderFn = deps.replacePaymentOrder ?? replacePaymentOrder
   const markCheckoutCancelledFn = deps.markCheckoutCancelled ?? markCheckoutCancelled
   const getScanRecordFn = deps.getScanRecord ?? getScanRecord
   const getDeepScanAuthRecordFn =
@@ -144,13 +150,9 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
         return NextResponse.json({ error: 'Scan is already paid.' }, { status: 409 })
       }
 
-      if (
-        (scan.payment_provider && scan.payment_provider !== 'paypal') ||
-        (scan.payment_reference && scan.payment_provider !== 'paypal') ||
-        scan.payment_reference
-      ) {
+      if (scan.payment_provider && scan.payment_provider !== 'paypal') {
         return NextResponse.json(
-          { error: 'Payment provider or reference has already been bound.' },
+          { error: 'Payment provider conflict: scan is bound to another payment provider.' },
           { status: 409 }
         )
       }
@@ -160,8 +162,107 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
       const origin = new URL(request.url).origin
       const statusUrl = `/technical-seo/scan/${existingScanId}/?key=${encodeURIComponent(keyInput)}`
       const returnUrl = `${origin}${statusUrl}&provider=paypal`
-      const cancelUrl = `${origin}/technical-seo/cancelled/?plan=deep`
+      const cancelUrl = `${origin}/technical-seo/cancelled/?plan=deep&scanId=${encodeURIComponent(existingScanId)}&key=${encodeURIComponent(keyInput)}`
 
+      if (scan.payment_reference) {
+        const orderA = scan.payment_reference
+        let existingOrder: Order | null = null
+
+        try {
+          existingOrder = (await getPayPalOrderFn(orderA)) as Order
+        } catch {
+          existingOrder = null
+        }
+
+        // Case D: Existing order is APPROVED or COMPLETED in PayPal (route into return/reconciliation path)
+        if (
+          existingOrder &&
+          existingOrder.id === orderA &&
+          (existingOrder.status === OrderStatus.Approved ||
+            existingOrder.status === OrderStatus.Completed)
+        ) {
+          const captureReturnUrl = `${returnUrl}&token=${encodeURIComponent(orderA)}`
+          return NextResponse.json({
+            scanId: existingScanId,
+            status: 'awaiting_payment',
+            statusUrl,
+            accessKey: keyInput,
+            checkoutUrl: captureReturnUrl,
+            provider: 'paypal',
+            orderId: orderA,
+            plan: 'deep',
+            alreadyApproved: true,
+          })
+        }
+
+        // Case B: Existing order is CREATED, valid, and safely reusable
+        const purchaseUnit = existingOrder?.purchaseUnits?.[0]
+        const approvalLink =
+          existingOrder?.links?.find((link) => link.rel === 'payer-action') ??
+          existingOrder?.links?.find((link) => link.rel === 'approve')
+
+        const isReusable =
+          existingOrder &&
+          existingOrder.id === orderA &&
+          existingOrder.status === OrderStatus.Created &&
+          purchaseUnit &&
+          purchaseUnit.customId?.trim() === existingScanId &&
+          purchaseUnit.amount?.currencyCode === PAYPAL_PAID_PLAN_CONFIG.deep.currency &&
+          purchaseUnit.amount?.value === PAYPAL_PAID_PLAN_CONFIG.deep.amount &&
+          typeof approvalLink?.href === 'string' &&
+          approvalLink.href.trim().length > 0
+
+        if (isReusable) {
+          return NextResponse.json({
+            scanId: existingScanId,
+            status: 'awaiting_payment',
+            statusUrl,
+            accessKey: keyInput,
+            checkoutUrl: approvalLink!.href,
+            provider: 'paypal',
+            orderId: orderA,
+            plan: 'deep',
+          })
+        }
+
+        // Case C: Existing order is VOIDED, incompatible, unretrievable, or missing approval link.
+        // Create replacement order and atomically swap reference.
+        const { orderId: newOrderId, approvalUrl: newApprovalUrl } = await createPayPalOrderFn({
+          amount: PAYPAL_PAID_PLAN_CONFIG.deep.amount,
+          scanId: existingScanId,
+          returnUrl,
+          cancelUrl,
+        })
+
+        const updatedScan = await replacePaymentOrderFn({
+          scanId: existingScanId,
+          previousReference: orderA,
+          newReference: newOrderId,
+          paymentCurrency: PAYPAL_PAID_PLAN_CONFIG.deep.currency,
+        })
+
+        if (!updatedScan) {
+          return NextResponse.json(
+            {
+              error: 'Failed to update payment order. The scan payment state changed concurrently.',
+            },
+            { status: 409 }
+          )
+        }
+
+        return NextResponse.json({
+          scanId: existingScanId,
+          status: 'awaiting_payment',
+          statusUrl,
+          accessKey: keyInput,
+          checkoutUrl: newApprovalUrl,
+          provider: 'paypal',
+          orderId: newOrderId,
+          plan: 'deep',
+        })
+      }
+
+      // Case A: First checkout attempt
       const { orderId, approvalUrl } = await createPayPalOrderFn({
         amount: PAYPAL_PAID_PLAN_CONFIG.deep.amount,
         scanId: existingScanId,

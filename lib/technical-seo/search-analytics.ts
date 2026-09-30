@@ -5,7 +5,12 @@ import {
   getGoogleSearchConsoleConnection,
   listSearchConsoleProperties,
 } from './google-search-console'
-import { getScanRecord, saveScanSearchAnalytics, verifyReportAccessToken } from './scan-repository'
+import {
+  getDeepScanAuthorizationRecord,
+  getScanRecord,
+  saveScanSearchAnalytics,
+  verifyReportAccessToken,
+} from './scan-repository'
 import { sql } from './db'
 import type {
   OpportunitySignalType,
@@ -435,6 +440,7 @@ export function boundSearchAnalyticsPayload(
 
 export interface SearchAnalyticsDependencies {
   getScanRecord?: typeof getScanRecord
+  getDeepScanAuthorizationRecord?: typeof getDeepScanAuthorizationRecord
   verifyReportAccessToken?: typeof verifyReportAccessToken
   getGoogleSearchConsoleConnection?: typeof getGoogleSearchConsoleConnection
   decryptToken?: typeof decryptToken
@@ -516,17 +522,19 @@ async function defaultLoadCrawledUrlSet(scanId: string): Promise<Set<string>> {
  * B: top queries (dimensions: ['query'], rowLimit: 100)
  * C: top pages (dimensions: ['page'], rowLimit: 100)
  */
-export async function executeSearchAnalyticsDiagnostics(
-  input: {
+/**
+ * Shared Search Analytics query and persistence engine.
+ * Assumes caller has already verified authorization (either via HTTP access key
+ * or via internal Inngest paid-Deep scan record validation).
+ */
+async function executeAuthorizedSearchAnalytics(
+  params: {
     scanId: string
-    key: string
+    property: string
+    encryptedRefreshToken: string
   },
   deps: SearchAnalyticsDependencies = {}
 ): Promise<SearchAnalyticsDiagnostics> {
-  const getScanRecordFn = deps.getScanRecord ?? getScanRecord
-  const verifyReportAccessTokenFn = deps.verifyReportAccessToken ?? verifyReportAccessToken
-  const getGoogleConnectionFn =
-    deps.getGoogleSearchConsoleConnection ?? getGoogleSearchConsoleConnection
   const decryptTokenFn = deps.decryptToken ?? decryptToken
   const listPropertiesFn = deps.listSearchConsoleProperties ?? listSearchConsoleProperties
   const createClientFn = deps.createSearchConsoleClient ?? createSearchConsoleClient
@@ -534,61 +542,12 @@ export async function executeSearchAnalyticsDiagnostics(
   const queryAnalyticsFn = deps.querySearchAnalytics ?? defaultQuerySearchAnalytics
   const loadCrawledUrlsFn = deps.loadCrawledUrlSet ?? defaultLoadCrawledUrlSet
 
-  const { scanId, key } = input
+  const { scanId, property: persistedProperty, encryptedRefreshToken } = params
 
-  if (!scanId) {
-    throw new SearchAnalyticsError('Scan ID is required.', 400, 'INVALID_SCAN_ID')
-  }
-
-  if (!key) {
-    throw new SearchAnalyticsError('Access key is required.', 400, 'KEY_REQUIRED')
-  }
-
-  // 1. Load scan
-  const scan = await getScanRecordFn(scanId)
-  if (!scan) {
-    throw new SearchAnalyticsError('Scan not found.', 404, 'SCAN_NOT_FOUND')
-  }
-
-  // 2. Authorize report key
-  const hasValidKey = verifyReportAccessTokenFn(key, scan.report_token_hash)
-  if (!hasValidKey) {
-    throw new SearchAnalyticsError('Invalid access key.', 403, 'FORBIDDEN')
-  }
-
-  // 3. Validate plan === 'deep'
-  if (scan.plan !== 'deep') {
-    throw new SearchAnalyticsError(
-      'Search Analytics diagnostics are only available for Deep Investigation scans.',
-      400,
-      'PLAN_NOT_ELIGIBLE'
-    )
-  }
-
-  // 4. Load Google Search Console connection
-  const connection = await getGoogleConnectionFn(scanId)
-  if (!connection?.encryptedRefreshToken) {
-    throw new SearchAnalyticsError(
-      'Google account is not connected for this scan.',
-      400,
-      'GOOGLE_NOT_CONNECTED'
-    )
-  }
-
-  if (!connection.property) {
-    throw new SearchAnalyticsError(
-      'Search Console property has not been selected for this scan.',
-      400,
-      'PROPERTY_NOT_SELECTED'
-    )
-  }
-
-  const persistedProperty = connection.property
-
-  // 5. Decrypt refresh token
+  // 1. Decrypt refresh token
   let plainRefreshToken: string
   try {
-    plainRefreshToken = decryptTokenFn(connection.encryptedRefreshToken)
+    plainRefreshToken = decryptTokenFn(encryptedRefreshToken)
   } catch {
     throw new SearchAnalyticsError(
       'Failed to access stored Google credentials. Please reconnect Google Search Console.',
@@ -597,7 +556,7 @@ export async function executeSearchAnalyticsDiagnostics(
     )
   }
 
-  // 6. Create authenticated Google client
+  // 2. Create authenticated Google client
   let client: searchconsole_v1.Searchconsole
   try {
     client = createClientFn(plainRefreshToken)
@@ -610,7 +569,7 @@ export async function executeSearchAnalyticsDiagnostics(
     )
   }
 
-  // 7. Revalidate property presence and permissions via live sites.list()
+  // 3. Revalidate property presence and permissions via live sites.list()
   let liveProperties
   try {
     liveProperties = await listPropertiesFn(plainRefreshToken)
@@ -655,10 +614,10 @@ export async function executeSearchAnalyticsDiagnostics(
     )
   }
 
-  // 8. Calculate date range (trailing 28 complete days in America/Los_Angeles with 3-day buffer)
+  // 4. Calculate date range (trailing 28 complete days in America/Los_Angeles with 3-day buffer)
   const dateRange = calculateSearchAnalyticsDateRange(deps.referenceDate)
 
-  // 9. Execute exactly 3 bounded Search Analytics queries
+  // 5. Execute exactly 3 bounded Search Analytics queries
   let summaryResponse: searchconsole_v1.Schema$SearchAnalyticsQueryResponse
   let queriesResponse: searchconsole_v1.Schema$SearchAnalyticsQueryResponse
   let pagesResponse: searchconsole_v1.Schema$SearchAnalyticsQueryResponse
@@ -729,10 +688,10 @@ export async function executeSearchAnalyticsDiagnostics(
     )
   }
 
-  // 10. Load crawled URLs set for landing page correlation
+  // 6. Load crawled URLs set for landing page correlation
   const crawledUrls = await loadCrawledUrlsFn(scanId)
 
-  // 11. Parse data safely
+  // 7. Parse data safely
   const summary = parseSearchAnalyticsSummary(summaryResponse.rows)
   const topQueries = parseSearchAnalyticsQueryRows(queriesResponse.rows)
   const topPages = parseSearchAnalyticsPageRows(pagesResponse.rows, crawledUrls)
@@ -755,11 +714,191 @@ export async function executeSearchAnalyticsDiagnostics(
     isDataAvailable,
   }
 
-  // 12. Enforce 25 KB payload safety bound
+  // 8. Enforce 25 KB payload safety bound
   const boundedDiagnostics = boundSearchAnalyticsPayload(rawDiagnostics)
 
-  // 13. Persist to seo_scans.gsc_search_analytics_json
+  // 9. Persist to seo_scans.gsc_search_analytics_json
   await saveAnalyticsFn(scanId, boundedDiagnostics)
 
   return boundedDiagnostics
+}
+
+/**
+ * Public/HTTP entry point for Search Analytics diagnostics.
+ * Strictly requires the report access key to authenticate the request.
+ */
+export async function executeSearchAnalyticsDiagnostics(
+  input: {
+    scanId: string
+    key: string
+  },
+  deps: SearchAnalyticsDependencies = {}
+): Promise<SearchAnalyticsDiagnostics> {
+  const getScanRecordFn = deps.getScanRecord ?? getScanRecord
+  const verifyReportAccessTokenFn = deps.verifyReportAccessToken ?? verifyReportAccessToken
+  const getGoogleConnectionFn =
+    deps.getGoogleSearchConsoleConnection ?? getGoogleSearchConsoleConnection
+
+  const { scanId, key } = input
+
+  if (!scanId) {
+    throw new SearchAnalyticsError('Scan ID is required.', 400, 'INVALID_SCAN_ID')
+  }
+
+  if (!key) {
+    throw new SearchAnalyticsError('Access key is required.', 400, 'KEY_REQUIRED')
+  }
+
+  // 1. Load scan
+  const scan = await getScanRecordFn(scanId)
+  if (!scan) {
+    throw new SearchAnalyticsError('Scan not found.', 404, 'SCAN_NOT_FOUND')
+  }
+
+  // 2. Authorize report key
+  const hasValidKey = verifyReportAccessTokenFn(key, scan.report_token_hash)
+  if (!hasValidKey) {
+    throw new SearchAnalyticsError('Invalid access key.', 403, 'FORBIDDEN')
+  }
+
+  // 3. Validate plan === 'deep'
+  if (scan.plan !== 'deep') {
+    throw new SearchAnalyticsError(
+      'Search Analytics diagnostics are only available for Deep Investigation scans.',
+      400,
+      'PLAN_NOT_ELIGIBLE'
+    )
+  }
+
+  // 4. Load Google Search Console connection
+  const connection = await getGoogleConnectionFn(scanId)
+  if (!connection?.encryptedRefreshToken) {
+    throw new SearchAnalyticsError(
+      'Google account is not connected for this scan.',
+      400,
+      'GOOGLE_NOT_CONNECTED'
+    )
+  }
+
+  if (!connection.property) {
+    throw new SearchAnalyticsError(
+      'Search Console property has not been selected for this scan.',
+      400,
+      'PROPERTY_NOT_SELECTED'
+    )
+  }
+
+  return executeAuthorizedSearchAnalytics(
+    {
+      scanId,
+      property: connection.property,
+      encryptedRefreshToken: connection.encryptedRefreshToken,
+    },
+    deps
+  )
+}
+
+/**
+ * Internal entry point for the trusted Inngest worker.
+ * Authorization derives strictly from the scan/authorization record in the database:
+ * 1. scan exists
+ * 2. plan === 'deep'
+ * 3. payment_status === 'paid'
+ * 4. status is appropriate for background execution ('queued' or 'running')
+ * 5. gsc_property exists
+ * 6. gsc_refresh_token_encrypted exists
+ *
+ * Does not require or accept a plaintext report access key.
+ */
+export async function executeSearchAnalyticsDiagnosticsInternal(
+  scanId: string,
+  deps: SearchAnalyticsDependencies = {}
+): Promise<SearchAnalyticsDiagnostics> {
+  if (!scanId) {
+    throw new SearchAnalyticsError('Scan ID is required.', 400, 'INVALID_SCAN_ID')
+  }
+
+  const getAuthRecordFn = deps.getDeepScanAuthorizationRecord ?? getDeepScanAuthorizationRecord
+  const getScanRecordFn = deps.getScanRecord ?? getScanRecord
+  const getGoogleConnectionFn =
+    deps.getGoogleSearchConsoleConnection ?? getGoogleSearchConsoleConnection
+
+  // Load authorization record from dedicated accessor, falling back to scan record + connection if needed
+  let authRecord = await getAuthRecordFn(scanId)
+  if (!authRecord && deps.getScanRecord) {
+    const scan = await getScanRecordFn(scanId)
+    if (scan) {
+      const connection = await getGoogleConnectionFn(scanId)
+      authRecord = {
+        id: scan.id,
+        plan: scan.plan,
+        status: scan.status,
+        payment_status: scan.payment_status,
+        report_token_hash: scan.report_token_hash,
+        payment_provider: scan.payment_provider,
+        payment_reference: scan.payment_reference,
+        gsc_property: connection?.property ?? null,
+        gsc_refresh_token_encrypted: connection?.encryptedRefreshToken ?? null,
+      }
+    }
+  }
+
+  // 1. Scan exists
+  if (!authRecord) {
+    throw new SearchAnalyticsError('Scan not found.', 404, 'SCAN_NOT_FOUND')
+  }
+
+  // 2. Plan === 'deep'
+  if (authRecord.plan !== 'deep') {
+    throw new SearchAnalyticsError(
+      'Search Analytics diagnostics are only available for Deep Investigation scans.',
+      400,
+      'PLAN_NOT_ELIGIBLE'
+    )
+  }
+
+  // 3. Payment_status === 'paid'
+  if (authRecord.payment_status !== 'paid') {
+    throw new SearchAnalyticsError(
+      'Search Analytics diagnostics require a paid scan.',
+      402,
+      'PAYMENT_REQUIRED'
+    )
+  }
+
+  // 4. Status appropriate for background execution ('queued' or 'running')
+  if (authRecord.status !== 'queued' && authRecord.status !== 'running') {
+    throw new SearchAnalyticsError(
+      `Scan status '${authRecord.status}' is not eligible for background Search Analytics execution.`,
+      409,
+      'INVALID_STATUS'
+    )
+  }
+
+  // 5. Gsc_property exists
+  if (!authRecord.gsc_property) {
+    throw new SearchAnalyticsError(
+      'Search Console property has not been selected for this scan.',
+      400,
+      'PROPERTY_NOT_SELECTED'
+    )
+  }
+
+  // 6. Gsc_refresh_token_encrypted exists
+  if (!authRecord.gsc_refresh_token_encrypted) {
+    throw new SearchAnalyticsError(
+      'Google account is not connected for this scan.',
+      400,
+      'GOOGLE_NOT_CONNECTED'
+    )
+  }
+
+  return executeAuthorizedSearchAnalytics(
+    {
+      scanId,
+      property: authRecord.gsc_property,
+      encryptedRefreshToken: authRecord.gsc_refresh_token_encrypted,
+    },
+    deps
+  )
 }

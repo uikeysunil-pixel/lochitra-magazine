@@ -187,7 +187,7 @@ export default async function TechnicalSEOReportPage({
                       </p>
                     </div>
                     <span className="inline-flex w-fit items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                      Full Plan Diagnostic
+                      {scan.plan === 'deep' ? 'Deep Plan Diagnostic' : 'Full Plan Diagnostic'}
                     </span>
                   </div>
 
@@ -346,7 +346,7 @@ export default async function TechnicalSEOReportPage({
                       </p>
                     </div>
                     <span className="inline-flex w-fit items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                      Full Plan Diagnostic
+                      {scan.plan === 'deep' ? 'Deep Plan Diagnostic' : 'Full Plan Diagnostic'}
                     </span>
                   </div>
 
@@ -506,6 +506,199 @@ export default async function TechnicalSEOReportPage({
                   </div>
                 </div>
               )}
+
+              {scan.plan === 'deep' &&
+                (result.searchAnalytics ? (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+                    <div className="flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+                      <div>
+                        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                          Google Search Analytics & Performance Insights
+                        </h2>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                          Trailing 28-day Google Search Console performance for{' '}
+                          <span className="font-mono text-gray-700 dark:text-gray-300">
+                            {result.searchAnalytics.property}
+                          </span>{' '}
+                          ({result.searchAnalytics.dateRange.startDate} to{' '}
+                          {result.searchAnalytics.dateRange.endDate}).
+                        </p>
+                      </div>
+                      <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
+                        Deep Plan Diagnostic
+                      </span>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                        <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                          {result.searchAnalytics.summary.clicks.toLocaleString()}
+                        </div>
+                        <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                          Total Clicks
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                        <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                          {result.searchAnalytics.summary.impressions.toLocaleString()}
+                        </div>
+                        <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                          Total Impressions
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                        <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                          {(result.searchAnalytics.summary.ctr * 100).toFixed(1)}%
+                        </div>
+                        <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                          Average CTR
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-center dark:border-gray-800 dark:bg-gray-900/50">
+                        <div className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                          {result.searchAnalytics.summary.position.toFixed(1)}
+                        </div>
+                        <div className="mt-1 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                          Average Position
+                        </div>
+                      </div>
+                    </div>
+
+                    {result.searchAnalytics.opportunitySignals &&
+                      result.searchAnalytics.opportunitySignals.length > 0 && (
+                        <div className="mt-6">
+                          <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                            Search Opportunity Signals (
+                            {result.searchAnalytics.opportunitySignals.length})
+                          </h3>
+                          <div className="mt-2.5 space-y-2">
+                            {result.searchAnalytics.opportunitySignals
+                              .slice(0, 10)
+                              .map((signal, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex flex-col gap-1 rounded-xl border border-gray-200/80 bg-gray-50/50 p-3 text-xs sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-900/40"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                        signal.type === 'striking_distance'
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                      }`}
+                                    >
+                                      {signal.type === 'striking_distance'
+                                        ? 'Striking Distance'
+                                        : 'Low CTR'}
+                                    </span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                      "{signal.query}"
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                                    <span>
+                                      Pos: <strong>{signal.position.toFixed(1)}</strong>
+                                    </span>
+                                    <span>
+                                      Imp: <strong>{signal.impressions.toLocaleString()}</strong>
+                                    </span>
+                                    <span>
+                                      CTR: <strong>{(signal.ctr * 100).toFixed(1)}%</strong>
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                    {result.searchAnalytics.topQueries &&
+                      result.searchAnalytics.topQueries.length > 0 && (
+                        <div className="mt-6">
+                          <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                            Top Search Queries ({result.searchAnalytics.topQueries.length})
+                          </h3>
+                          <div className="mt-2.5 max-h-64 overflow-y-auto rounded-xl border border-gray-200/80 dark:border-gray-800">
+                            <div className="divide-y divide-gray-100 text-xs dark:divide-gray-800/80">
+                              {result.searchAnalytics.topQueries.slice(0, 20).map((q, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between gap-3 px-3.5 py-2"
+                                >
+                                  <span className="truncate font-medium text-gray-800 dark:text-gray-200">
+                                    {idx + 1}. {q.query}
+                                  </span>
+                                  <div className="flex shrink-0 items-center gap-3 font-mono text-gray-600 dark:text-gray-400">
+                                    <span>Pos {q.position.toFixed(1)}</span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                      {q.clicks} clicks
+                                    </span>
+                                    <span>{q.impressions} imp</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    {result.searchAnalytics.topPages &&
+                      result.searchAnalytics.topPages.length > 0 && (
+                        <div className="mt-6">
+                          <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                            Top Landing Pages ({result.searchAnalytics.topPages.length})
+                          </h3>
+                          <div className="mt-2.5 max-h-64 overflow-y-auto rounded-xl border border-gray-200/80 dark:border-gray-800">
+                            <div className="divide-y divide-gray-100 text-xs dark:divide-gray-800/80">
+                              {result.searchAnalytics.topPages.slice(0, 15).map((p, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between gap-3 px-3.5 py-2"
+                                >
+                                  <div className="flex items-center gap-2 truncate">
+                                    <span className="truncate font-mono text-gray-700 dark:text-gray-300">
+                                      {p.page}
+                                    </span>
+                                    {p.isCrawledUrl && (
+                                      <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                        Crawled
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="shrink-0 font-mono font-semibold text-gray-900 dark:text-gray-100">
+                                    {p.clicks} clicks
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    {!result.searchAnalytics.isDataAvailable && (
+                      <div className="mt-5 rounded-xl border border-gray-200/80 bg-gray-50/50 p-4 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-400">
+                        No search clicks or impressions were recorded by Google Search Console for
+                        this property in the trailing 28-day window.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+                      <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                        Google Search Console Analytics
+                      </h2>
+                      <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        Deep Plan
+                      </span>
+                    </div>
+                    <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                      Google Search Analytics performance data was not queried or unavailable during
+                      this scan execution. The technical SEO crawl and site architecture analysis
+                      are fully reported below.
+                    </p>
+                  </div>
+                ))}
 
               <div>
                 <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">

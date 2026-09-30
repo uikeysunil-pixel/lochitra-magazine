@@ -16,6 +16,7 @@ import {
   markScanRunning,
   saveScanCheckpoint,
 } from '@/lib/technical-seo/scan-repository'
+import { executeSearchAnalyticsDiagnosticsInternal } from '@/lib/technical-seo/search-analytics'
 import type { CrawlPage, DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 
 interface TechnicalSeoScanEvent {
@@ -137,6 +138,20 @@ export const technicalSeoScan = inngest.createFunction(
         })
 
         chunkIndex++
+      }
+
+      if (data.plan === 'deep') {
+        await step.run('search-analytics', async () => {
+          try {
+            return await executeSearchAnalyticsDiagnosticsInternal(data.scanId)
+          } catch (error) {
+            console.warn(
+              `[SearchAnalytics] GSC diagnostics failed for Deep scan ${data.scanId}:`,
+              error instanceof Error ? error.message : error
+            )
+            return null
+          }
+        })
       }
 
       const result = await step.run('finalize-scan', async () => {

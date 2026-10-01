@@ -31,6 +31,7 @@ export async function createStripeCheckoutSession(input: {
   body.set('metadata[website_url]', input.websiteUrl)
   body.set('metadata[problem]', input.problem)
   body.set('metadata[plan]', 'quick')
+  body.set('billing_address_collection', 'required')
 
   const response = await fetch(`${STRIPE_API_BASE}/checkout/sessions`, {
     method: 'POST',

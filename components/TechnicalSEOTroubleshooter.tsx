@@ -371,8 +371,8 @@ export default function TechnicalSEOTroubleshooter() {
           </h2>
           <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
             The Targeted Troubleshoot is a one-time technical SEO investigation. It currently
-            includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
-            report for the selected diagnostic concern. The current price is <strong>₹4,999</strong>.
+            includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed report
+            for the selected diagnostic concern. The current price is <strong>₹4,999</strong>.
             Technical findings and recommendations are diagnostic information and do not guarantee
             search-engine rankings, traffic increases, indexing outcomes, or other business results.
           </p>

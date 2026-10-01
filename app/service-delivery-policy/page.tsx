@@ -42,8 +42,8 @@ export default function ServiceDeliveryPolicyPage() {
           <h2 id="activation-heading">2. Service Activation</h2>
           <p>
             After a successful payment is confirmed by the applicable payment provider, Locitra
-            creates or activates the associated technical investigation. The customer must provide
-            a valid website URL and the information reasonably required to perform the selected
+            creates or activates the associated technical investigation. The customer must provide a
+            valid website URL and the information reasonably required to perform the selected
             investigation.
           </p>
           <p>
@@ -85,8 +85,8 @@ export default function ServiceDeliveryPolicyPage() {
           </p>
           <p>
             Delivery timing can vary with website size, crawl accessibility, technical errors,
-            robots.txt restrictions, third-party service availability, and the scope of the plan. If a
-            technical issue prevents reasonable delivery, contact Locitra at{' '}
+            robots.txt restrictions, third-party service availability, and the scope of the plan. If
+            a technical issue prevents reasonable delivery, contact Locitra at{' '}
             <a href="mailto:contact@locitra.com?subject=Technical%20SEO%20Service%20Delivery">
               contact@locitra.com
             </a>
@@ -135,8 +135,7 @@ export default function ServiceDeliveryPolicyPage() {
         <section aria-labelledby="support-heading">
           <h2 id="support-heading">7. Support</h2>
           <p>
-            For payment, activation, delivery, cancellation, or report questions, contact Locitra
-            at{' '}
+            For payment, activation, delivery, cancellation, or report questions, contact Locitra at{' '}
             <a href="mailto:contact@locitra.com?subject=Technical%20SEO%20Service%20Support">
               contact@locitra.com
             </a>

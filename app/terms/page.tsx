@@ -268,14 +268,14 @@ export default function TermsPage() {
           </p>
           <ul>
             <li>
-              <strong>Service scope:</strong> The scope, crawl limits, diagnostic focus, included evidence,
-              and report features are determined by the plan selected at checkout.
+              <strong>Service scope:</strong> The scope, crawl limits, diagnostic focus, included
+              evidence, and report features are determined by the plan selected at checkout.
             </li>
             <li>
               <strong>Service provision:</strong> After successful payment and receipt of the
               information required to perform the selected service, Locitra begins the technical
-              investigation according to the applicable service workflow. The resulting findings
-              and report are made available through the Locitra service workflow.
+              investigation according to the applicable service workflow. The resulting findings and
+              report are made available through the Locitra service workflow.
             </li>
             <li>
               <strong>Customer responsibility:</strong> You must have the right and authority to

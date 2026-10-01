@@ -78,8 +78,8 @@ export default function RefundPolicyPage() {
           </p>
           <p>
             Where the investigation has not started, Locitra will normally issue a full refund to
-            the original payment method used for the transaction. A cancellation request should be made
-            before investigation work begins; submitting a request does not by itself guarantee
+            the original payment method used for the transaction. A cancellation request should be
+            made before investigation work begins; submitting a request does not by itself guarantee
             approval until Locitra verifies the service status.
           </p>
           <p>
@@ -190,10 +190,10 @@ export default function RefundPolicyPage() {
           <h2 id="processing-heading">8. Refund Processing</h2>
           <p>
             Approved refunds are initiated to the original payment method used for the transaction.
-            Locitra will normally submit an approved refund promptly after the decision is made.
-            The time for the refund to appear in a customer&apos;s account depends on the payment provider
-            and the customer&apos;s financial institution, so final posting times are outside Locitra&apos;s
-            control.
+            Locitra will normally submit an approved refund promptly after the decision is made. The
+            time for the refund to appear in a customer&apos;s account depends on the payment
+            provider and the customer&apos;s financial institution, so final posting times are
+            outside Locitra&apos;s control.
           </p>
           <p>
             If a payment provider imposes a separate processing window, that provider&apos;s

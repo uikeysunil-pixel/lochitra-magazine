@@ -137,8 +137,10 @@ export default function ContactPage() {
               <div>
                 <p className="font-semibold text-gray-900 dark:text-gray-100">Operating Address</p>
                 <address className="mt-1 not-italic">
-                  Sirsoti, Bijpur, Rihand Nagar<br />
-                  Sonbhadra district, Uttar Pradesh, India<br />
+                  Sirsoti, Bijpur, Rihand Nagar
+                  <br />
+                  Sonbhadra district, Uttar Pradesh, India
+                  <br />
                   PIN: 231223
                 </address>
               </div>
@@ -146,7 +148,7 @@ export default function ContactPage() {
                 <p className="font-semibold text-gray-900 dark:text-gray-100">Phone</p>
                 <a
                   href="tel:+919516453454"
-                  className="mt-1 inline-flex items-center font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                  className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 mt-1 inline-flex items-center font-semibold"
                   aria-label="Call Locitra at +91 95164 53454"
                 >
                   +91 95164 53454

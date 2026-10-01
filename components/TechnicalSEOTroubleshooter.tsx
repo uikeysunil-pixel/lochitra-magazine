@@ -214,10 +214,7 @@ export default function TechnicalSEOTroubleshooter() {
     )
   }
 
-  async function initiateStripeCheckout(
-    targetUrl: string,
-    targetProblem: DiagnosticProblem
-  ) {
+  async function initiateStripeCheckout(targetUrl: string, targetProblem: DiagnosticProblem) {
     const trimmedUrl = targetUrl.trim()
     if (!trimmedUrl) {
       setError('Enter your website URL to begin.')
@@ -497,12 +494,14 @@ export default function TechnicalSEOTroubleshooter() {
                 We use your billing country to route domestic India payments to Stripe INR and international payments to PayPal USD.
               </p>
             </div>
-            <label htmlFor="billing-country" className="sr-only">Billing country</label>
+            <label htmlFor="billing-country" className="sr-only">
+              Billing country
+            </label>
             <select
               id="billing-country"
               value={billingCountry}
               onChange={(event) => setBillingCountry(event.target.value as 'IN' | 'OTHER')}
-              className="mb-6 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              className="focus:border-primary-500 focus:ring-primary-200 mb-6 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >
               <option value="IN">India</option>
               <option value="OTHER">Outside India</option>
@@ -546,7 +545,11 @@ export default function TechnicalSEOTroubleshooter() {
                       )}
                     </div>
                     <div className="mt-3 text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-                      {item.id === 'quick' ? (billingCountry === 'IN' ? '₹4,999' : '$49') : item.price}
+                      {item.id === 'quick'
+                        ? billingCountry === 'IN'
+                          ? '₹4,999'
+                          : '$49'
+                        : item.price}
                     </div>
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {item.description}
@@ -797,7 +800,11 @@ export default function TechnicalSEOTroubleshooter() {
                       {recommendedPlanDetails?.name}
                     </p>
                     <div className="mt-3 text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-                      {recommendedPlan === 'quick' ? (billingCountry === 'IN' ? '₹4,999' : '$49') : recommendedPlanDetails?.price}
+                      {recommendedPlan === 'quick'
+                        ? billingCountry === 'IN'
+                          ? '₹4,999'
+                          : '$49'
+                        : recommendedPlanDetails?.price}
                     </div>
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {problem === 'unknown'

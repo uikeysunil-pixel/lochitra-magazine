@@ -365,6 +365,34 @@ export default function TechnicalSEOTroubleshooter() {
           </p>
         </div>
 
+        <div className="mx-auto mt-8 max-w-4xl rounded-2xl border border-gray-200 bg-gray-50 p-5 text-left dark:border-gray-800 dark:bg-gray-900">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+            About the paid Technical SEO service
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
+            The Targeted Troubleshoot is a one-time technical SEO investigation. It currently
+            includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
+            report for the selected diagnostic concern. The current price is <strong>₹4,999</strong>.
+            Technical findings and recommendations are diagnostic information and do not guarantee
+            search-engine rankings, traffic increases, indexing outcomes, or other business results.
+          </p>
+          <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
+            Before purchasing, please review our{' '}
+            <a href="/terms" className="font-semibold underline underline-offset-2">
+              Terms &amp; Conditions
+            </a>
+            ,{' '}
+            <a href="/refund-policy" className="font-semibold underline underline-offset-2">
+              Cancellation &amp; Refund Policy
+            </a>
+            , and{' '}
+            <a href="/privacy-policy" className="font-semibold underline underline-offset-2">
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </div>
+
         <form onSubmit={handleAnalyze} className="mx-auto mt-10 max-w-4xl space-y-8">
           <div>
             <label
@@ -484,6 +512,10 @@ export default function TechnicalSEOTroubleshooter() {
           </div>
 
           <div className="flex flex-col items-center gap-3">
+            <p className="max-w-2xl text-center text-xs leading-5 text-gray-500 dark:text-gray-400">
+              By continuing with a paid plan, you confirm that you are authorized to submit the
+              website for analysis and agree to the applicable Locitra service terms and policies.
+            </p>
             <button
               type="submit"
               disabled={loading}

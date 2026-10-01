@@ -57,9 +57,9 @@ export default function RefundPolicyPage() {
             through Locitra. The currently available paid{' '}
             <strong>Targeted Technical SEO Troubleshoot</strong> service provides a focused
             technical investigation of a customer-provided website together with evidence,
-            affected-page information, and prioritized recommendations. If additional paid plans
-            are made available, the same general cancellation and refund framework applies unless
-            a plan-specific term is clearly stated at checkout.
+            affected-page information, and prioritized recommendations. If additional paid plans are
+            made available, the same general cancellation and refund framework applies unless a
+            plan-specific term is clearly stated at checkout.
           </p>
           <p>
             Service scope is determined by the plan and diagnostic path selected at checkout. The
@@ -78,9 +78,9 @@ export default function RefundPolicyPage() {
           </p>
           <p>
             Where the investigation has not started, Locitra will normally issue a full refund to
-            the original payment method used for the transaction. A cancellation request should
-            be made before investigation work begins; submitting a request does not by itself
-            guarantee approval until Locitra verifies the service status.
+            the original payment method used for the transaction. A cancellation request should be made
+            before investigation work begins; submitting a request does not by itself guarantee
+            approval until Locitra verifies the service status.
           </p>
           <p>
             Cancellation requests should be sent to{' '}
@@ -191,9 +191,9 @@ export default function RefundPolicyPage() {
           <p>
             Approved refunds are initiated to the original payment method used for the transaction.
             Locitra will normally submit an approved refund promptly after the decision is made.
-            The time for the refund to appear in a customer&apos;s account depends on the payment
-            provider and the customer&apos;s financial institution, so final posting times are
-            outside Locitra&apos;s control.
+            The time for the refund to appear in a customer&apos;s account depends on the payment provider
+            and the customer&apos;s financial institution, so final posting times are outside Locitra&apos;s
+            control.
           </p>
           <p>
             If a payment provider imposes a separate processing window, that provider&apos;s

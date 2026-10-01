@@ -60,6 +60,16 @@ const TRUST_PAGES = [
     description: 'Learn how reader data, cookies, analytics, and privacy rights are protected.',
   },
   {
+    title: 'Cancellation & Refund Policy',
+    href: '/refund-policy',
+    description: 'Review cancellation, refund, service-delivery, and payment support terms.',
+  },
+  {
+    title: 'Technical SEO Service',
+    href: '/technical-seo',
+    description: 'Review the Technical SEO troubleshooting service and available plans.',
+  },
+  {
     title: 'Contact Page',
     href: '/contact',
     description:
@@ -242,7 +252,68 @@ export default function TermsPage() {
 
         <hr />
 
-        {/* 5. Reader Communication & Submissions */}
+        {/* 5. Technical SEO Troubleshooting Services */}
+        <section aria-labelledby="technical-service-heading">
+          <h2 id="technical-service-heading">5. Technical SEO Troubleshooting Services</h2>
+          <p>
+            Locitra also provides one-time Technical SEO troubleshooting services through its
+            dedicated service page. The customer submits a website URL and selects the diagnostic
+            concern and service plan available at the time of purchase.
+          </p>
+          <ul>
+            <li>
+              <strong>Service scope:</strong> The scope, crawl limits, diagnostic focus, included
+              evidence, and report features are determined by the plan selected at checkout.
+            </li>
+            <li>
+              <strong>Service provision:</strong> After successful payment and receipt of the
+              information required to perform the selected service, Locitra begins the technical
+              investigation according to the applicable service workflow. The resulting findings
+              and report are made available through the Locitra service workflow.
+            </li>
+            <li>
+              <strong>Customer responsibility:</strong> You must have the right and authority to
+              submit the website URL and any other information you provide for analysis. Do not
+              submit passwords, payment credentials, or other confidential information that is not
+              required for the service.
+            </li>
+            <li>
+              <strong>No ranking guarantee:</strong> Technical findings and recommendations are
+              diagnostic information. The service does not guarantee search-engine rankings,
+              traffic increases, indexing outcomes, conversions, or any specific business result.
+            </li>
+            <li>
+              <strong>Payment and cancellation:</strong> Paid services are one-time purchases.
+              Cancellation and refund eligibility are governed by our{' '}
+              <Link href="/refund-policy" className="text-primary-600 dark:text-primary-400 underline">
+                Cancellation &amp; Refund Policy
+              </Link>
+              .
+            </li>
+            <li>
+              <strong>Customer support and disputes:</strong> Service, payment, cancellation,
+              refund, and report-delivery questions can be directed to{' '}
+              <a
+                href="mailto:contact@locitra.com?subject=Technical%20SEO%20Service%20Support"
+                className="hover:underline"
+              >
+                contact@locitra.com
+              </a>
+              . Any dispute will be handled in accordance with these Terms, the applicable
+              policies linked from this website, and applicable law.
+            </li>
+          </ul>
+          <p>
+            The Technical SEO service is separate from Locitra&apos;s editorial publication content.
+            The publication provides general informational content, while the paid service provides
+            a defined technical investigation based on the customer&apos;s submitted website and
+            selected scope.
+          </p>
+        </section>
+
+        <hr />
+
+        {/* 6. Reader Communication & Submissions */}
         <section aria-labelledby="communication-heading">
           <h2 id="communication-heading">5. Reader Communication &amp; Submissions</h2>
           <p>
@@ -268,9 +339,9 @@ export default function TermsPage() {
 
         <hr />
 
-        {/* 6. External Links & Third-Party Resources */}
+        {/* 7. External Links & Third-Party Resources */}
         <section aria-labelledby="links-heading">
-          <h2 id="links-heading">6. External Links &amp; Third-Party Resources</h2>
+          <h2 id="links-heading">7. External Links &amp; Third-Party Resources</h2>
           <p>
             Locitra contains links to third-party websites, software portals, and reference sources
             for reader convenience and attribution.
@@ -285,9 +356,9 @@ export default function TermsPage() {
 
         <hr />
 
-        {/* 7. Limitation of Liability & Warranty Disclaimer */}
+        {/* 8. Limitation of Liability & Warranty Disclaimer */}
         <section aria-labelledby="liability-heading">
-          <h2 id="liability-heading">7. Limitation of Liability &amp; Warranty Disclaimer</h2>
+          <h2 id="liability-heading">8. Limitation of Liability &amp; Warranty Disclaimer</h2>
           <p>
             Locitra is provided on an &quot;as is&quot; and &quot;as available&quot; basis without
             warranties of any kind, express or implied, including fitness for a particular purpose
@@ -303,9 +374,9 @@ export default function TermsPage() {
 
         <hr />
 
-        {/* 8. Website Modifications & Technical Evolution */}
+        {/* 9. Website Modifications & Technical Evolution */}
         <section aria-labelledby="modifications-heading">
-          <h2 id="modifications-heading">8. Website Modifications &amp; Technical Evolution</h2>
+          <h2 id="modifications-heading">9. Website Modifications &amp; Technical Evolution</h2>
           <p>
             Technology, web standards, and digital publishing practices evolve continuously. Locitra
             reserves the right to modify, update, suspend, or discontinue any feature, content, or
@@ -315,9 +386,9 @@ export default function TermsPage() {
 
         <hr />
 
-        {/* 9. Policy Maintenance & Updates */}
+        {/* 10. Policy Maintenance & Updates */}
         <section aria-labelledby="maintenance-heading">
-          <h2 id="maintenance-heading">9. Policy Maintenance &amp; Updates</h2>
+          <h2 id="maintenance-heading">10. Policy Maintenance &amp; Updates</h2>
           <p>
             These Terms are reviewed periodically to reflect operational changes, legal
             developments, regulatory guidelines, and publication standards.
@@ -334,9 +405,9 @@ export default function TermsPage() {
 
         <hr />
 
-        {/* 10. Learn More About Locitra (Trust Ecosystem) */}
+        {/* 11. Learn More About Locitra (Trust Ecosystem) */}
         <section aria-labelledby="ecosystem-heading">
-          <h2 id="ecosystem-heading">10. Learn More About Locitra</h2>
+          <h2 id="ecosystem-heading">11. Learn More About Locitra</h2>
           <p>
             We invite readers to review our complete suite of transparency and publication
             governance pages:
@@ -362,9 +433,9 @@ export default function TermsPage() {
 
         <hr />
 
-        {/* 11. Our Commitment to Fair Use & Transparency */}
+        {/* 12. Our Commitment to Fair Use & Transparency */}
         <section aria-labelledby="commitment-heading">
-          <h2 id="commitment-heading">11. Our Commitment to Fair Use &amp; Transparency</h2>
+          <h2 id="commitment-heading">12. Our Commitment to Fair Use &amp; Transparency</h2>
           <p>
             Locitra is committed to operating a safe, transparent, and respectful digital
             publication. We are dedicated to:

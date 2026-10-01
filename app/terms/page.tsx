@@ -72,7 +72,8 @@ const TRUST_PAGES = [
   {
     title: 'Service Delivery Policy',
     href: '/service-delivery-policy',
-    description: 'How paid Technical SEO services are activated, processed, and delivered digitally.',
+    description:
+      'How paid Technical SEO services are activated, processed, and delivered digitally.',
   },
   {
     title: 'Contact Page',
@@ -267,8 +268,8 @@ export default function TermsPage() {
           </p>
           <ul>
             <li>
-              <strong>Service scope:</strong> The scope, crawl limits, diagnostic focus, included
-              evidence, and report features are determined by the plan selected at checkout.
+              <strong>Service scope:</strong> The scope, crawl limits, diagnostic focus, included evidence,
+              and report features are determined by the plan selected at checkout.
             </li>
             <li>
               <strong>Service provision:</strong> After successful payment and receipt of the
@@ -284,13 +285,16 @@ export default function TermsPage() {
             </li>
             <li>
               <strong>No ranking guarantee:</strong> Technical findings and recommendations are
-              diagnostic information. The service does not guarantee search-engine rankings,
-              traffic increases, indexing outcomes, conversions, or any specific business result.
+              diagnostic information. The service does not guarantee search-engine rankings, traffic
+              increases, indexing outcomes, conversions, or any specific business result.
             </li>
             <li>
               <strong>Payment and cancellation:</strong> Paid services are one-time purchases.
               Cancellation and refund eligibility are governed by our{' '}
-              <Link href="/refund-policy" className="text-primary-600 dark:text-primary-400 underline">
+              <Link
+                href="/refund-policy"
+                className="text-primary-600 dark:text-primary-400 underline"
+              >
                 Cancellation &amp; Refund Policy
               </Link>
               .
@@ -304,8 +308,8 @@ export default function TermsPage() {
               >
                 contact@locitra.com
               </a>
-              . Any dispute will be handled in accordance with these Terms, the applicable
-              policies linked from this website, and applicable law.
+              . Any dispute will be handled in accordance with these Terms, the applicable policies
+              linked from this website, and applicable law.
             </li>
           </ul>
           <p>

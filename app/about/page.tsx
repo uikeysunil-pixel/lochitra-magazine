@@ -213,8 +213,8 @@ export default function AboutPage() {
             page.
           </p>
           <p>
-            For service questions, payment support, cancellations, or other enquiries, customers
-            can contact Locitra through the{' '}
+            For service questions, payment support, cancellations, or other enquiries, customers can
+            contact Locitra through the{' '}
             <Link href="/contact" className="text-primary-600 dark:text-primary-400 underline">
               Contact page
             </Link>

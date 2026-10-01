@@ -23,7 +23,8 @@ const {
   handleCaptureOrder,
   PAYPAL_PLAN_PRICING,
 } = require('../../app/api/technical-seo/paypal/capture-order/route')
-const { hashReportAccessToken } = require('./scan-repository')
+const { hashReportAccessToken, replacePaymentOrder } = require('./scan-repository')
+const PayPalCancelledPage = require('../../app/technical-seo/cancelled/page').default
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 function createJsonRequest(url: string, body: unknown) {
@@ -1175,5 +1176,601 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(markPaidCalled, false, 'DB update must not be re-executed')
       assert.strictEqual(inngestDispatched, false, 'Inngest event must not be re-dispatched')
     })
+  })
+})
+
+describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
+  const scanId = 'scan-deep-08-test'
+  const accessKey = 'deep-08-access-key-xyz'
+  const tokenHash = hashReportAccessToken(accessKey)
+
+  function createMockExistingDeepScan(overrides: {
+    status?: string
+    payment_status?: string
+    payment_provider?: string | null
+    payment_reference?: string | null
+    plan?: string
+  }) {
+    return {
+      id: scanId,
+      plan: overrides.plan ?? 'deep',
+      status: overrides.status ?? 'awaiting_payment',
+      report_token_hash: tokenHash,
+      gsc_property: 'sc-domain:example.com',
+      gsc_refresh_token_encrypted: 'mock:enc:token',
+      payment_status: overrides.payment_status ?? 'pending',
+      payment_provider:
+        overrides.payment_provider !== undefined ? overrides.payment_provider : 'paypal',
+      payment_reference:
+        overrides.payment_reference !== undefined ? overrides.payment_reference : 'order-A',
+    } as any
+  }
+
+  function createMockPayPalOrderResponse(overrides: {
+    id?: string
+    status?: OrderStatus
+    customId?: string
+    amount?: string
+    currency?: string
+    approvalUrl?: string | null
+  }): Order {
+    const id = overrides.id ?? 'order-A'
+    const status = overrides.status ?? OrderStatus.Created
+    const customId = overrides.customId ?? scanId
+    const amount = overrides.amount ?? '199.00'
+    const currency = overrides.currency ?? 'USD'
+    const approvalUrl =
+      overrides.approvalUrl !== undefined
+        ? overrides.approvalUrl
+        : `https://www.sandbox.paypal.com/checkoutnow?token=${id}`
+
+    const links: any[] = [
+      { rel: 'self', href: `https://api.sandbox.paypal.com/v2/checkout/orders/${id}` },
+    ]
+    if (approvalUrl) {
+      links.push({ rel: 'payer-action', href: approvalUrl })
+    }
+
+    return {
+      id,
+      status,
+      purchaseUnits: [
+        {
+          customId,
+          amount: {
+            currencyCode: currency,
+            value: amount,
+          },
+        },
+      ],
+      links,
+    } as Order
+  }
+
+  it('1. Deep first order creation binds order and includes scanId + key in cancelUrl', async () => {
+    let createdOrderInput: any = null
+    let markedOrderInput: any = null
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({
+          payment_status: 'unpaid',
+          payment_provider: null,
+          payment_reference: null,
+        }),
+      createPayPalOrder: async (input: any) => {
+        createdOrderInput = input
+        return {
+          orderId: 'first-order-123',
+          approvalUrl: 'https://www.sandbox.paypal.com/checkoutnow?token=first-order-123',
+        }
+      },
+      markPaymentOrderCreated: async (input: any) => {
+        markedOrderInput = input
+        return { id: scanId } as any
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.orderId, 'first-order-123')
+    assert.strictEqual(data.provider, 'paypal')
+    assert.strictEqual(data.plan, 'deep')
+    assert.strictEqual(data.status, 'awaiting_payment')
+
+    assert.ok(createdOrderInput)
+    assert.strictEqual(createdOrderInput.amount, '199.00')
+    assert.strictEqual(createdOrderInput.scanId, scanId)
+    assert.ok(createdOrderInput.cancelUrl.includes(`scanId=${scanId}`))
+    assert.ok(createdOrderInput.cancelUrl.includes(`key=${encodeURIComponent(accessKey)}`))
+
+    assert.ok(markedOrderInput)
+    assert.strictEqual(markedOrderInput.scanId, scanId)
+    assert.strictEqual(markedOrderInput.paymentReference, 'first-order-123')
+    assert.strictEqual(markedOrderInput.paymentProvider, 'paypal')
+    assert.strictEqual(markedOrderInput.paymentCurrency, 'USD')
+  })
+
+  it('2. Deep retry reuses CREATED order when matching and valid approval link', async () => {
+    let createOrderCalled = false
+    let replaceOrderCalled = false
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async (id: string) => {
+        assert.strictEqual(id, 'order-A')
+        return createMockPayPalOrderResponse({ id: 'order-A', status: OrderStatus.Created })
+      },
+      createPayPalOrder: async () => {
+        createOrderCalled = true
+        return { orderId: 'order-B', approvalUrl: 'https://paypal.com/b' }
+      },
+      replacePaymentOrder: async () => {
+        replaceOrderCalled = true
+        return { id: scanId } as any
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.orderId, 'order-A')
+    assert.strictEqual(data.checkoutUrl, 'https://www.sandbox.paypal.com/checkoutnow?token=order-A')
+    assert.strictEqual(createOrderCalled, false, 'Must NOT create new PayPal order on valid reuse')
+    assert.strictEqual(replaceOrderCalled, false, 'Must NOT modify DB binding on valid reuse')
+  })
+
+  it('3. Reuse requires matching customId (mismatch triggers replacement)', async () => {
+    let replacedInput: any = null
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () =>
+        createMockPayPalOrderResponse({ id: 'order-A', customId: 'wrong-scan-id' }),
+      createPayPalOrder: async () => ({
+        orderId: 'order-B',
+        approvalUrl: 'https://paypal.com/b',
+      }),
+      replacePaymentOrder: async (input: any) => {
+        replacedInput = input
+        return { id: scanId } as any
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.orderId, 'order-B')
+    assert.ok(replacedInput)
+    assert.strictEqual(replacedInput.previousReference, 'order-A')
+    assert.strictEqual(replacedInput.newReference, 'order-B')
+  })
+
+  it('4. Reuse requires exact 199.00 USD (amount mismatch triggers replacement)', async () => {
+    let replacedInput: any = null
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () => createMockPayPalOrderResponse({ id: 'order-A', amount: '99.00' }),
+      createPayPalOrder: async () => ({
+        orderId: 'order-B-amount',
+        approvalUrl: 'https://paypal.com/b',
+      }),
+      replacePaymentOrder: async (input: any) => {
+        replacedInput = input
+        return { id: scanId } as any
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.orderId, 'order-B-amount')
+    assert.ok(replacedInput)
+    assert.strictEqual(replacedInput.previousReference, 'order-A')
+    assert.strictEqual(replacedInput.newReference, 'order-B-amount')
+  })
+
+  it('5. Reuse requires valid approval link (missing link triggers replacement)', async () => {
+    let replacedInput: any = null
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () =>
+        createMockPayPalOrderResponse({ id: 'order-A', approvalUrl: null }),
+      createPayPalOrder: async () => ({
+        orderId: 'order-B-link',
+        approvalUrl: 'https://paypal.com/b-link',
+      }),
+      replacePaymentOrder: async (input: any) => {
+        replacedInput = input
+        return { id: scanId } as any
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.orderId, 'order-B-link')
+    assert.strictEqual(data.checkoutUrl, 'https://paypal.com/b-link')
+    assert.ok(replacedInput)
+  })
+
+  it('6. VOIDED order triggers replacement', async () => {
+    let replacedInput: any = null
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () =>
+        createMockPayPalOrderResponse({ id: 'order-A', status: OrderStatus.Voided }),
+      createPayPalOrder: async () => ({
+        orderId: 'order-B-voided',
+        approvalUrl: 'https://paypal.com/b-voided',
+      }),
+      replacePaymentOrder: async (input: any) => {
+        replacedInput = input
+        return { id: scanId } as any
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.orderId, 'order-B-voided')
+    assert.ok(replacedInput)
+    assert.strictEqual(replacedInput.previousReference, 'order-A')
+    assert.strictEqual(replacedInput.newReference, 'order-B-voided')
+  })
+
+  it('7. Retrieval failure triggers replacement', async () => {
+    let replacedInput: any = null
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () => {
+        throw new Error('PayPal order not found (404)')
+      },
+      createPayPalOrder: async () => ({
+        orderId: 'order-B-err',
+        approvalUrl: 'https://paypal.com/b-err',
+      }),
+      replacePaymentOrder: async (input: any) => {
+        replacedInput = input
+        return { id: scanId } as any
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.orderId, 'order-B-err')
+    assert.ok(replacedInput)
+  })
+
+  it('8. Replacement atomically swaps only current unpaid binding', async () => {
+    let replacedInput: any = null
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () =>
+        createMockPayPalOrderResponse({ id: 'order-A', status: OrderStatus.Voided }),
+      createPayPalOrder: async () => ({
+        orderId: 'order-B',
+        approvalUrl: 'https://paypal.com/b',
+      }),
+      replacePaymentOrder: async (input: any) => {
+        replacedInput = input
+        return { id: scanId } as any
+      },
+    })
+
+    assert.ok(replacedInput)
+    assert.strictEqual(replacedInput.scanId, scanId)
+    assert.strictEqual(replacedInput.previousReference, 'order-A')
+    assert.strictEqual(replacedInput.newReference, 'order-B')
+    assert.strictEqual(replacedInput.paymentCurrency, 'USD')
+  })
+
+  it('9. Concurrent state change causes replacement failure to return a safe conflict', async () => {
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () =>
+        createMockPayPalOrderResponse({ id: 'order-A', status: OrderStatus.Voided }),
+      createPayPalOrder: async () => ({
+        orderId: 'order-B-race',
+        approvalUrl: 'https://paypal.com/b-race',
+      }),
+      replacePaymentOrder: async () => null, // Simulated 0 rows updated
+    })
+
+    assert.strictEqual(res.status, 409)
+    const data = (await res.json()) as any
+    assert.match(data.error, /Failed to update payment order/)
+    assert.strictEqual(data.orderId, undefined)
+  })
+
+  it('10. Different provider remains blocked', async () => {
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({
+          payment_provider: 'stripe',
+          payment_reference: 'cs_test_123',
+        }),
+    })
+
+    assert.strictEqual(res.status, 409)
+    const data = (await res.json()) as any
+    assert.match(data.error, /bound to another payment provider/)
+  })
+
+  it('11. Paid scan remains blocked', async () => {
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({
+          payment_status: 'paid',
+        }),
+    })
+
+    assert.strictEqual(res.status, 409)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.error, 'Scan is already paid.')
+  })
+
+  it('12. Existing APPROVED order routes to reconciliation and does not create a second order', async () => {
+    let createOrderCalled = false
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () =>
+        createMockPayPalOrderResponse({ id: 'order-A', status: OrderStatus.Approved }),
+      createPayPalOrder: async () => {
+        createOrderCalled = true
+        return { orderId: 'order-B', approvalUrl: 'https://paypal.com/b' }
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.alreadyApproved, true)
+    assert.strictEqual(data.orderId, 'order-A')
+    assert.ok(data.checkoutUrl.includes('token=order-A'))
+    assert.ok(data.checkoutUrl.includes('provider=paypal'))
+    assert.strictEqual(createOrderCalled, false)
+  })
+
+  it('13. COMPLETED order routes to reconciliation and does not create a second order', async () => {
+    let createOrderCalled = false
+
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
+      scanId,
+      key: accessKey,
+      plan: 'deep',
+    })
+
+    const res = await handleCreateOrder(req, {
+      getDeepScanAuthorizationRecord: async () =>
+        createMockExistingDeepScan({ payment_reference: 'order-A' }),
+      getPayPalOrder: async () =>
+        createMockPayPalOrderResponse({ id: 'order-A', status: OrderStatus.Completed }),
+      createPayPalOrder: async () => {
+        createOrderCalled = true
+        return { orderId: 'order-B', approvalUrl: 'https://paypal.com/b' }
+      },
+    })
+
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as any
+    assert.strictEqual(data.alreadyApproved, true)
+    assert.strictEqual(data.orderId, 'order-A')
+    assert.strictEqual(createOrderCalled, false)
+  })
+
+  it('14. Quick and Full behavior remains unchanged', async () => {
+    let quickCreated = false
+    let fullCreated = false
+
+    const reqQuick = createJsonRequest(
+      'http://localhost:3000/api/technical-seo/paypal/create-order',
+      {
+        url: 'https://example.com',
+        problem: 'indexing',
+        plan: 'quick',
+      }
+    )
+    const resQuick = await handleCreateOrder(reqQuick, {
+      createScanRecord: async () => 'scan-q',
+      createPayPalOrder: async (input: any) => {
+        quickCreated = true
+        assert.strictEqual(input.amount, '49.00')
+        return { orderId: 'order-q', approvalUrl: 'https://paypal.com/q' }
+      },
+      markPaymentOrderCreated: async () => ({ id: 'scan-q' }) as any,
+    })
+    assert.strictEqual(resQuick.status, 200)
+    assert.strictEqual(quickCreated, true)
+
+    const reqFull = createJsonRequest(
+      'http://localhost:3000/api/technical-seo/paypal/create-order',
+      {
+        url: 'https://example.com',
+        problem: 'indexing',
+        plan: 'full',
+      }
+    )
+    const resFull = await handleCreateOrder(reqFull, {
+      createScanRecord: async () => 'scan-f',
+      createPayPalOrder: async (input: any) => {
+        fullCreated = true
+        assert.strictEqual(input.amount, '99.00')
+        return { orderId: 'order-f', approvalUrl: 'https://paypal.com/f' }
+      },
+      markPaymentOrderCreated: async () => ({ id: 'scan-f' }) as any,
+    })
+    assert.strictEqual(resFull.status, 200)
+    assert.strictEqual(fullCreated, true)
+  })
+
+  it('15. Cancellation page preserves scan context when scanId and key are provided', async () => {
+    function findInReactTree(node: any, predicate: (el: any) => boolean): boolean {
+      if (!node) return false
+      if (predicate(node)) return true
+      if (Array.isArray(node)) {
+        return node.some((child) => findInReactTree(child, predicate))
+      }
+      if (typeof node === 'object' && node.props && node.props.children) {
+        return findInReactTree(node.props.children, predicate)
+      }
+      return false
+    }
+
+    const pageWithContext = await PayPalCancelledPage({
+      searchParams: Promise.resolve({
+        plan: 'deep',
+        scanId: 'scan-deep-123',
+        key: 'key-test-456',
+      }),
+    })
+
+    assert.ok(pageWithContext)
+    const hasDeepLink = findInReactTree(
+      pageWithContext,
+      (el) => el?.props?.href === '/technical-seo/scan/scan-deep-123/?key=key-test-456'
+    )
+    assert.strictEqual(
+      hasDeepLink,
+      true,
+      'Cancellation page must render link to specific Deep scan'
+    )
+
+    const pageWithoutContext = await PayPalCancelledPage({
+      searchParams: Promise.resolve({ plan: 'deep' }),
+    })
+    assert.ok(pageWithoutContext)
+    const hasGenericLink = findInReactTree(
+      pageWithoutContext,
+      (el) => el?.props?.href === '/technical-seo/'
+    )
+    assert.strictEqual(
+      hasGenericLink,
+      true,
+      'Cancellation page must render generic link when context is missing'
+    )
+  })
+
+  it('16. Security: capture with old replaced order ID is rejected', async () => {
+    const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/capture-order', {
+      orderId: 'order-A', // Old order ID
+    })
+
+    const res = await handleCaptureOrder(req, {
+      getPayPalOrder: async () =>
+        ({
+          id: 'order-A',
+          status: OrderStatus.Completed,
+          purchaseUnits: [
+            {
+              customId: scanId,
+              amount: { currencyCode: 'USD', value: '199.00' },
+              payments: {
+                captures: [
+                  {
+                    id: 'cap-A',
+                    status: CaptureStatus.Completed,
+                    amount: { currencyCode: 'USD', value: '199.00' },
+                  },
+                ],
+              },
+            },
+          ],
+        }) as any,
+      getScanRecord: async () =>
+        ({
+          id: scanId,
+          plan: 'deep',
+          payment_provider: 'paypal',
+          payment_reference: 'order-B', // Current bound reference is order-B, not order-A
+          payment_currency: 'USD',
+          payment_status: 'pending',
+        }) as any,
+    })
+
+    assert.strictEqual(res.status, 409)
+    const data = (await res.json()) as any
+    assert.match(data.error, /mismatch/)
   })
 })

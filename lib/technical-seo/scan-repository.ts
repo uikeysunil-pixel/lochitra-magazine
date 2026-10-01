@@ -297,6 +297,40 @@ export async function markPaymentOrderCreated(input: {
   return rows[0] ?? null
 }
 
+export async function replacePaymentOrder(input: {
+  scanId: string
+  previousReference: string
+  newReference: string
+  paymentCurrency: string
+}) {
+  const rows = await sql`
+    update seo_scans
+    set
+      payment_reference = ${input.newReference},
+      payment_status = 'pending',
+      payment_currency = ${input.paymentCurrency},
+      updated_at = now()
+    where id = ${input.scanId}::uuid
+      and status = 'awaiting_payment'
+      and payment_status in ('pending', 'unpaid')
+      and payment_provider = 'paypal'
+      and payment_reference = ${input.previousReference}
+    returning
+      id,
+      website_url,
+      problem,
+      plan,
+      status,
+      payment_status,
+      payment_provider,
+      payment_reference,
+      payment_currency,
+      background_event_sent_at
+  `
+
+  return rows[0] ?? null
+}
+
 export async function markPaymentPaid(input: {
   scanId: string
   paymentProvider: 'paypal' | 'razorpay'

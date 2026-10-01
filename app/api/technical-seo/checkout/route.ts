@@ -39,11 +39,13 @@ export async function POST(request: Request) {
       url?: unknown
       problem?: unknown
       plan?: unknown
+      billingCountry?: unknown
     }
 
     const url = typeof body.url === 'string' ? body.url.trim() : ''
     const problem = typeof body.problem === 'string' ? body.problem : 'unknown'
     const plan = typeof body.plan === 'string' ? body.plan : 'quick'
+    const billingCountry = typeof body.billingCountry === 'string' ? body.billingCountry.toUpperCase() : ''
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })
@@ -56,6 +58,13 @@ export async function POST(request: Request) {
     if (plan !== 'quick') {
       return NextResponse.json(
         { error: 'Only the Targeted Troubleshoot ₹4,999 plan is enabled in this test build.' },
+        { status: 400 }
+      )
+    }
+
+    if (billingCountry !== 'IN') {
+      return NextResponse.json(
+        { error: 'Stripe INR checkout is only available for customers billing in India.' },
         { status: 400 }
       )
     }

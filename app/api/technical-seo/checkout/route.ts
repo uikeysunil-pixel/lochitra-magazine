@@ -45,7 +45,8 @@ export async function POST(request: Request) {
     const url = typeof body.url === 'string' ? body.url.trim() : ''
     const problem = typeof body.problem === 'string' ? body.problem : 'unknown'
     const plan = typeof body.plan === 'string' ? body.plan : 'quick'
-    const billingCountry = typeof body.billingCountry === 'string' ? body.billingCountry.toUpperCase() : ''
+    const billingCountry =
+      typeof body.billingCountry === 'string' ? body.billingCountry.toUpperCase() : ''
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })

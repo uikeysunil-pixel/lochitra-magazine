@@ -101,7 +101,7 @@ const PLANS: Array<{
   {
     id: 'quick',
     name: 'Targeted Troubleshoot',
-    price: billingCountry === 'IN' ? '₹4,999' : '$49',
+    price: '$49',
     description: 'Problem-specific diagnosis with a focused report.',
     features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
     enabled: true,
@@ -546,7 +546,7 @@ export default function TechnicalSEOTroubleshooter() {
                       )}
                     </div>
                     <div className="mt-3 text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-                      {item.price}
+                      {item.id === 'quick' ? (billingCountry === 'IN' ? '₹4,999' : '$49') : item.price}
                     </div>
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {item.description}
@@ -797,7 +797,7 @@ export default function TechnicalSEOTroubleshooter() {
                       {recommendedPlanDetails?.name}
                     </p>
                     <div className="mt-3 text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-                      {recommendedPlanDetails?.price}
+                      {recommendedPlan === 'quick' ? (billingCountry === 'IN' ? '₹4,999' : '$49') : recommendedPlanDetails?.price}
                     </div>
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {problem === 'unknown'

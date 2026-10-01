@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'PayPal Checkout Cancelled | Locitra',
-  description: 'PayPal checkout was cancelled. No payment was captured.',
+  title: 'Checkout Cancelled | Locitra',
+  description: 'Checkout was cancelled. No payment was captured.',
   robots: {
     index: false,
     follow: false,
@@ -33,17 +33,26 @@ const PLAN_DETAILS: Record<PlanType, PlanDetails> = {
   },
 }
 
-interface PayPalCancelledPageProps {
-  searchParams?: Promise<{ plan?: string; scanId?: string; key?: string }>
+interface CheckoutCancelledPageProps {
+  searchParams?: Promise<{
+    plan?: string
+    scanId?: string
+    key?: string
+    provider?: string
+    currency?: string
+  }>
 }
 
-export default async function PayPalCancelledPage(props: PayPalCancelledPageProps) {
+export default async function CheckoutCancelledPage(props: PayPalCancelledPageProps) {
   const resolvedParams = props.searchParams ? await props.searchParams : undefined
   const planParam = resolvedParams?.plan
   const scanId = resolvedParams?.scanId?.trim()
   const key = resolvedParams?.key?.trim()
   const planKey: PlanType = planParam === 'deep' ? 'deep' : planParam === 'full' ? 'full' : 'quick'
   const plan = PLAN_DETAILS[planKey]
+  const isStripe = resolvedParams?.provider === 'stripe' || resolvedParams?.currency === 'inr'
+  const displayPrice = isStripe && planKey === 'quick' ? '₹4,999' : plan.price
+  const providerName = isStripe ? 'Stripe' : 'PayPal'
   const hasScanContext = planKey === 'deep' && Boolean(scanId && key)
 
   return (
@@ -54,13 +63,13 @@ export default async function PayPalCancelledPage(props: PayPalCancelledPageProp
             Locitra Technical SEO
           </p>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">
-            PayPal checkout was cancelled
+            {providerName} checkout was cancelled
           </h1>
           <p className="mt-4 text-sm leading-6 text-gray-600 dark:text-gray-400">
             No payment was captured.{' '}
             {hasScanContext
-              ? 'You can return to your scan to try PayPal checkout again whenever you are ready.'
-              : `You can return to Technical SEO and try the ${plan.price} ${plan.name} again.`}
+              ? `You can return to your scan to try ${providerName} checkout again whenever you are ready.`
+              : `You can return to Technical SEO and try the ${displayPrice} ${plan.name} again.`}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             {hasScanContext ? (
@@ -84,7 +93,7 @@ export default async function PayPalCancelledPage(props: PayPalCancelledPageProp
                   href="/technical-seo/"
                   className="inline-flex rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                 >
-                  Try the {plan.price} {plan.name}
+                  Try the {displayPrice} {plan.name}
                 </Link>
                 <Link
                   href="/"

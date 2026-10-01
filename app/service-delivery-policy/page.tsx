@@ -47,9 +47,9 @@ export default function ServiceDeliveryPolicyPage() {
             investigation.
           </p>
           <p>
-            A payment confirmation alone does not guarantee a particular SEO outcome. The service
-            is an investigation and reporting service, not a promise of improved rankings,
-            traffic, indexing, conversions, or revenue.
+            A payment confirmation alone does not guarantee a particular SEO outcome. The service is
+            an investigation and reporting service, not a promise of improved rankings, traffic,
+            indexing, conversions, or revenue.
           </p>
         </section>
 
@@ -85,8 +85,8 @@ export default function ServiceDeliveryPolicyPage() {
           </p>
           <p>
             Delivery timing can vary with website size, crawl accessibility, technical errors,
-            robots.txt restrictions, third-party service availability, and the scope of the plan.
-            If a technical issue prevents reasonable delivery, contact Locitra at{' '}
+            robots.txt restrictions, third-party service availability, and the scope of the plan. If a
+            technical issue prevents reasonable delivery, contact Locitra at{' '}
             <a href="mailto:contact@locitra.com?subject=Technical%20SEO%20Service%20Delivery">
               contact@locitra.com
             </a>
@@ -101,8 +101,13 @@ export default function ServiceDeliveryPolicyPage() {
           <ul>
             <li>Submit a website URL that you are authorized to have analyzed.</li>
             <li>Provide accurate information needed to perform the selected service.</li>
-            <li>Do not submit passwords, payment credentials, or unrelated sensitive information.</li>
-            <li>Where an optional Google Search Console investigation is requested, provide only the authorization necessary for that diagnostic purpose.</li>
+            <li>
+              Do not submit passwords, payment credentials, or unrelated sensitive information.
+            </li>
+            <li>
+              Where an optional Google Search Console investigation is requested, provide only the
+              authorization necessary for that diagnostic purpose.
+            </li>
           </ul>
         </section>
 
@@ -115,7 +120,10 @@ export default function ServiceDeliveryPolicyPage() {
             being reasonably delivered, contact support promptly. Depending on the circumstances,
             Locitra may retry the investigation, complete the missing deliverable, or provide a
             refund in accordance with the{' '}
-            <Link href="/refund-policy" className="text-primary-600 dark:text-primary-400 underline">
+            <Link
+              href="/refund-policy"
+              className="text-primary-600 dark:text-primary-400 underline"
+            >
               Cancellation &amp; Refund Policy
             </Link>
             .

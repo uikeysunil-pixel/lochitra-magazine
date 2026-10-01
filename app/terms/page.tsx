@@ -70,6 +70,11 @@ const TRUST_PAGES = [
     description: 'Review the Technical SEO troubleshooting service and available plans.',
   },
   {
+    title: 'Service Delivery Policy',
+    href: '/service-delivery-policy',
+    description: 'How paid Technical SEO services are activated, processed, and delivered digitally.',
+  },
+  {
     title: 'Contact Page',
     href: '/contact',
     description:

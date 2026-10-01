@@ -78,6 +78,11 @@ const TRUST_PAGES = [
     href: '/terms',
     description: 'Terms governing website access, content usage, and intellectual property.',
   },
+  {
+    title: 'Service Delivery Policy',
+    href: '/service-delivery-policy',
+    description: 'How paid Technical SEO services are activated, processed, and delivered digitally.',
+  },
 ]
 
 import { buildContactPage, buildGraph } from '@/lib/schema'

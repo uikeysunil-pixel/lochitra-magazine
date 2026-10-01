@@ -81,7 +81,8 @@ const TRUST_PAGES = [
   {
     title: 'Service Delivery Policy',
     href: '/service-delivery-policy',
-    description: 'How paid Technical SEO services are activated, processed, and delivered digitally.',
+    description:
+      'How paid Technical SEO services are activated, processed, and delivered digitally.',
   },
 ]
 
@@ -153,23 +154,23 @@ export default function ContactPage() {
               </div>
               <div>
                 <p className="font-semibold text-gray-900 dark:text-gray-100">Email</p>
-              <a
-                href="mailto:contact@locitra.com"
-                className="mt-1 inline-flex items-center gap-2 font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                aria-label="Email Locitra at contact@locitra.com"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                contact@locitra.com
-              </a>
+                <a
+                  href="mailto:contact@locitra.com"
+                  className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 mt-1 inline-flex items-center gap-2 font-semibold transition-colors"
+                  aria-label="Email Locitra at contact@locitra.com"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  contact@locitra.com
+                </a>
+              </div>
             </div>
-          </div>
           </div>
 
           <div>
@@ -306,13 +307,16 @@ export default function ContactPage() {
               locate the service record quickly.
             </li>
             <li>
-              Do not send card numbers, CVV codes, UPI PINs, passwords, or other payment
-              credentials by email or contact form.
+              Do not send card numbers, CVV codes, UPI PINs, passwords, or other payment credentials
+              by email or contact form.
             </li>
           </ul>
           <p>
             See the{' '}
-            <Link href="/refund-policy" className="text-primary-600 dark:text-primary-400 underline">
+            <Link
+              href="/refund-policy"
+              className="text-primary-600 dark:text-primary-400 underline"
+            >
               Cancellation &amp; Refund Policy
             </Link>{' '}
             for eligibility and processing details.

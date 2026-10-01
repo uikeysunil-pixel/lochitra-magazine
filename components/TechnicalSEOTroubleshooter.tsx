@@ -491,7 +491,8 @@ export default function TechnicalSEOTroubleshooter() {
                 Billing country
               </p>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                We use your billing country to route domestic India payments to Stripe INR and international payments to PayPal USD.
+                We use your billing country to route domestic India payments to Stripe INR and
+                international payments to PayPal USD.
               </p>
             </div>
             <label htmlFor="billing-country" className="sr-only">

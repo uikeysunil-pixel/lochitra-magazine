@@ -170,6 +170,7 @@ export default function ContactPage() {
               </a>
             </div>
           </div>
+          </div>
 
           <div>
             <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-gray-100">

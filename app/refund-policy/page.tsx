@@ -53,10 +53,13 @@ export default function RefundPolicyPage() {
         <section aria-labelledby="service-heading">
           <h2 id="service-heading">1. Service Covered by This Policy</h2>
           <p>
-            This policy currently applies to the paid{' '}
-            <strong>Targeted Technical SEO Troubleshoot</strong> service, which provides a focused
+            This policy applies to one-time paid Technical SEO troubleshooting services offered
+            through Locitra. The currently available paid{' '}
+            <strong>Targeted Technical SEO Troubleshoot</strong> service provides a focused
             technical investigation of a customer-provided website together with evidence,
-            affected-page information, and prioritized recommendations.
+            affected-page information, and prioritized recommendations. If additional paid plans are
+            made available, the same general cancellation and refund framework applies unless a
+            plan-specific term is clearly stated at checkout.
           </p>
           <p>
             Service scope is determined by the plan and diagnostic path selected at checkout. The
@@ -75,7 +78,9 @@ export default function RefundPolicyPage() {
           </p>
           <p>
             Where the investigation has not started, Locitra will normally issue a full refund to
-            the original payment method used for the transaction.
+            the original payment method used for the transaction. A cancellation request should be
+            made before investigation work begins; submitting a request does not by itself guarantee
+            approval until Locitra verifies the service status.
           </p>
           <p>
             Cancellation requests should be sent to{' '}
@@ -184,13 +189,15 @@ export default function RefundPolicyPage() {
         <section aria-labelledby="processing-heading">
           <h2 id="processing-heading">8. Refund Processing</h2>
           <p>
-            Approved refunds are sent back to the original payment method used for the transaction.
-            The time for the refund to appear in a customer&apos;s account depends on the payment
-            provider and the customer&apos;s financial institution.
+            Approved refunds are initiated to the original payment method used for the transaction.
+            Locitra will normally submit an approved refund promptly after the decision is made. The
+            time for the refund to appear in a customer&apos;s account depends on the payment
+            provider and the customer&apos;s financial institution, so final posting times are
+            outside Locitra&apos;s control.
           </p>
           <p>
-            Locitra cannot control the final posting time after a refund has been submitted to the
-            payment provider.
+            If a payment provider imposes a separate processing window, that provider&apos;s
+            processing timeline will apply after Locitra submits the refund.
           </p>
         </section>
 

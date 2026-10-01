@@ -29,6 +29,11 @@ const INQUIRY_TYPES = [
     description: 'Reporting display glitches, navigation errors, or website performance issues.',
   },
   {
+    title: 'Technical SEO Service & Payment Support',
+    description:
+      'Questions about a Technical SEO purchase, payment status, report delivery, cancellation, or refund request.',
+  },
+  {
     title: 'Software Recommendations',
     description:
       'Suggesting AI tools, software platforms, or productivity apps for future review consideration.',
@@ -72,6 +77,12 @@ const TRUST_PAGES = [
     title: 'Terms & Conditions',
     href: '/terms',
     description: 'Terms governing website access, content usage, and intellectual property.',
+  },
+  {
+    title: 'Service Delivery Policy',
+    href: '/service-delivery-policy',
+    description:
+      'How paid Technical SEO services are activated, processed, and delivered digitally.',
   },
 ]
 
@@ -122,22 +133,45 @@ export default function ContactPage() {
             <p className="text-gray-600 dark:text-gray-400">
               Prefer to email us directly from your email client? You can reach Locitra at:
             </p>
-            <div className="mt-3">
-              <a
-                href="mailto:contact@locitra.com"
-                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 inline-flex items-center gap-2 font-semibold transition-colors"
-                aria-label="Email Locitra at contact@locitra.com"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                contact@locitra.com
-              </a>
+            <div className="mt-3 space-y-3 text-sm text-gray-600 dark:text-gray-400">
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">Operating Address</p>
+                <address className="mt-1 not-italic">
+                  Sirsoti, Bijpur, Rihand Nagar
+                  <br />
+                  Sonbhadra district, Uttar Pradesh, India
+                  <br />
+                  PIN: 231223
+                </address>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">Phone</p>
+                <a
+                  href="tel:+919516453454"
+                  className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 mt-1 inline-flex items-center font-semibold"
+                  aria-label="Call Locitra at +91 95164 53454"
+                >
+                  +91 95164 53454
+                </a>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">Email</p>
+                <a
+                  href="mailto:contact@locitra.com"
+                  className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 mt-1 inline-flex items-center gap-2 font-semibold transition-colors"
+                  aria-label="Email Locitra at contact@locitra.com"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  contact@locitra.com
+                </a>
+              </div>
             </div>
           </div>
 
@@ -251,7 +285,49 @@ export default function ContactPage() {
 
         <hr />
 
-        {/* 2. Editorial Feedback & Corrections */}
+        {/* 2. Technical SEO Service & Payment Support */}
+        <section aria-labelledby="seo-support-heading">
+          <h2 id="seo-support-heading">2. Technical SEO Service &amp; Payment Support</h2>
+          <p>
+            For a Technical SEO troubleshooting purchase, contact{' '}
+            <a
+              href="mailto:contact@locitra.com?subject=Technical%20SEO%20Service%20Support"
+              className="hover:underline"
+            >
+              contact@locitra.com
+            </a>{' '}
+            for help with payment status, service activation, report delivery, cancellation,
+            duplicate charges, or refund questions.
+          </p>
+          <ul>
+            <li>
+              Include the email address used for the purchase and the website submitted for
+              investigation.
+            </li>
+            <li>
+              Include an order, transaction, scan, or report reference when available so we can
+              locate the service record quickly.
+            </li>
+            <li>
+              Do not send card numbers, CVV codes, UPI PINs, passwords, or other payment credentials
+              by email or contact form.
+            </li>
+          </ul>
+          <p>
+            See the{' '}
+            <Link
+              href="/refund-policy"
+              className="text-primary-600 dark:text-primary-400 underline"
+            >
+              Cancellation &amp; Refund Policy
+            </Link>{' '}
+            for eligibility and processing details.
+          </p>
+        </section>
+
+        <hr />
+
+        {/* 3. Editorial Feedback & Corrections */}
         <section aria-labelledby="corrections-heading">
           <h2 id="corrections-heading">2. Editorial Feedback &amp; Correction Requests</h2>
           <p>
@@ -292,9 +368,9 @@ export default function ContactPage() {
 
         <hr />
 
-        {/* 3. Partnerships & Business Inquiries */}
+        {/* 4. Partnerships & Business Inquiries */}
         <section aria-labelledby="business-heading">
-          <h2 id="business-heading">3. Partnerships &amp; Business Inquiries</h2>
+          <h2 id="business-heading">4. Partnerships &amp; Business Inquiries</h2>
           <p>
             Locitra welcomes professional inquiries regarding corporate partnerships, editorial
             collaborations, media interviews, and business development opportunities.
@@ -309,9 +385,9 @@ export default function ContactPage() {
 
         <hr />
 
-        {/* 4. Software & Tool Recommendations */}
+        {/* 5. Software & Tool Recommendations */}
         <section aria-labelledby="recommendations-heading">
-          <h2 id="recommendations-heading">4. Software &amp; Tool Recommendations</h2>
+          <h2 id="recommendations-heading">5. Software &amp; Tool Recommendations</h2>
           <p>
             Are you a developer, startup founder, or avid user of an innovative software tool? We
             invite readers and creators to suggest AI tools, productivity platforms, developer
@@ -327,9 +403,9 @@ export default function ContactPage() {
 
         <hr />
 
-        {/* 5. Privacy & Communication Standards */}
+        {/* 6. Privacy & Communication Standards */}
         <section aria-labelledby="privacy-heading">
-          <h2 id="privacy-heading">5. Privacy &amp; Communication Standards</h2>
+          <h2 id="privacy-heading">6. Privacy &amp; Communication Standards</h2>
           <p>We value your privacy and handle all submitted messages with professional care:</p>
           <ul>
             <li>
@@ -357,9 +433,9 @@ export default function ContactPage() {
 
         <hr />
 
-        {/* 6. Learn More About Locitra (Trust Ecosystem) */}
+        {/* 7. Learn More About Locitra (Trust Ecosystem) */}
         <section aria-labelledby="ecosystem-heading">
-          <h2 id="ecosystem-heading">6. Learn More About Locitra</h2>
+          <h2 id="ecosystem-heading">7. Learn More About Locitra</h2>
           <p>
             We invite readers to review our complete suite of publication policies and transparency
             documents:
@@ -385,9 +461,9 @@ export default function ContactPage() {
 
         <hr />
 
-        {/* 7. Contact Page Maintenance */}
+        {/* 8. Contact Page Maintenance */}
         <section aria-labelledby="maintenance-heading">
-          <h2 id="maintenance-heading">7. Contact Information Maintenance</h2>
+          <h2 id="maintenance-heading">8. Contact Information Maintenance</h2>
           <p>
             Our communication channels, response procedures, and support options are reviewed
             periodically to ensure reader messages are routed efficiently and handled
@@ -404,9 +480,9 @@ export default function ContactPage() {
 
         <hr />
 
-        {/* 8. Our Commitment to Communication */}
+        {/* 9. Our Commitment to Communication */}
         <section aria-labelledby="commitment-heading">
-          <h2 id="commitment-heading">8. Our Commitment to Communication</h2>
+          <h2 id="commitment-heading">9. Our Commitment to Communication</h2>
           <p>
             Locitra believes that open communication with our community is key to building a
             trustworthy, reader-first publication. We are committed to:

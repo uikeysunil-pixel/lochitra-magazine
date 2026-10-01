@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         amount_total?: number | null
         currency?: string | null
         payment_intent?: string | null
-        customer_details?: { email?: string | null }
+        customer_details?: { email?: string | null; address?: { country?: string | null } | null }
         metadata?: Record<string, string>
       }
     }
@@ -78,7 +78,8 @@ export async function POST(request: Request) {
   if (
     session.metadata?.plan !== 'quick' ||
     session.amount_total !== STRIPE_QUICK_AMOUNT ||
-    session.currency?.toUpperCase() !== STRIPE_QUICK_CURRENCY
+    session.currency?.toUpperCase() !== STRIPE_QUICK_CURRENCY ||
+    session.customer_details?.address?.country?.toUpperCase() !== 'IN'
   ) {
     return NextResponse.json(
       { error: 'Stripe Checkout Session does not match the Targeted Troubleshoot price.' },

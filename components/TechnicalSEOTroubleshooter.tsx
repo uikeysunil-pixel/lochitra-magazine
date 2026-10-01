@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 import type {
   CrawlReportResult,
@@ -101,7 +101,7 @@ const PLANS: Array<{
   {
     id: 'quick',
     name: 'Targeted Troubleshoot',
-    price: '₹4,999',
+    price: billingCountry === 'IN' ? '₹4,999' : '$49',
     description: 'Problem-specific diagnosis with a focused report.',
     features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
     enabled: true,
@@ -154,6 +154,15 @@ export default function TechnicalSEOTroubleshooter() {
   const [scanStatus, setScanStatus] = useState<ScanStatusPayload['status'] | null>(null)
   const [scanProgress, setScanProgress] = useState(0)
   const [statusUrl, setStatusUrl] = useState<string | null>(null)
+  const [billingCountry, setBillingCountry] = useState<'IN' | 'OTHER'>('OTHER')
+
+  useEffect(() => {
+    const language = navigator.language.toUpperCase()
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (language.endsWith('-IN') || timeZone === 'Asia/Kolkata' || timeZone === 'Asia/Calcutta') {
+      setBillingCountry('IN')
+    }
+  }, [])
 
   const selectedProblem = useMemo(() => PROBLEMS.find((item) => item.id === problem), [problem])
 
@@ -203,6 +212,59 @@ export default function TechnicalSEOTroubleshooter() {
     throw new Error(
       'The scan is taking longer than expected. Refresh this page in a moment to check the saved result.'
     )
+  }
+
+  async function initiateStripeCheckout(
+    targetUrl: string,
+    targetProblem: DiagnosticProblem
+  ) {
+    const trimmedUrl = targetUrl.trim()
+    if (!trimmedUrl) {
+      setError('Enter your website URL to begin.')
+      return
+    }
+
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/technical-seo/checkout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          url: trimmedUrl,
+          problem: targetProblem,
+          plan: 'quick',
+          billingCountry,
+        }),
+      })
+
+      const data = (await response.json()) as {
+        scanId?: string
+        status?: ScanStatusPayload['status']
+        statusUrl?: string
+        accessKey?: string
+        checkoutUrl?: string
+        error?: string
+      }
+
+      if (!response.ok || !data.scanId || !data.checkoutUrl) {
+        throw new Error(data.error || 'Unable to start secure Stripe checkout.')
+      }
+
+      rememberScan(data.scanId, data.accessKey)
+      setScanStatus(data.status || 'awaiting_payment')
+      setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
+      setScanProgress(0)
+      window.location.assign(data.checkoutUrl)
+    } catch (checkoutError) {
+      setError(
+        checkoutError instanceof Error
+          ? checkoutError.message
+          : 'Unable to start secure Stripe checkout.'
+      )
+      setLoading(false)
+    }
   }
 
   async function initiatePayPalCheckout(
@@ -267,7 +329,11 @@ export default function TechnicalSEOTroubleshooter() {
     }
 
     if (plan === 'quick') {
-      await initiatePayPalCheckout(url, problem, 'quick')
+      if (billingCountry === 'IN') {
+        await initiateStripeCheckout(url, problem)
+      } else {
+        await initiatePayPalCheckout(url, problem, 'quick')
+      }
       return
     }
 
@@ -425,6 +491,25 @@ export default function TechnicalSEOTroubleshooter() {
           <div>
             <div className="mb-3">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Billing country
+              </p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                We use your billing country to route domestic India payments to Stripe INR and international payments to PayPal USD.
+              </p>
+            </div>
+            <label htmlFor="billing-country" className="sr-only">Billing country</label>
+            <select
+              id="billing-country"
+              value={billingCountry}
+              onChange={(event) => setBillingCountry(event.target.value as 'IN' | 'OTHER')}
+              className="mb-6 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+            >
+              <option value="IN">India</option>
+              <option value="OTHER">Outside India</option>
+            </select>
+
+            <div className="mb-3">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 Choose a plan
               </p>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -500,7 +585,7 @@ export default function TechnicalSEOTroubleshooter() {
                         ? 'Building report…'
                         : 'Crawling website…'
                 : plan === 'quick'
-                  ? 'Continue to secure checkout — ₹4,999'
+                  ? `Continue to ${billingCountry === 'IN' ? 'Stripe' : 'PayPal'} checkout — ${billingCountry === 'IN' ? '₹4,999' : '$49'}`
                   : plan === 'full'
                     ? 'Continue to secure checkout — $99'
                     : plan === 'deep'
@@ -725,10 +810,14 @@ export default function TechnicalSEOTroubleshooter() {
                       onClick={() => {
                         if (recommendedPlan === 'quick') {
                           setPlan('quick')
-                          initiatePayPalCheckout(url, problem, 'quick')
+                          if (billingCountry === 'IN') {
+                            initiateStripeCheckout(url, problem)
+                          } else {
+                            initiatePayPalCheckout(url, problem, 'quick')
+                          }
                         } else {
                           setError(
-                            'Full Troubleshoot ($99) is coming in a future release. Targeted Troubleshoot ($49) is currently available.'
+                            `Full Troubleshoot ($99) is coming in a future release. Targeted Troubleshoot (${billingCountry === 'IN' ? '₹4,999' : '$49'}) is currently available.`
                           )
                         }
                       }}
@@ -737,12 +826,12 @@ export default function TechnicalSEOTroubleshooter() {
                       {loading && plan === 'quick'
                         ? 'Opening secure checkout…'
                         : recommendedPlan === 'quick'
-                          ? 'Continue to Targeted Troubleshoot — $49'
+                          ? `Continue to Targeted Troubleshoot — ${billingCountry === 'IN' ? '₹4,999' : '$49'}`
                           : 'Continue to Full Troubleshoot — $99'}
                     </button>
                     <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
                       {recommendedPlanDetails?.enabled
-                        ? 'One-time investigation · Secure PayPal checkout'
+                        ? `One-time investigation · Secure ${billingCountry === 'IN' ? 'Stripe INR' : 'PayPal USD'} checkout`
                         : 'One-time investigation · Available in a future release'}
                     </p>
                   </div>

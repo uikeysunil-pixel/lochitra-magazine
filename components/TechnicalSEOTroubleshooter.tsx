@@ -101,7 +101,7 @@ const PLANS: Array<{
   {
     id: 'quick',
     name: 'Targeted Troubleshoot',
-    price: '$49',
+    price: '₹4,999',
     description: 'Problem-specific diagnosis with a focused report.',
     features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
     enabled: true,
@@ -500,7 +500,7 @@ export default function TechnicalSEOTroubleshooter() {
                         ? 'Building report…'
                         : 'Crawling website…'
                 : plan === 'quick'
-                  ? 'Continue to secure checkout — $49'
+                  ? 'Continue to secure checkout — ₹4,999'
                   : plan === 'full'
                     ? 'Continue to secure checkout — $99'
                     : plan === 'deep'

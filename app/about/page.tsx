@@ -445,7 +445,13 @@ export default function AboutPage() {
               <Link href="/terms" className="hover:underline">
                 Terms &amp; Conditions
               </Link>{' '}
-              — Terms governing website usage.
+              — Terms governing website usage and paid services.
+            </li>
+            <li>
+              <Link href="/service-delivery-policy" className="hover:underline">
+                Service Delivery Policy
+              </Link>{' '}
+              — How paid Technical SEO services are activated and delivered digitally.
             </li>
             <li>
               <Link

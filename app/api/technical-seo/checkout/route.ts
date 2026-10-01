@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       websiteUrl: url,
       problem,
       successUrl: `${origin}${statusUrl}&session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${origin}/technical-seo/cancelled/?plan=quick&currency=inr`,
+      cancelUrl: `${origin}/technical-seo/cancelled/?plan=quick&currency=inr&provider=stripe`,
     })
 
     await markCheckoutSessionCreated(scanId, checkout.id)

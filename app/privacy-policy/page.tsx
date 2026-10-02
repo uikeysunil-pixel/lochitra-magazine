@@ -15,6 +15,16 @@ const DATA_CATEGORIES = [
       'Name, email address, subject, and message content submitted through our contact form or direct email.',
   },
   {
+    title: 'Technical SEO Service Information',
+    description:
+      'Website URLs, diagnostic concerns, scan inputs, crawl findings, report data, and related information submitted or generated when you use a Technical SEO troubleshooting service.',
+  },
+  {
+    title: 'Payment & Transaction Information',
+    description:
+      'Payment status, order or transaction references, selected service, and related billing information needed to process and support a purchase. Locitra does not intentionally store full card numbers, CVV codes, UPI PINs, or other payment-instrument credentials.',
+  },
+  {
     title: 'Information Collected Automatically',
     description:
       'Aggregated technical usage data such as IP address, browser type, device model, operating system, and pages viewed.',
@@ -188,7 +198,62 @@ export default function PrivacyPolicyPage() {
 
         <hr />
 
-        {/* 4. Third-Party Services & Analytics */}
+        {/* 4. Technical SEO Services & Payments */}
+        <section aria-labelledby="service-data-heading">
+          <h2 id="service-data-heading">4. Technical SEO Services &amp; Payments</h2>
+          <p>
+            When you use a paid Technical SEO troubleshooting service, Locitra processes additional
+            information needed to provide the service and maintain the related transaction record.
+          </p>
+          <ul>
+            <li>
+              <strong>Website and diagnostic information:</strong> We process the website URL,
+              selected diagnostic concern, scan inputs, technical findings, crawl metadata, and
+              report information needed to perform the selected investigation.
+            </li>
+            <li>
+              <strong>Service operation:</strong> This information is used to run the requested
+              technical analysis, generate and secure the resulting report, monitor service status,
+              provide customer support, and handle legitimate cancellation or refund requests.
+            </li>
+            <li>
+              <strong>Payment processing:</strong> Payment transactions are handled through the
+              payment provider used for the checkout. Locitra may receive transaction status,
+              order/payment references, selected service, and related billing information needed to
+              reconcile and support the purchase. Locitra does not intentionally store full card
+              numbers, CVV codes, UPI PINs, or other payment-instrument credentials.
+            </li>
+            <li>
+              <strong>Google Search Console data:</strong> A deeper investigation may require
+              customer-authorized Google Search Console access. Where provided, that data is used
+              only for the requested diagnostic purpose and handled according to the applicable
+              Google and Locitra privacy terms.
+            </li>
+            <li>
+              <strong>Customer responsibility:</strong> Customers should not submit passwords,
+              payment credentials, or unrelated sensitive personal information as part of a
+              Technical SEO investigation.
+            </li>
+          </ul>
+          <p>
+            For service terms and cancellation/refund rules, see our{' '}
+            <Link href="/terms" className="text-primary-600 dark:text-primary-400 underline">
+              Terms &amp; Conditions
+            </Link>{' '}
+            and{' '}
+            <Link
+              href="/refund-policy"
+              className="text-primary-600 dark:text-primary-400 underline"
+            >
+              Cancellation &amp; Refund Policy
+            </Link>
+            .
+          </p>
+        </section>
+
+        <hr />
+
+        {/* 5. Third-Party Services & Analytics */}
         <section aria-labelledby="services-heading">
           <h2 id="services-heading">4. Third-Party Services &amp; Analytics</h2>
           <p>
@@ -220,9 +285,9 @@ export default function PrivacyPolicyPage() {
 
         <hr />
 
-        {/* 5. Cookie Policy & Categories */}
+        {/* 6. Cookie Policy & Categories */}
         <section aria-labelledby="cookies-heading">
-          <h2 id="cookies-heading">5. Cookie Policy &amp; Categories</h2>
+          <h2 id="cookies-heading">6. Cookie Policy &amp; Categories</h2>
           <p>
             Cookies are small text files placed on your browser to store preferences and technical
             information. Locitra categorizes cookies into three main types:
@@ -251,9 +316,9 @@ export default function PrivacyPolicyPage() {
 
         <hr />
 
-        {/* 6. Your Privacy Choices & Data Rights */}
+        {/* 7. Your Privacy Choices & Data Rights */}
         <section aria-labelledby="choices-heading">
-          <h2 id="choices-heading">6. Your Privacy Choices &amp; Data Rights</h2>
+          <h2 id="choices-heading">7. Your Privacy Choices &amp; Data Rights</h2>
           <p>We empower readers to control their privacy preferences through multiple channels:</p>
           <ul>
             <li>
@@ -309,9 +374,9 @@ export default function PrivacyPolicyPage() {
 
         <hr />
 
-        {/* 7. Data Security & Technical Safeguards */}
+        {/* 8. Data Security & Technical Safeguards */}
         <section aria-labelledby="security-heading">
-          <h2 id="security-heading">7. Data Security &amp; Technical Safeguards</h2>
+          <h2 id="security-heading">8. Data Security &amp; Technical Safeguards</h2>
           <p>
             Locitra implements reasonable administrative, technical, and physical safeguards to
             protect reader data against unauthorized access, disclosure, or alteration:
@@ -330,9 +395,9 @@ export default function PrivacyPolicyPage() {
 
         <hr />
 
-        {/* 8. Policy Maintenance & Updates */}
+        {/* 9. Policy Maintenance & Updates */}
         <section aria-labelledby="maintenance-heading">
-          <h2 id="maintenance-heading">8. Policy Maintenance &amp; Updates</h2>
+          <h2 id="maintenance-heading">9. Policy Maintenance &amp; Updates</h2>
           <p>
             This Privacy Policy is periodically reviewed to reflect operational refinements,
             technology changes, legal developments, and publishing standards.
@@ -348,9 +413,9 @@ export default function PrivacyPolicyPage() {
 
         <hr />
 
-        {/* 9. Learn More About Locitra (Trust Ecosystem) */}
+        {/* 10. Learn More About Locitra (Trust Ecosystem) */}
         <section aria-labelledby="ecosystem-heading">
-          <h2 id="ecosystem-heading">9. Learn More About Locitra</h2>
+          <h2 id="ecosystem-heading">10. Learn More About Locitra</h2>
           <p>
             We invite readers to review our complete suite of transparency and publication
             governance pages:
@@ -376,9 +441,9 @@ export default function PrivacyPolicyPage() {
 
         <hr />
 
-        {/* 10. Our Commitment to Privacy */}
+        {/* 11. Our Commitment to Privacy */}
         <section aria-labelledby="commitment-heading">
-          <h2 id="commitment-heading">10. Our Commitment to Privacy</h2>
+          <h2 id="commitment-heading">11. Our Commitment to Privacy</h2>
           <p>
             Locitra is dedicated to respecting reader privacy, handling data responsibly,
             maintaining transparent communication, and continually earning community trust.

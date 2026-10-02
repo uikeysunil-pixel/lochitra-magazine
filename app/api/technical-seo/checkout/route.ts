@@ -7,7 +7,11 @@ import {
   markCheckoutSessionCreated,
   markCheckoutCancelled,
 } from '@/lib/technical-seo/scan-repository'
-import { createStripeCheckoutSession, getQuickPriceId } from '@/lib/technical-seo/stripe'
+import {
+  createStripeCheckoutSession,
+  getQuickPriceId,
+  STRIPE_QUICK_CURRENCY,
+} from '@/lib/technical-seo/stripe'
 import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem } from '@/lib/technical-seo/types'
 
@@ -51,7 +55,7 @@ export async function POST(request: Request) {
 
     if (plan !== 'quick') {
       return NextResponse.json(
-        { error: 'Only the Targeted Troubleshoot $49 plan is enabled in this test build.' },
+        { error: 'Only the Targeted Troubleshoot ₹4,999 plan is enabled in this test build.' },
         { status: 400 }
       )
     }
@@ -71,6 +75,8 @@ export async function POST(request: Request) {
       accessMode: 'private',
       reportTokenHash: scanTokenHash,
       paymentStatus: 'pending',
+      paymentProvider: 'stripe',
+      paymentCurrency: STRIPE_QUICK_CURRENCY,
       initialStatus: 'awaiting_payment',
     })
 
@@ -80,7 +86,7 @@ export async function POST(request: Request) {
       websiteUrl: url,
       problem,
       successUrl: `${origin}${statusUrl}&session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${origin}/technical-seo/?checkout=canceled`,
+      cancelUrl: `${origin}/technical-seo/cancelled/?plan=quick&currency=inr`,
     })
 
     await markCheckoutSessionCreated(scanId, checkout.id)
@@ -91,6 +97,9 @@ export async function POST(request: Request) {
       statusUrl,
       accessKey,
       checkoutUrl: checkout.url,
+      provider: 'stripe',
+      currency: STRIPE_QUICK_CURRENCY,
+      amount: 4999,
       plan: 'quick',
     })
   } catch (error) {

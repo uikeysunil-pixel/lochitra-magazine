@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 
 const STRIPE_API_BASE = 'https://api.stripe.com/v1'
+export const STRIPE_QUICK_CURRENCY = 'INR'
+export const STRIPE_QUICK_AMOUNT = 499900
 
 function getStripeSecretKey() {
   const key = process.env.STRIPE_SECRET_KEY

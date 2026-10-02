@@ -5,7 +5,11 @@ import {
   markCheckoutFailed,
   markCheckoutPaid,
 } from '@/lib/technical-seo/scan-repository'
-import { verifyStripeWebhookSignature } from '@/lib/technical-seo/stripe'
+import {
+  STRIPE_QUICK_AMOUNT,
+  STRIPE_QUICK_CURRENCY,
+  verifyStripeWebhookSignature,
+} from '@/lib/technical-seo/stripe'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,6 +52,8 @@ export async function POST(request: Request) {
       object?: {
         id?: string
         payment_status?: string
+        amount_total?: number | null
+        currency?: string | null
         payment_intent?: string | null
         customer_details?: { email?: string | null }
         metadata?: Record<string, string>
@@ -67,6 +73,17 @@ export async function POST(request: Request) {
 
   if (!scanId || !sessionId) {
     return NextResponse.json({ received: true })
+  }
+
+  if (
+    session.metadata?.plan !== 'quick' ||
+    session.amount_total !== STRIPE_QUICK_AMOUNT ||
+    session.currency?.toUpperCase() !== STRIPE_QUICK_CURRENCY
+  ) {
+    return NextResponse.json(
+      { error: 'Stripe Checkout Session does not match the Targeted Troubleshoot price.' },
+      { status: 400 }
+    )
   }
 
   if (

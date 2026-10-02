@@ -186,7 +186,45 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 3. Topics We Cover */}
+        {/* 3. Operator & Service Information */}
+        <section aria-labelledby="operator-heading">
+          <h2 id="operator-heading">Operator &amp; Service Information</h2>
+          <p>
+            Locitra is an independent digital publication and digital service brand operated by
+            <strong> Sunil Kumar Uikey</strong>. Sunil Kumar Uikey is the individual responsible for
+            Locitra's publishing and paid Technical SEO troubleshooting services.
+          </p>
+          <p>
+            Locitra was established in <strong>2026</strong> and operates as an individual-run
+            digital publishing and service operation rather than as a separate company or corporate
+            entity.
+          </p>
+          <p>
+            In addition to its free editorial content, Locitra offers paid Technical SEO
+            troubleshooting services for website owners who want structured technical analysis,
+            evidence-based findings, and a written report. Service scope depends on the plan
+            purchased and is described on the{' '}
+            <Link
+              href="/technical-seo"
+              className="text-primary-600 dark:text-primary-400 underline"
+            >
+              Technical SEO Troubleshooting
+            </Link>{' '}
+            page.
+          </p>
+          <p>
+            For service questions, payment support, cancellations, or other enquiries, customers can
+            contact Locitra through the{' '}
+            <Link href="/contact" className="text-primary-600 dark:text-primary-400 underline">
+              Contact page
+            </Link>
+            .
+          </p>
+        </section>
+
+        <hr />
+
+        {/* 4. Topics We Cover */}
         <section aria-labelledby="topics-heading">
           <h2 id="topics-heading">Topics We Cover</h2>
           <div className="not-prose mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -407,7 +445,13 @@ export default function AboutPage() {
               <Link href="/terms" className="hover:underline">
                 Terms &amp; Conditions
               </Link>{' '}
-              — Terms governing website usage.
+              — Terms governing website usage and paid services.
+            </li>
+            <li>
+              <Link href="/service-delivery-policy" className="hover:underline">
+                Service Delivery Policy
+              </Link>{' '}
+              — How paid Technical SEO services are activated and delivered digitally.
             </li>
             <li>
               <Link

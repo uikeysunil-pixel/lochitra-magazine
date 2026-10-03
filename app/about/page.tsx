@@ -174,8 +174,8 @@ export default function AboutPage() {
               takeaways.
             </li>
             <li>
-              <strong>Honest over promotional</strong> — affiliate partnerships and AI assistance
-              are always disclosed transparently.
+              <strong>Honest over promotional</strong> — commercial relationships and AI assistance
+              are disclosed transparently.
             </li>
             <li>
               <strong>Accessible over jargon-heavy</strong> — written for clear human understanding
@@ -351,8 +351,7 @@ export default function AboutPage() {
             </li>
             <li>
               <strong>Editorial Independence:</strong> Editorial decisions are made independently
-              and are never influenced by advertisers, affiliate partnerships, or commercial
-              relationships.
+              and are never influenced by advertisers or commercial relationships.
             </li>
           </ul>
           <p>
@@ -374,32 +373,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 8. How Locitra Is Funded */}
-        <section aria-labelledby="funding-heading">
-          <h2 id="funding-heading">How Locitra Is Funded</h2>
-          <p>
-            Locitra is committed to keeping high-quality, practical content freely accessible to all
-            readers. To support our independent digital publishing operations, Locitra may be
-            supported through affiliate partnerships, advertising, and other reader-supporting
-            revenue opportunities.
-          </p>
-          <p>
-            If you click on an affiliate link and make a purchase, we may receive a referral
-            commission at no extra cost to you. However, editorial recommendations are never
-            determined by affiliate commissions or commercial relationships.
-          </p>
-          <p>
-            For complete information, view our{' '}
-            <Link href="/disclaimer" className="text-primary-600 dark:text-primary-400 underline">
-              Disclaimer &amp; Affiliate Disclosure
-            </Link>
-            .
-          </p>
-        </section>
-
-        <hr />
-
-        {/* 9. Content Maintenance & Reporting Errors */}
+        {/* 8. Content Maintenance & Reporting Errors */}
         <section aria-labelledby="maintenance-heading">
           <h2 id="maintenance-heading">Content Maintenance &amp; Reporting Errors</h2>
           <p>
@@ -416,7 +390,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 10. Trust Ecosystem & Policies */}
+        {/* 9. Trust Ecosystem & Policies */}
         <section aria-labelledby="policies-heading">
           <h2 id="policies-heading">Editorial &amp; Legal Policies</h2>
           <p>
@@ -431,9 +405,9 @@ export default function AboutPage() {
             </li>
             <li>
               <Link href="/disclaimer" className="hover:underline">
-                Disclaimer &amp; Affiliate Disclosure
+                Disclaimer &amp; Commercial Disclosure
               </Link>{' '}
-              — Full disclosure on affiliate links and commercial relationships.
+              — Disclosures regarding commercial relationships and website monetization.
             </li>
             <li>
               <Link href="/privacy-policy" className="hover:underline">
@@ -467,7 +441,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 11. Contact */}
+        {/* 10. Contact */}
         <section aria-labelledby="contact-heading">
           <h2 id="contact-heading">Get in Touch</h2>
           <p>
@@ -495,7 +469,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 12. Our Commitment */}
+        {/* 11. Our Commitment */}
         <section aria-labelledby="commitment-heading">
           <h2 id="commitment-heading">Our Commitment</h2>
           <p>

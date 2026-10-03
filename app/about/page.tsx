@@ -49,7 +49,7 @@ const CORE_VALUES = [
   },
   {
     title: 'Transparency',
-    description: 'Clearly disclosing AI usage, affiliate links, and editorial processes.',
+    description: 'Clearly disclosing AI usage, commercial relationships, and editorial processes.',
   },
   {
     title: 'Practicality',

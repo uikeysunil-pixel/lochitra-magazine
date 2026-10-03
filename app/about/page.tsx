@@ -405,9 +405,9 @@ export default function AboutPage() {
             </li>
             <li>
               <Link href="/disclaimer" className="hover:underline">
-                Disclaimer &amp; Affiliate Disclosure
+                Disclaimer &amp; Commercial Disclosure
               </Link>{' '}
-              — Full disclosure on affiliate links and commercial relationships.
+              — Disclosures regarding commercial relationships and website monetization.
             </li>
             <li>
               <Link href="/privacy-policy" className="hover:underline">

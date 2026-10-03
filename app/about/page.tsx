@@ -174,8 +174,8 @@ export default function AboutPage() {
               takeaways.
             </li>
             <li>
-              <strong>Honest over promotional</strong> — affiliate partnerships and AI assistance
-              are always disclosed transparently.
+              <strong>Honest over promotional</strong> — commercial relationships and AI assistance
+              are disclosed transparently.
             </li>
             <li>
               <strong>Accessible over jargon-heavy</strong> — written for clear human understanding
@@ -373,7 +373,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 9. Content Maintenance & Reporting Errors */}
+        {/* 8. Content Maintenance & Reporting Errors */}
         <section aria-labelledby="maintenance-heading">
           <h2 id="maintenance-heading">Content Maintenance &amp; Reporting Errors</h2>
           <p>
@@ -390,7 +390,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 10. Trust Ecosystem & Policies */}
+        {/* 9. Trust Ecosystem & Policies */}
         <section aria-labelledby="policies-heading">
           <h2 id="policies-heading">Editorial &amp; Legal Policies</h2>
           <p>
@@ -441,7 +441,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 11. Contact */}
+        {/* 10. Contact */}
         <section aria-labelledby="contact-heading">
           <h2 id="contact-heading">Get in Touch</h2>
           <p>
@@ -469,7 +469,7 @@ export default function AboutPage() {
 
         <hr />
 
-        {/* 12. Our Commitment */}
+        {/* 11. Our Commitment */}
         <section aria-labelledby="commitment-heading">
           <h2 id="commitment-heading">Our Commitment</h2>
           <p>

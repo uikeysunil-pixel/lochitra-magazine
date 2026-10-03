@@ -351,8 +351,7 @@ export default function AboutPage() {
             </li>
             <li>
               <strong>Editorial Independence:</strong> Editorial decisions are made independently
-              and are never influenced by advertisers, affiliate partnerships, or commercial
-              relationships.
+              and are never influenced by advertisers or commercial relationships.
             </li>
           </ul>
           <p>
@@ -367,31 +366,6 @@ export default function AboutPage() {
               className="text-primary-600 dark:text-primary-400 underline"
             >
               Editorial Policy
-            </Link>
-            .
-          </p>
-        </section>
-
-        <hr />
-
-        {/* 8. How Locitra Is Funded */}
-        <section aria-labelledby="funding-heading">
-          <h2 id="funding-heading">How Locitra Is Funded</h2>
-          <p>
-            Locitra is committed to keeping high-quality, practical content freely accessible to all
-            readers. To support our independent digital publishing operations, Locitra may be
-            supported through affiliate partnerships, advertising, and other reader-supporting
-            revenue opportunities.
-          </p>
-          <p>
-            If you click on an affiliate link and make a purchase, we may receive a referral
-            commission at no extra cost to you. However, editorial recommendations are never
-            determined by affiliate commissions or commercial relationships.
-          </p>
-          <p>
-            For complete information, view our{' '}
-            <Link href="/disclaimer" className="text-primary-600 dark:text-primary-400 underline">
-              Disclaimer &amp; Affiliate Disclosure
             </Link>
             .
           </p>

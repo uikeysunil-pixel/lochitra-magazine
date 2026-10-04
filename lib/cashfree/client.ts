@@ -98,6 +98,8 @@ export interface CreateCashfreeOrderParams {
   scanId: string
   returnUrl: string
   notifyUrl: string
+  customerPhone: string
+  customerEmail?: string
 }
 
 export interface CreateCashfreeOrderResult {
@@ -124,6 +126,8 @@ export async function createCashfreeOrder({
       order_currency: 'INR',
       customer_details: {
         customer_id: `locitra_${scanId.replace(/-/g, '')}`,
+        customer_phone: customerPhone,
+        ...(customerEmail ? { customer_email: customerEmail } : {}),
       },
       order_meta: {
         return_url: returnUrl,

@@ -24,6 +24,57 @@ type ScanStatusPayload = {
   result?: CrawlReportResult
 }
 
+type CashfreeCheckoutResult = {
+  error?: {
+    message?: string
+  }
+}
+
+type CashfreeSdk = {
+  checkout: (options: {
+    paymentSessionId: string
+    redirectTarget: '_self'
+  }) => Promise<CashfreeCheckoutResult | undefined> | CashfreeCheckoutResult | undefined
+}
+
+declare global {
+  interface Window {
+    Cashfree?: (options: { mode: 'sandbox' | 'production' }) => CashfreeSdk
+  }
+}
+
+async function loadCashfreeSdk(): Promise<CashfreeSdk> {
+  if (window.Cashfree) {
+    return window.Cashfree({ mode: 'sandbox' })
+  }
+
+  const existing = document.getElementById('cashfree-checkout-sdk') as HTMLScriptElement | null
+
+  await new Promise<void>((resolve, reject) => {
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Unable to load Cashfree Checkout.')), {
+        once: true,
+      })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = 'cashfree-checkout-sdk'
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
+    script.async = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Unable to load Cashfree Checkout.'))
+    document.head.appendChild(script)
+  })
+
+  if (!window.Cashfree) {
+    throw new Error('Cashfree Checkout SDK did not initialize.')
+  }
+
+  return window.Cashfree({ mode: 'sandbox' })
+}
+
 const PROBLEMS: Array<{ id: DiagnosticProblem; label: string; description: string }> = [
   {
     id: 'indexing',
@@ -253,6 +304,68 @@ export default function TechnicalSEOTroubleshooter() {
     }
   }
 
+  async function initiateCashfreeCheckout(
+    targetUrl: string,
+    targetProblem: DiagnosticProblem
+  ) {
+    const trimmedUrl = targetUrl.trim()
+    if (!trimmedUrl) {
+      setError('Enter your website URL to begin.')
+      return
+    }
+
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/technical-seo/cashfree/create-order', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: trimmedUrl, problem: targetProblem, plan: 'quick' }),
+      })
+
+      const data = (await response.json()) as {
+        scanId?: string
+        status?: ScanStatusPayload['status']
+        statusUrl?: string
+        accessKey?: string
+        paymentSessionId?: string
+        checkoutMode?: 'sandbox' | 'production'
+        error?: string
+      }
+
+      if (!response.ok || !data.scanId || !data.paymentSessionId) {
+        throw new Error(data.error || 'Unable to start secure checkout.')
+      }
+
+      rememberScan(data.scanId, data.accessKey)
+      setScanStatus(data.status || 'awaiting_payment')
+      setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
+      setScanProgress(0)
+
+      const cashfree = await loadCashfreeSdk()
+      const mode = data.checkoutMode || 'sandbox'
+      const checkout = window.Cashfree?.({ mode })
+      if (!checkout) {
+        throw new Error('Cashfree Checkout SDK did not initialize.')
+      }
+
+      const result = await checkout.checkout({
+        paymentSessionId: data.paymentSessionId,
+        redirectTarget: '_self',
+      })
+
+      if (result?.error?.message) {
+        throw new Error(result.error.message)
+      }
+    } catch (checkoutError) {
+      setError(
+        checkoutError instanceof Error ? checkoutError.message : 'Unable to start secure checkout.'
+      )
+      setLoading(false)
+    }
+  }
+
   async function handleAnalyze(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -267,7 +380,7 @@ export default function TechnicalSEOTroubleshooter() {
     }
 
     if (plan === 'quick') {
-      await initiatePayPalCheckout(url, problem, 'quick')
+      await initiateCashfreeCheckout(url, problem)
       return
     }
 

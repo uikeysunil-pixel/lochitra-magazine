@@ -43,9 +43,9 @@ declare global {
   }
 }
 
-async function loadCashfreeSdk(): Promise<CashfreeSdk> {
+async function loadCashfreeSdk(): Promise<void> {
   if (window.Cashfree) {
-    return window.Cashfree({ mode: 'sandbox' })
+    return
   }
 
   const existing = document.getElementById('cashfree-checkout-sdk') as HTMLScriptElement | null
@@ -72,7 +72,6 @@ async function loadCashfreeSdk(): Promise<CashfreeSdk> {
     throw new Error('Cashfree Checkout SDK did not initialize.')
   }
 
-  return window.Cashfree({ mode: 'sandbox' })
 }
 
 const PROBLEMS: Array<{ id: DiagnosticProblem; label: string; description: string }> = [
@@ -343,7 +342,7 @@ export default function TechnicalSEOTroubleshooter() {
       setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
       setScanProgress(0)
 
-      const cashfree = await loadCashfreeSdk()
+      await loadCashfreeSdk()
       const mode = data.checkoutMode || 'sandbox'
       const checkout = window.Cashfree?.({ mode })
       if (!checkout) {

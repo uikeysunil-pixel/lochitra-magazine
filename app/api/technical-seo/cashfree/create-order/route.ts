@@ -84,16 +84,16 @@ export async function handleCashfreeCreateOrder(
       )
     }
 
-    const normalizedPhone = customerPhone.replace(/[\\s().-]/g, '')
+    const normalizedPhone = customerPhone.replace(/[\s().-]/g, '')
     const indianPhone = normalizedPhone.startsWith('+91') ? normalizedPhone.slice(3) : normalizedPhone
-    if (!/^[6-9]\\d{9}$/.test(indianPhone)) {
+    if (!/^[6-9]\d{9}$/.test(indianPhone)) {
       return NextResponse.json(
         { error: 'A valid 10-digit Indian mobile number is required for Cashfree checkout.' },
         { status: 400 }
       )
     }
 
-    if (customerEmail && !/^\\S+@\\S+\\.\\S+$/.test(customerEmail)) {
+    if (customerEmail && !/^\S+@\S+\.\S+$/.test(customerEmail)) {
       return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 })
     }
 

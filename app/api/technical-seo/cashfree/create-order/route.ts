@@ -66,6 +66,8 @@ export async function handleCashfreeCreateOrder(
     const url = typeof body.url === 'string' ? body.url.trim() : ''
     const problem = typeof body.problem === 'string' ? body.problem : 'unknown'
     const plan = typeof body.plan === 'string' ? body.plan : ''
+    const customerPhone = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : ''
+    const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim() : ''
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })
@@ -80,6 +82,19 @@ export async function handleCashfreeCreateOrder(
         { error: 'Cashfree is currently enabled only for the Targeted Troubleshoot ₹4,999 plan.' },
         { status: 400 }
       )
+    }
+
+    const normalizedPhone = customerPhone.replace(/[\\s().-]/g, '')
+    const indianPhone = normalizedPhone.startsWith('+91') ? normalizedPhone.slice(3) : normalizedPhone
+    if (!/^[6-9]\\d{9}$/.test(indianPhone)) {
+      return NextResponse.json(
+        { error: 'A valid 10-digit Indian mobile number is required for Cashfree checkout.' },
+        { status: 400 }
+      )
+    }
+
+    if (customerEmail && !/^\\S+@\\S+\\.\\S+$/.test(customerEmail)) {
+      return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 })
     }
 
     const accessKey = createReportAccessToken()
@@ -112,6 +127,8 @@ export async function handleCashfreeCreateOrder(
       scanId,
       returnUrl,
       notifyUrl,
+      customerPhone: indianPhone,
+      customerEmail: customerEmail || undefined,
     })
 
     const boundScan = await markPaymentOrderCreatedFn({

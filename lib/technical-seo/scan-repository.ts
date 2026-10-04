@@ -264,7 +264,7 @@ export async function markCheckoutPaid(input: {
 
 export async function markPaymentOrderCreated(input: {
   scanId: string
-  paymentProvider: 'paypal' | 'razorpay'
+  paymentProvider: 'paypal' | 'razorpay' | 'cashfree'
   paymentReference: string
   paymentCurrency: string
 }) {
@@ -333,7 +333,7 @@ export async function replacePaymentOrder(input: {
 
 export async function markPaymentPaid(input: {
   scanId: string
-  paymentProvider: 'paypal' | 'razorpay'
+  paymentProvider: 'paypal' | 'razorpay' | 'cashfree'
   paymentReference: string
   paymentTransactionId?: string | null
   customerEmail?: string | null

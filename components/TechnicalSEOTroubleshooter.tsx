@@ -196,6 +196,8 @@ function severityClass(severity: CrawlReportResult['findings'][number]['severity
 
 export default function TechnicalSEOTroubleshooter() {
   const [url, setUrl] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerEmail, setCustomerEmail] = useState('')
   const [problem, setProblem] = useState<DiagnosticProblem>('unknown')
   const [plan, setPlan] = useState<PlanId>('free')
   const [loading, setLoading] = useState(false)
@@ -305,11 +307,25 @@ export default function TechnicalSEOTroubleshooter() {
 
   async function initiateCashfreeCheckout(
     targetUrl: string,
-    targetProblem: DiagnosticProblem
+    targetProblem: DiagnosticProblem,
+    phone: string,
+    email: string
   ) {
     const trimmedUrl = targetUrl.trim()
+    const trimmedPhone = phone.trim()
+    const trimmedEmail = email.trim()
     if (!trimmedUrl) {
       setError('Enter your website URL to begin.')
+      return
+    }
+
+    if (!/^(?:\\+91[-\\s]?)?[6-9]\\d{9}$/.test(trimmedPhone)) {
+      setError('Enter a valid 10-digit Indian mobile number for Cashfree checkout.')
+      return
+    }
+
+    if (trimmedEmail && !/^\\S+@\\S+\\.\\S+$/.test(trimmedEmail)) {
+      setError('Enter a valid email address or leave the email field blank.')
       return
     }
 
@@ -320,7 +336,13 @@ export default function TechnicalSEOTroubleshooter() {
       const response = await fetch('/api/technical-seo/cashfree/create-order', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl, problem: targetProblem, plan: 'quick' }),
+        body: JSON.stringify({
+          url: trimmedUrl,
+          problem: targetProblem,
+          plan: 'quick',
+          customerPhone: trimmedPhone,
+          customerEmail: trimmedEmail || undefined,
+        }),
       })
 
       const data = (await response.json()) as {
@@ -379,7 +401,7 @@ export default function TechnicalSEOTroubleshooter() {
     }
 
     if (plan === 'quick') {
-      await initiateCashfreeCheckout(url, problem)
+      await initiateCashfreeCheckout(url, problem, customerPhone, customerEmail)
       return
     }
 
@@ -561,6 +583,57 @@ export default function TechnicalSEOTroubleshooter() {
               })}
             </div>
           </div>
+
+          {plan === 'quick' && (
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Indian customer details
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  Secure Cashfree checkout supports UPI, cards, net banking, and other available Indian payment methods. A mobile number is required by your Cashfree account configuration.
+                </p>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="cashfree-phone"
+                    className="mb-2 block text-sm font-semibold text-gray-900 dark:text-gray-100"
+                  >
+                    Mobile number <span aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="cashfree-phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value)}
+                    placeholder="9876543210"
+                    className="focus:border-primary-500 focus:ring-primary-200 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 transition outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="cashfree-email"
+                    className="mb-2 block text-sm font-semibold text-gray-900 dark:text-gray-100"
+                  >
+                    Email address <span className="font-normal text-gray-500">(optional)</span>
+                  </label>
+                  <input
+                    id="cashfree-email"
+                    type="email"
+                    autoComplete="email"
+                    value={customerEmail}
+                    onChange={(event) => setCustomerEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className="focus:border-primary-500 focus:ring-primary-200 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 transition outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <div className="mb-3">

@@ -51,6 +51,7 @@ describe('Cashfree surgical integration', () => {
         url: 'https://example.com',
         problem: 'indexing',
         plan: 'quick',
+        customerPhone: '9876543210',
       }),
       {
         createScanRecord: async (input: any) => { createdScan = input; return input.scanId },
@@ -69,6 +70,45 @@ describe('Cashfree surgical integration', () => {
     assert.strictEqual(createdScan.plan, 'quick')
     assert.strictEqual(createdScan.paymentCurrency, 'INR')
     assert.strictEqual(markedOrder.paymentProvider, 'cashfree')
+  })
+
+  it('rejects Cashfree checkout when the Indian mobile number is missing or invalid', async () => {
+    const response = await handleCashfreeCreateOrder(
+      jsonRequest('http://localhost:3000/api/technical-seo/cashfree/create-order', {
+        url: 'https://example.com',
+        problem: 'indexing',
+        plan: 'quick',
+        customerPhone: '12345',
+      }),
+      {
+        createScanRecord: async () => 'unused',
+      }
+    )
+    assert.strictEqual(response.status, 400)
+  })
+
+  it('accepts an Indian phone number and optional email for Cashfree order creation', async () => {
+    let customerDetails: any = null
+    const response = await handleCashfreeCreateOrder(
+      jsonRequest('http://localhost:3000/api/technical-seo/cashfree/create-order', {
+        url: 'https://example.com',
+        problem: 'indexing',
+        plan: 'quick',
+        customerPhone: '+91 98765 43210',
+        customerEmail: 'customer@example.com',
+      }),
+      {
+        createScanRecord: async (input: any) => input.scanId,
+        createCashfreeOrder: async (input: any) => {
+          customerDetails = input
+          return { orderId: input.orderId, cfOrderId: 'cf-test-order', paymentSessionId: 'session-test' }
+        },
+        markPaymentOrderCreated: async (input: any) => ({ id: input.scanId }),
+      }
+    )
+    assert.strictEqual(response.status, 200)
+    assert.strictEqual(customerDetails.customerPhone, '9876543210')
+    assert.strictEqual(customerDetails.customerEmail, 'customer@example.com')
   })
 
   it('rejects invalid webhook signatures', async () => {

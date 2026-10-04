@@ -319,12 +319,12 @@ export default function TechnicalSEOTroubleshooter() {
       return
     }
 
-    if (!/^(?:\\+91[-\\s]?)?[6-9]\\d{9}$/.test(trimmedPhone)) {
+    if (!/^(?:\+91[-\s]?)?[6-9]\d{9}$/.test(trimmedPhone)) {
       setError('Enter a valid 10-digit Indian mobile number for Cashfree checkout.')
       return
     }
 
-    if (trimmedEmail && !/^\\S+@\\S+\\.\\S+$/.test(trimmedEmail)) {
+    if (trimmedEmail && !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
       setError('Enter a valid email address or leave the email field blank.')
       return
     }

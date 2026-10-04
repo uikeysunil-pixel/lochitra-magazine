@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import { createHmac } from 'crypto'
 import { describe, it } from 'node:test'
 
+/* Test doubles intentionally use any to match the injected repository/API seams. */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 if (!process.env.DATABASE_URL) process.env.DATABASE_URL = 'postgresql://mock:mock@localhost:5432/mock'
 if (!process.env.CASHFREE_CLIENT_SECRET) process.env.CASHFREE_CLIENT_SECRET = 'mock-cashfree-secret'
 

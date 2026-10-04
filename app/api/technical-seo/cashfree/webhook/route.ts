@@ -85,7 +85,16 @@ export async function handleCashfreeWebhook(
   const markBackgroundEventSentFn = deps.markBackgroundEventSent ?? markBackgroundEventSent
   const sendInngestEventFn =
     deps.sendInngestEvent ??
-    ((event) => inngest.send(event))
+    ((event: {
+      id: string
+      name: 'technical-seo/scan.requested'
+      data: {
+        scanId: string
+        url: string
+        problem: DiagnosticProblem
+        plan: PlanId
+      }
+    }) => inngest.send(event))
 
   const rawBody = await request.text()
   const signature = request.headers.get('x-webhook-signature')

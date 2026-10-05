@@ -1555,7 +1555,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
     const res = await handleCreateOrder(req, {
       getDeepScanAuthorizationRecord: async () =>
         createMockExistingDeepScan({
-          payment_provider: 'stripe',
+          payment_provider: 'cashfree',
           payment_reference: 'cs_test_123',
         }),
     })

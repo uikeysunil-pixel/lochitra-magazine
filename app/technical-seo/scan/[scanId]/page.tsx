@@ -81,6 +81,7 @@ export default function TechnicalSEOScanStatusPage({
   const [accessKey, setAccessKey] = useState<string | null>(null)
   const [pollingCeilingReached, setPollingCeilingReached] = useState(false)
   const captureAttemptedRef = useRef(false)
+  const cashfreeConfirmationAttemptedRef = useRef(false)
 
   // Phase 10C: Google Search Console property selection state
   const [properties, setProperties] = useState<PropertyItem[]>([])
@@ -154,6 +155,80 @@ export default function TechnicalSEOScanStatusPage({
       controller.abort()
     }
   }, [])
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const provider = searchParams.get('provider')
+    const key = searchParams.get('key')
+    const orderId = searchParams.get('order_id') || searchParams.get('orderId')
+
+    if (
+      provider !== 'cashfree' ||
+      !key?.trim() ||
+      !orderId?.trim() ||
+      cashfreeConfirmationAttemptedRef.current
+    ) {
+      return
+    }
+
+    cashfreeConfirmationAttemptedRef.current = true
+
+    let cancelled = false
+    const controller = new AbortController()
+
+    async function confirmCashfreePayment() {
+      try {
+        const { scanId: id } = await params
+        if (cancelled) return
+
+        const response = await fetch('/api/technical-seo/cashfree/confirm-order', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            scanId: id,
+            key: key!.trim(),
+            orderId: orderId!.trim(),
+          }),
+          signal: controller.signal,
+        })
+
+        const payload = (await response.json()) as { error?: string }
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to confirm Cashfree payment.')
+        }
+
+        if (cancelled) return
+
+        const cleanUrl = new URL(window.location.href)
+        cleanUrl.searchParams.delete('provider')
+        cleanUrl.searchParams.delete('order_id')
+        cleanUrl.searchParams.delete('orderId')
+        window.history.replaceState({}, '', cleanUrl.toString())
+      } catch (confirmationError) {
+        if (
+          !cancelled &&
+          !(
+            confirmationError instanceof DOMException &&
+            confirmationError.name === 'AbortError'
+          )
+        ) {
+          setError(
+            confirmationError instanceof Error
+              ? confirmationError.message
+              : 'Unable to confirm Cashfree payment.'
+          )
+        }
+      }
+    }
+
+    confirmCashfreePayment()
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [params])
 
   useEffect(() => {
     params.then(({ scanId: id }) => {

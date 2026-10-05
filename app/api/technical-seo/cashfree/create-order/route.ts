@@ -7,10 +7,7 @@ import {
   markCheckoutCancelled,
   markPaymentOrderCreated,
 } from '@/lib/technical-seo/scan-repository'
-import {
-  createCashfreeOrder,
-  getCashfreeEnvironment,
-} from '@/lib/cashfree/client'
+import { createCashfreeOrder, getCashfreeEnvironment } from '@/lib/cashfree/client'
 import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem } from '@/lib/technical-seo/types'
 
@@ -85,7 +82,9 @@ export async function handleCashfreeCreateOrder(
     }
 
     const normalizedPhone = customerPhone.replace(/[\s().-]/g, '')
-    const indianPhone = normalizedPhone.startsWith('+91') ? normalizedPhone.slice(3) : normalizedPhone
+    const indianPhone = normalizedPhone.startsWith('+91')
+      ? normalizedPhone.slice(3)
+      : normalizedPhone
     if (!/^[6-9]\d{9}$/.test(indianPhone)) {
       return NextResponse.json(
         { error: 'A valid 10-digit Indian mobile number is required for Cashfree checkout.' },
@@ -103,7 +102,7 @@ export async function handleCashfreeCreateOrder(
 
     const origin = new URL(request.url).origin
     const statusUrl = `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessKey)}`
-    const returnUrl = `${origin}${statusUrl}&provider=cashfree`
+    const returnUrl = `${origin}${statusUrl}&provider=cashfree&order_id={order_id}`
     const notifyUrl = `${origin}/api/technical-seo/cashfree/webhook`
 
     await createScanRecordFn({
@@ -158,8 +157,7 @@ export async function handleCashfreeCreateOrder(
       plan: 'quick',
     })
   } catch (error) {
-    const rawMessage =
-      error instanceof Error ? error.message : 'Unable to start Cashfree Checkout.'
+    const rawMessage = error instanceof Error ? error.message : 'Unable to start Cashfree Checkout.'
     const message =
       rawMessage.includes('CASHFREE_CLIENT_SECRET') || rawMessage.includes('CASHFREE_CLIENT_ID')
         ? 'Cashfree configuration error.'

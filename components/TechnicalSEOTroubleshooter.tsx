@@ -53,9 +53,13 @@ async function loadCashfreeSdk(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     if (existing) {
       existing.addEventListener('load', () => resolve(), { once: true })
-      existing.addEventListener('error', () => reject(new Error('Unable to load Cashfree Checkout.')), {
-        once: true,
-      })
+      existing.addEventListener(
+        'error',
+        () => reject(new Error('Unable to load Cashfree Checkout.')),
+        {
+          once: true,
+        }
+      )
       return
     }
 
@@ -71,7 +75,6 @@ async function loadCashfreeSdk(): Promise<void> {
   if (!window.Cashfree) {
     throw new Error('Cashfree Checkout SDK did not initialize.')
   }
-
 }
 
 const PROBLEMS: Array<{ id: DiagnosticProblem; label: string; description: string }> = [
@@ -591,7 +594,9 @@ export default function TechnicalSEOTroubleshooter() {
                   Indian customer details
                 </p>
                 <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                  Secure Cashfree checkout supports UPI, cards, net banking, and other available Indian payment methods. A mobile number is required by your Cashfree account configuration.
+                  Secure Cashfree checkout supports UPI, cards, net banking, and other available
+                  Indian payment methods. A mobile number is required by your Cashfree account
+                  configuration.
                 </p>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">

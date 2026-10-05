@@ -5,9 +5,7 @@ export const CASHFREE_API_VERSION = process.env.CASHFREE_API_VERSION || '2025-01
 export type CashfreeEnvironment = 'sandbox' | 'production'
 
 function getEnvironment(): CashfreeEnvironment {
-  return process.env.CASHFREE_ENVIRONMENT?.toLowerCase() === 'production'
-    ? 'production'
-    : 'sandbox'
+  return process.env.CASHFREE_ENVIRONMENT?.toLowerCase() === 'production' ? 'production' : 'sandbox'
 }
 
 export function getCashfreeEnvironment(): CashfreeEnvironment {
@@ -114,6 +112,8 @@ export async function createCashfreeOrder({
   scanId,
   returnUrl,
   notifyUrl,
+  customerPhone,
+  customerEmail,
 }: CreateCashfreeOrderParams): Promise<CreateCashfreeOrderResult> {
   const response = await cashfreeRequest<CashfreeOrder>('/orders', {
     method: 'POST',
@@ -168,10 +168,9 @@ export async function getCashfreeOrder(orderId: string): Promise<CashfreeOrder> 
 }
 
 export async function getCashfreePayments(orderId: string): Promise<CashfreePayment[]> {
-  return cashfreeRequest<CashfreePayment[]>(
-    `/orders/${encodeURIComponent(orderId)}/payments`,
-    { method: 'GET' }
-  )
+  return cashfreeRequest<CashfreePayment[]>(`/orders/${encodeURIComponent(orderId)}/payments`, {
+    method: 'GET',
+  })
 }
 
 export function verifyCashfreeWebhookSignature(
@@ -182,9 +181,7 @@ export function verifyCashfreeWebhookSignature(
   const secret = process.env.CASHFREE_CLIENT_SECRET
   if (!secret || !signature || !timestamp) return false
 
-  const expected = createHmac('sha256', secret)
-    .update(`${timestamp}${rawBody}`)
-    .digest('base64')
+  const expected = createHmac('sha256', secret).update(`${timestamp}${rawBody}`).digest('base64')
 
   const actualBuffer = Buffer.from(signature)
   const expectedBuffer = Buffer.from(expected)

@@ -81,7 +81,17 @@ export default function TechnicalSEOScanStatusPage({
   const [accessKey, setAccessKey] = useState<string | null>(null)
   const [pollingCeilingReached, setPollingCeilingReached] = useState(false)
   const captureAttemptedRef = useRef(false)
-  const cashfreeConfirmationAttemptedRef = useRef(false)
+  const cashfreeConfirmAttemptedRef = useRef(false)
+  const [isConfirmingCashfree, setIsConfirmingCashfree] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      return (
+        searchParams.get('provider') === 'cashfree' &&
+        Boolean((searchParams.get('order_id') || searchParams.get('orderId'))?.trim())
+      )
+    }
+    return false
+  })
 
   // Phase 10C: Google Search Console property selection state
   const [properties, setProperties] = useState<PropertyItem[]>([])
@@ -159,37 +169,32 @@ export default function TechnicalSEOScanStatusPage({
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     const provider = searchParams.get('provider')
-    const key = searchParams.get('key')
-    const orderId = searchParams.get('order_id') || searchParams.get('orderId')
+    const key = searchParams.get('key')?.trim()
+    const rawOrderId = searchParams.get('order_id') || searchParams.get('orderId')
+    const orderId = rawOrderId?.trim()
 
-    if (
-      provider !== 'cashfree' ||
-      !key?.trim() ||
-      !orderId?.trim() ||
-      cashfreeConfirmationAttemptedRef.current
-    ) {
+    if (provider !== 'cashfree' || !key || !orderId) {
       return
     }
 
-    cashfreeConfirmationAttemptedRef.current = true
-
-    let cancelled = false
-    const controller = new AbortController()
+    if (cashfreeConfirmAttemptedRef.current) return
+    cashfreeConfirmAttemptedRef.current = true
 
     async function confirmCashfreePayment() {
       try {
-        const { scanId: id } = await params
-        if (cancelled) return
+        const pathMatch = window.location.pathname.match(/\/scan\/([^?#/]+)/)
+        const targetScanId = pathMatch ? pathMatch[1] : (await params).scanId
+
+        if (!targetScanId) return
 
         const response = await fetch('/api/technical-seo/cashfree/confirm-order', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            scanId: id,
-            key: key!.trim(),
-            orderId: orderId!.trim(),
+            scanId: targetScanId,
+            key,
+            orderId,
           }),
-          signal: controller.signal,
         })
 
         const payload = (await response.json()) as { error?: string }
@@ -198,36 +203,24 @@ export default function TechnicalSEOScanStatusPage({
           throw new Error(payload.error || 'Unable to confirm Cashfree payment.')
         }
 
-        if (cancelled) return
-
         const cleanUrl = new URL(window.location.href)
         cleanUrl.searchParams.delete('provider')
         cleanUrl.searchParams.delete('order_id')
         cleanUrl.searchParams.delete('orderId')
+
         window.history.replaceState({}, '', cleanUrl.toString())
-      } catch (confirmationError) {
-        if (
-          !cancelled &&
-          !(
-            confirmationError instanceof DOMException &&
-            confirmationError.name === 'AbortError'
-          )
-        ) {
-          setError(
-            confirmationError instanceof Error
-              ? confirmationError.message
-              : 'Unable to confirm Cashfree payment.'
-          )
-        }
+      } catch (confirmError) {
+        setError(
+          confirmError instanceof Error
+            ? confirmError.message
+            : 'Unable to confirm Cashfree payment.'
+        )
+      } finally {
+        setIsConfirmingCashfree(false)
       }
     }
 
     confirmCashfreePayment()
-
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
   }, [params])
 
   useEffect(() => {
@@ -240,7 +233,7 @@ export default function TechnicalSEOScanStatusPage({
   }, [params])
 
   useEffect(() => {
-    if (!scanId) return
+    if (!scanId || isConfirmingCashfree) return
 
     let cancelled = false
     let timerId: number | undefined
@@ -290,7 +283,7 @@ export default function TechnicalSEOScanStatusPage({
         window.clearTimeout(timerId)
       }
     }
-  }, [scanId, accessKey])
+  }, [scanId, accessKey, isConfirmingCashfree])
 
   useEffect(() => {
     if (

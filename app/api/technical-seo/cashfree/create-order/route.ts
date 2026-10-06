@@ -10,6 +10,7 @@ import {
 import { createCashfreeOrder, getCashfreeEnvironment } from '@/lib/cashfree/client'
 import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem } from '@/lib/technical-seo/types'
+import { INDIA_BILLING_COUNTRY, normalizeBillingCountry } from '@/lib/technical-seo/billing-country'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,6 +66,7 @@ export async function handleCashfreeCreateOrder(
     const plan = typeof body.plan === 'string' ? body.plan : ''
     const customerPhone = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : ''
     const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim() : ''
+    const billingCountry = normalizeBillingCountry(body.billingCountry)
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })
@@ -72,6 +74,13 @@ export async function handleCashfreeCreateOrder(
 
     if (!PROBLEMS.has(problem as DiagnosticProblem)) {
       return NextResponse.json({ error: 'Invalid diagnostic problem.' }, { status: 400 })
+    }
+
+    if (billingCountry !== INDIA_BILLING_COUNTRY) {
+      return NextResponse.json(
+        { error: 'Cashfree checkout is available only for billing addresses in India.' },
+        { status: 400 }
+      )
     }
 
     if (plan !== 'quick') {

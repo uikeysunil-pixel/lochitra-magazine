@@ -15,7 +15,10 @@ import { createPayPalOrder, getPayPalOrder } from '@/lib/paypal/orders'
 import { OrderStatus, type Order } from '@paypal/paypal-server-sdk'
 import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem } from '@/lib/technical-seo/types'
-import { isInternationalBillingCountry, normalizeBillingCountry } from '@/lib/technical-seo/billing-country'
+import {
+  isInternationalBillingCountry,
+  normalizeBillingCountry,
+} from '@/lib/technical-seo/billing-country'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -106,7 +109,10 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
       const billingCountry = normalizeBillingCountry(body.billingCountry)
       if (!isInternationalBillingCountry(billingCountry)) {
         return NextResponse.json(
-          { error: 'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.' },
+          {
+            error:
+              'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.',
+          },
           { status: 400 }
         )
       }
@@ -318,7 +324,10 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
 
     if (!isInternationalBillingCountry(billingCountry)) {
       return NextResponse.json(
-        { error: 'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.' },
+        {
+          error:
+            'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.',
+        },
         { status: 400 }
       )
     }

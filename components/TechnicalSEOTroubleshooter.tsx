@@ -173,7 +173,9 @@ function getCountryOptions() {
       Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }
     ).supportedValuesOf
 
-    const supportedRegions = supportedValuesOf?.('region')?.filter((code) => /^[A-Z]{2}$/.test(code))
+    const supportedRegions = supportedValuesOf?.('region')?.filter((code) =>
+      /^[A-Z]{2}$/.test(code)
+    )
     if (supportedRegions?.length) {
       codes = supportedRegions
     }
@@ -261,7 +263,11 @@ function severityClass(severity: CrawlReportResult['findings'][number]['severity
   }
 }
 
-export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detectedCountry?: string | null }) {
+export default function TechnicalSEOTroubleshooter({
+  detectedCountry,
+}: {
+  detectedCountry?: string | null
+}) {
   const [url, setUrl] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
@@ -302,15 +308,16 @@ export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detect
 
   useEffect(() => {
     const savedCountry = normalizeBillingCountry(
-      typeof window !== 'undefined'
-        ? window.localStorage.getItem(BILLING_COUNTRY_STORAGE_KEY)
-        : ''
+      typeof window !== 'undefined' ? window.localStorage.getItem(BILLING_COUNTRY_STORAGE_KEY) : ''
     )
     const browserCountry = normalizeBillingCountry(
       typeof navigator !== 'undefined' ? navigator.language.split('-')[1] : ''
     )
     const initialCountry =
-      savedCountry || normalizeBillingCountry(detectedCountry) || browserCountry || INDIA_BILLING_COUNTRY
+      savedCountry ||
+      normalizeBillingCountry(detectedCountry) ||
+      browserCountry ||
+      INDIA_BILLING_COUNTRY
 
     setBillingCountry(initialCountry)
     setCountryInitialized(true)
@@ -846,7 +853,9 @@ export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detect
                 evidence-based report.
               </p>
             </div>
-            <div className={`grid gap-4 ${visiblePlans.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+            <div
+              className={`grid gap-4 ${visiblePlans.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}
+            >
               {visiblePlans.map((item) => {
                 const active = plan === item.id
                 return (

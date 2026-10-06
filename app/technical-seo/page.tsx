@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import { genPageMetadata } from 'app/seo'
 import TechnicalSEOTroubleshooter from '@/components/TechnicalSEOTroubleshooter'
 
@@ -8,10 +9,13 @@ export const metadata = genPageMetadata({
   canonicalPath: '/technical-seo',
 })
 
-export default function TechnicalSEOPage() {
+export default async function TechnicalSEOPage() {
+  const requestHeaders = await headers()
+  const detectedCountry = requestHeaders.get('x-vercel-ip-country')?.toUpperCase() || null
+
   return (
     <div className="pt-8 pb-16 sm:pt-12">
-      <TechnicalSEOTroubleshooter />
+      <TechnicalSEOTroubleshooter detectedCountry={detectedCountry} />
     </div>
   )
 }

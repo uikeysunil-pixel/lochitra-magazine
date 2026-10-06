@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 import type {
   CrawlReportResult,
@@ -8,6 +8,7 @@ import type {
   PlanId,
   ScanStatus,
 } from '@/lib/technical-seo/types'
+import { INDIA_BILLING_COUNTRY, normalizeBillingCountry } from '@/lib/technical-seo/billing-country'
 
 type ScanStatusPayload = {
   scanId: string
@@ -22,6 +23,59 @@ type ScanStatusPayload = {
   reportUrl?: string | null
   statusUrl?: string | null
   result?: CrawlReportResult
+}
+
+type CashfreeCheckoutResult = {
+  error?: {
+    message?: string
+  }
+}
+
+type CashfreeSdk = {
+  checkout: (options: {
+    paymentSessionId: string
+    redirectTarget: '_self'
+  }) => Promise<CashfreeCheckoutResult | undefined> | CashfreeCheckoutResult | undefined
+}
+
+declare global {
+  interface Window {
+    Cashfree?: (options: { mode: 'sandbox' | 'production' }) => CashfreeSdk
+  }
+}
+
+async function loadCashfreeSdk(): Promise<void> {
+  if (window.Cashfree) {
+    return
+  }
+
+  const existing = document.getElementById('cashfree-checkout-sdk') as HTMLScriptElement | null
+
+  await new Promise<void>((resolve, reject) => {
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener(
+        'error',
+        () => reject(new Error('Unable to load Cashfree Checkout.')),
+        {
+          once: true,
+        }
+      )
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = 'cashfree-checkout-sdk'
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
+    script.async = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Unable to load Cashfree Checkout.'))
+    document.head.appendChild(script)
+  })
+
+  if (!window.Cashfree) {
+    throw new Error('Cashfree Checkout SDK did not initialize.')
+  }
 }
 
 const PROBLEMS: Array<{ id: DiagnosticProblem; label: string; description: string }> = [
@@ -77,6 +131,67 @@ const PROBLEMS: Array<{ id: DiagnosticProblem; label: string; description: strin
   },
 ]
 
+const BILLING_COUNTRY_STORAGE_KEY = 'locitra-technical-seo-billing-country'
+
+const FALLBACK_COUNTRY_CODES = [
+  'IN',
+  'US',
+  'GB',
+  'CA',
+  'AU',
+  'AE',
+  'SG',
+  'DE',
+  'FR',
+  'JP',
+  'NZ',
+  'ZA',
+  'BR',
+  'MX',
+]
+
+function countryFlag(countryCode: string) {
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+}
+
+function getCountryOptions() {
+  const displayNames =
+    typeof Intl !== 'undefined' && 'DisplayNames' in Intl
+      ? new Intl.DisplayNames(['en'], { type: 'region' })
+      : null
+
+  let codes = FALLBACK_COUNTRY_CODES
+
+  try {
+    const supportedValuesOf = (
+      Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }
+    ).supportedValuesOf
+
+    const supportedRegions = supportedValuesOf?.('region')?.filter((code) =>
+      /^[A-Z]{2}$/.test(code)
+    )
+    if (supportedRegions?.length) {
+      codes = supportedRegions
+    }
+  } catch {
+    // Keep the compact fallback list when the browser does not expose region data.
+  }
+
+  const uniqueCodes = Array.from(new Set([INDIA_BILLING_COUNTRY, ...codes]))
+  return uniqueCodes
+    .map((code) => ({
+      code,
+      name: displayNames?.of(code) || code,
+    }))
+    .sort((a, b) => {
+      if (a.code === INDIA_BILLING_COUNTRY) return -1
+      if (b.code === INDIA_BILLING_COUNTRY) return 1
+      return a.name.localeCompare(b.name)
+    })
+}
+
 const PLANS: Array<{
   id: PlanId
   name: string
@@ -101,7 +216,7 @@ const PLANS: Array<{
   {
     id: 'quick',
     name: 'Targeted Troubleshoot',
-    price: '₹4,999',
+    price: '$49',
     description: 'Problem-specific diagnosis with a focused report.',
     features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
     enabled: true,
@@ -117,7 +232,7 @@ const PLANS: Array<{
       'Duplicate candidates',
       'Detailed report',
     ],
-    enabled: process.env.NEXT_PUBLIC_TECHNICAL_SEO_FULL_ENABLED === 'true',
+    enabled: true,
   },
   {
     id: 'deep',
@@ -144,8 +259,18 @@ function severityClass(severity: CrawlReportResult['findings'][number]['severity
   }
 }
 
-export default function TechnicalSEOTroubleshooter() {
+export default function TechnicalSEOTroubleshooter({
+  detectedCountry,
+}: {
+  detectedCountry?: string | null
+}) {
   const [url, setUrl] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerEmail, setCustomerEmail] = useState('')
+  const [billingCountry, setBillingCountry] = useState(
+    normalizeBillingCountry(detectedCountry) || INDIA_BILLING_COUNTRY
+  )
+  const [countryInitialized, setCountryInitialized] = useState(false)
   const [problem, setProblem] = useState<DiagnosticProblem>('unknown')
   const [plan, setPlan] = useState<PlanId>('free')
   const [loading, setLoading] = useState(false)
@@ -156,13 +281,42 @@ export default function TechnicalSEOTroubleshooter() {
   const [statusUrl, setStatusUrl] = useState<string | null>(null)
 
   const selectedProblem = useMemo(() => PROBLEMS.find((item) => item.id === problem), [problem])
-
+  const countryOptions = useMemo(() => getCountryOptions(), [])
+  const isIndiaBilling = billingCountry === INDIA_BILLING_COUNTRY
   const recommendedPlan: Exclude<PlanId, 'free'> = 'quick'
-
+  const visiblePlans = useMemo(() => PLANS, [])
   const recommendedPlanDetails = useMemo(
     () => PLANS.find((item) => item.id === recommendedPlan),
     [recommendedPlan]
   )
+
+  useEffect(() => {
+    const savedCountry = normalizeBillingCountry(
+      typeof window !== 'undefined' ? window.localStorage.getItem(BILLING_COUNTRY_STORAGE_KEY) : ''
+    )
+    const browserCountry = normalizeBillingCountry(
+      typeof navigator !== 'undefined' ? navigator.language.split('-')[1] : ''
+    )
+    const initialCountry =
+      savedCountry ||
+      normalizeBillingCountry(detectedCountry) ||
+      browserCountry ||
+      INDIA_BILLING_COUNTRY
+
+    setBillingCountry(initialCountry)
+    setCountryInitialized(true)
+  }, [detectedCountry])
+
+  useEffect(() => {
+    if (!countryInitialized) return
+
+    window.localStorage.setItem(BILLING_COUNTRY_STORAGE_KEY, billingCountry)
+
+    if (billingCountry !== INDIA_BILLING_COUNTRY) {
+      setCustomerPhone('')
+      setCustomerEmail('')
+    }
+  }, [billingCountry, countryInitialized])
 
   async function wait(ms: number) {
     await new Promise((resolve) => setTimeout(resolve, ms))
@@ -208,7 +362,8 @@ export default function TechnicalSEOTroubleshooter() {
   async function initiatePayPalCheckout(
     targetUrl: string,
     targetProblem: DiagnosticProblem,
-    targetPlan: PlanId = 'quick'
+    targetPlan: PlanId = 'quick',
+    targetBillingCountry?: string
   ) {
     const trimmedUrl = targetUrl.trim()
     if (!trimmedUrl) {
@@ -223,7 +378,12 @@ export default function TechnicalSEOTroubleshooter() {
       const response = await fetch('/api/technical-seo/paypal/create-order', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl, problem: targetProblem, plan: targetPlan }),
+        body: JSON.stringify({
+          url: trimmedUrl,
+          problem: targetProblem,
+          plan: targetPlan,
+          billingCountry: targetBillingCountry || billingCountry,
+        }),
       })
 
       const data = (await response.json()) as {
@@ -253,6 +413,91 @@ export default function TechnicalSEOTroubleshooter() {
     }
   }
 
+  async function initiateCashfreeCheckout(
+    targetUrl: string,
+    targetProblem: DiagnosticProblem,
+    phone: string,
+    email: string,
+    targetBillingCountry: string,
+    targetPlan: 'quick' | 'full' = 'quick'
+  ) {
+    const trimmedUrl = targetUrl.trim()
+    const trimmedPhone = phone.trim()
+    const trimmedEmail = email.trim()
+    if (!trimmedUrl) {
+      setError('Enter your website URL to begin.')
+      return
+    }
+
+    if (!/^(?:\+91[-\s]?)?[6-9]\d{9}$/.test(trimmedPhone)) {
+      setError('Enter a valid 10-digit Indian mobile number for Cashfree checkout.')
+      return
+    }
+
+    if (trimmedEmail && !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+      setError('Enter a valid email address or leave the email field blank.')
+      return
+    }
+
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/technical-seo/cashfree/create-order', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          url: trimmedUrl,
+          problem: targetProblem,
+          plan: targetPlan,
+          customerPhone: trimmedPhone,
+          customerEmail: trimmedEmail || undefined,
+          billingCountry: targetBillingCountry,
+        }),
+      })
+
+      const data = (await response.json()) as {
+        scanId?: string
+        status?: ScanStatusPayload['status']
+        statusUrl?: string
+        accessKey?: string
+        paymentSessionId?: string
+        checkoutMode?: 'sandbox' | 'production'
+        error?: string
+      }
+
+      if (!response.ok || !data.scanId || !data.paymentSessionId) {
+        throw new Error(data.error || 'Unable to start secure checkout.')
+      }
+
+      rememberScan(data.scanId, data.accessKey)
+      setScanStatus(data.status || 'awaiting_payment')
+      setStatusUrl(data.statusUrl || `/technical-seo/scan/${data.scanId}/`)
+      setScanProgress(0)
+
+      await loadCashfreeSdk()
+      const mode = data.checkoutMode || 'sandbox'
+      const checkout = window.Cashfree?.({ mode })
+      if (!checkout) {
+        throw new Error('Cashfree Checkout SDK did not initialize.')
+      }
+
+      const result = await checkout.checkout({
+        paymentSessionId: data.paymentSessionId,
+        redirectTarget: '_self',
+      })
+
+      if (result?.error?.message) {
+        throw new Error(result.error.message)
+      }
+    } catch (checkoutError) {
+      setError(
+        checkoutError instanceof Error ? checkoutError.message : 'Unable to start secure checkout.'
+      )
+      setLoading(false)
+    }
+  }
+
   async function handleAnalyze(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -267,12 +512,34 @@ export default function TechnicalSEOTroubleshooter() {
     }
 
     if (plan === 'quick') {
-      await initiatePayPalCheckout(url, problem, 'quick')
+      if (isIndiaBilling) {
+        await initiateCashfreeCheckout(
+          url,
+          problem,
+          customerPhone,
+          customerEmail,
+          billingCountry,
+          'quick'
+        )
+      } else {
+        await initiatePayPalCheckout(url, problem, 'quick', billingCountry)
+      }
       return
     }
 
     if (plan === 'full') {
-      await initiatePayPalCheckout(url, problem, 'full')
+      if (isIndiaBilling) {
+        await initiateCashfreeCheckout(
+          url,
+          problem,
+          customerPhone,
+          customerEmail,
+          billingCountry,
+          'full'
+        )
+      } else {
+        await initiatePayPalCheckout(url, problem, 'full', billingCountry)
+      }
       return
     }
 
@@ -302,9 +569,10 @@ export default function TechnicalSEOTroubleshooter() {
 
         rememberScan(data.scanId, data.accessKey)
         setScanStatus(data.status || 'awaiting_gsc')
-        const targetUrl =
+        const baseStatusUrl =
           data.statusUrl ||
           `/technical-seo/scan/${data.scanId}/${data.accessKey ? `?key=${encodeURIComponent(data.accessKey)}` : ''}`
+        const targetUrl = `${baseStatusUrl}${baseStatusUrl.includes('?') ? '&' : '?'}billing_country=${encodeURIComponent(billingCountry)}`
         setStatusUrl(targetUrl)
 
         window.location.assign(targetUrl)
@@ -370,11 +638,13 @@ export default function TechnicalSEOTroubleshooter() {
             About the paid Technical SEO service
           </h2>
           <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
-            The Targeted Troubleshoot is a one-time technical SEO investigation. It currently
-            includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed report
-            for the selected diagnostic concern. The current price is <strong>₹4,999</strong>.
-            Technical findings and recommendations are diagnostic information and do not guarantee
-            search-engine rankings, traffic increases, indexing outcomes, or other business results.
+            The Targeted Troubleshoot is a one-time technical SEO investigation available globally.
+            It includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
+            report for the selected diagnostic concern at a global price of <strong>$49</strong>{' '}
+            (with Full Troubleshoot at <strong>$99</strong> and Deep Investigation at{' '}
+            <strong>$199</strong>). Technical findings and recommendations are diagnostic
+            information and do not guarantee search-engine rankings, traffic increases, indexing
+            outcomes, or other business results.
           </p>
           <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
             Before purchasing, please review our{' '}
@@ -450,6 +720,116 @@ export default function TechnicalSEOTroubleshooter() {
             </div>
           </div>
 
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Billing country
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  Prices and payment options are shown for your billing country.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <label htmlFor="billing-country" className="sr-only">
+                  Billing country
+                </label>
+                <select
+                  id="billing-country"
+                  value={billingCountry}
+                  onChange={(event) => setBillingCountry(event.target.value)}
+                  className="focus:border-primary-500 focus:ring-primary-200 w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-sm font-semibold text-gray-900 outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                >
+                  {countryOptions.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {countryFlag(country.code)} {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-3 flex items-start gap-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+              <span aria-hidden="true">↗</span>
+              <span>
+                We use your approximate location to preselect a country. You can change it if you
+                are traveling or using a VPN. Please select the country that matches your billing
+                details.
+              </span>
+            </div>
+            {isIndiaBilling ? (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Indian checkout
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  Paid plans use secure Cashfree Domestic checkout with available Indian payment
+                  methods (UPI, cards, net banking).
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  International checkout
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  International plans are shown in USD and use secure PayPal checkout.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {(plan === 'quick' || plan === 'full') && isIndiaBilling && (
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Contact details for checkout
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  A mobile number is required to open secure Cashfree checkout. Your email is
+                  optional.
+                </p>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="cashfree-phone"
+                    className="mb-2 block text-sm font-semibold text-gray-900 dark:text-gray-100"
+                  >
+                    Mobile number <span aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="cashfree-phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value)}
+                    placeholder="9876543210"
+                    className="focus:border-primary-500 focus:ring-primary-200 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 transition outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="cashfree-email"
+                    className="mb-2 block text-sm font-semibold text-gray-900 dark:text-gray-100"
+                  >
+                    Email address <span className="font-normal text-gray-500">(optional)</span>
+                  </label>
+                  <input
+                    id="cashfree-email"
+                    type="email"
+                    autoComplete="email"
+                    value={customerEmail}
+                    onChange={(event) => setCustomerEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className="focus:border-primary-500 focus:ring-primary-200 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 transition outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="mb-3">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -460,8 +840,8 @@ export default function TechnicalSEOTroubleshooter() {
                 evidence-based report.
               </p>
             </div>
-            <div className="grid gap-4 lg:grid-cols-4">
-              {PLANS.map((item) => {
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {visiblePlans.map((item) => {
                 const active = plan === item.id
                 return (
                   <button
@@ -532,7 +912,7 @@ export default function TechnicalSEOTroubleshooter() {
                         ? 'Building report…'
                         : 'Crawling website…'
                 : plan === 'quick'
-                  ? 'Continue to secure checkout — ₹4,999'
+                  ? 'Continue to secure checkout — $49'
                   : plan === 'full'
                     ? 'Continue to secure checkout — $99'
                     : plan === 'deep'
@@ -757,11 +1137,20 @@ export default function TechnicalSEOTroubleshooter() {
                       onClick={() => {
                         if (recommendedPlan === 'quick') {
                           setPlan('quick')
-                          initiatePayPalCheckout(url, problem, 'quick')
+                          if (isIndiaBilling) {
+                            initiateCashfreeCheckout(
+                              url,
+                              problem,
+                              customerPhone,
+                              customerEmail,
+                              billingCountry
+                            )
+                          } else {
+                            initiatePayPalCheckout(url, problem, 'quick', billingCountry)
+                          }
                         } else {
-                          setError(
-                            'Full Troubleshoot ($99) is coming in a future release. Targeted Troubleshoot ($49) is currently available.'
-                          )
+                          setPlan('full')
+                          initiatePayPalCheckout(url, problem, 'full', billingCountry)
                         }
                       }}
                       className="mt-5 w-full rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
@@ -774,7 +1163,9 @@ export default function TechnicalSEOTroubleshooter() {
                     </button>
                     <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
                       {recommendedPlanDetails?.enabled
-                        ? 'One-time investigation · Secure PayPal checkout'
+                        ? isIndiaBilling
+                          ? 'One-time investigation · Secure Cashfree checkout'
+                          : 'One-time investigation · Secure PayPal checkout'
                         : 'One-time investigation · Available in a future release'}
                     </p>
                   </div>

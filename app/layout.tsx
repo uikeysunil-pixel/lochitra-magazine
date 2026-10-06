@@ -13,6 +13,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import { Metadata } from 'next'
 import NewsletterPopupWrapper from '@/components/NewsletterPopupWrapper'
+import GoogleAdSense from '@/components/GoogleAdSense'
 import { buildGraph, buildOrganization, buildWebsite, buildPerson } from '@/lib/schema'
 import { getPrimaryAuthor } from '@/lib/authors'
 
@@ -173,13 +174,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProviders>
         <NewsletterPopupWrapper />
         {/* ── Google AdSense ──────────────────────────────────────── */}
-        <Script
-          id="google-adsense"
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2792017631035920"
-          crossOrigin="anonymous"
-          strategy="lazyOnload"
-        />
+        <GoogleAdSense />
         {/* ── Google Analytics 4 ──────────────────────────────────── */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>

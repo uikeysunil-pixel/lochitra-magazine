@@ -4,21 +4,25 @@ import {
   createReportAccessToken,
   createScanRecord,
   getDeepScanAuthorizationRecord,
-  getScanRecord,
   hashReportAccessToken,
   markCheckoutCancelled,
   markPaymentOrderCreated,
   replacePaymentOrder,
   verifyReportAccessToken,
 } from '@/lib/technical-seo/scan-repository'
-import { createPayPalOrder, getPayPalOrder } from '@/lib/paypal/orders'
-import { OrderStatus, type Order } from '@paypal/paypal-server-sdk'
-import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
-import type { DiagnosticProblem } from '@/lib/technical-seo/types'
 import {
-  isInternationalBillingCountry,
-  normalizeBillingCountry,
-} from '@/lib/technical-seo/billing-country'
+  createCashfreeOrder,
+  getCashfreeEnvironment,
+  getCashfreeOrder,
+  type CashfreeOrder,
+} from '@/lib/cashfree/client'
+import {
+  CASHFREE_PAID_PLAN_CONFIG,
+  isCashfreePaidPlan,
+  type CashfreePaidPlan,
+} from '@/lib/technical-seo/cashfree-payment'
+import type { DiagnosticProblem } from '@/lib/technical-seo/types'
+import { INDIA_BILLING_COUNTRY, normalizeBillingCountry } from '@/lib/technical-seo/billing-country'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,58 +40,31 @@ const PROBLEMS = new Set<DiagnosticProblem>([
   'unknown',
 ])
 
-export type SupportedPaidPlan = 'quick' | 'full' | 'deep'
+export const CASHFREE_QUICK_PLAN_CONFIG = CASHFREE_PAID_PLAN_CONFIG.quick
 
-export const PAYPAL_PAID_PLAN_CONFIG: Record<
-  SupportedPaidPlan,
-  {
-    amount: string
-    maxUrls: number
-    currency: 'USD'
-  }
-> = {
-  quick: {
-    amount: '49.00',
-    maxUrls: CRAWL_LIMITS.quick,
-    currency: 'USD',
-  },
-  full: {
-    amount: '99.00',
-    maxUrls: CRAWL_LIMITS.full,
-    currency: 'USD',
-  },
-  deep: {
-    amount: '199.00',
-    maxUrls: CRAWL_LIMITS.deep,
-    currency: 'USD',
-  },
-}
-
-export interface CreateOrderDependencies {
+export interface CashfreeCreateOrderDependencies {
   createScanRecord?: typeof createScanRecord
-  createPayPalOrder?: typeof createPayPalOrder
-  getPayPalOrder?: typeof getPayPalOrder
+  createCashfreeOrder?: typeof createCashfreeOrder
+  getCashfreeOrder?: typeof getCashfreeOrder
   markPaymentOrderCreated?: typeof markPaymentOrderCreated
   replacePaymentOrder?: typeof replacePaymentOrder
   markCheckoutCancelled?: typeof markCheckoutCancelled
-  getScanRecord?: typeof getScanRecord
   getDeepScanAuthorizationRecord?: typeof getDeepScanAuthorizationRecord
   verifyReportAccessToken?: typeof verifyReportAccessToken
 }
 
-export async function handleCreateOrder(request: Request, deps: CreateOrderDependencies = {}) {
+export async function handleCashfreeCreateOrder(
+  request: Request,
+  deps: CashfreeCreateOrderDependencies = {}
+) {
   const createScanRecordFn = deps.createScanRecord ?? createScanRecord
-  const createPayPalOrderFn = deps.createPayPalOrder ?? createPayPalOrder
-  const getPayPalOrderFn = deps.getPayPalOrder ?? getPayPalOrder
+  const createCashfreeOrderFn = deps.createCashfreeOrder ?? createCashfreeOrder
+  const getCashfreeOrderFn = deps.getCashfreeOrder ?? getCashfreeOrder
   const markPaymentOrderCreatedFn = deps.markPaymentOrderCreated ?? markPaymentOrderCreated
   const replacePaymentOrderFn = deps.replacePaymentOrder ?? replacePaymentOrder
   const markCheckoutCancelledFn = deps.markCheckoutCancelled ?? markCheckoutCancelled
-  const getScanRecordFn = deps.getScanRecord ?? getScanRecord
   const getDeepScanAuthRecordFn =
-    deps.getDeepScanAuthorizationRecord ??
-    (deps.getScanRecord
-      ? (deps.getScanRecord as unknown as typeof getDeepScanAuthorizationRecord)
-      : getDeepScanAuthorizationRecord)
+    deps.getDeepScanAuthorizationRecord ?? getDeepScanAuthorizationRecord
   const verifyReportAccessTokenFn = deps.verifyReportAccessToken ?? verifyReportAccessToken
 
   let scanId: string | null = null
@@ -104,19 +81,43 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
 
     const plan = typeof body.plan === 'string' ? body.plan : ''
     planForCancellation = plan
+    const customerPhone = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : ''
+    const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim() : ''
+    const billingCountry = normalizeBillingCountry(body.billingCountry)
+
+    if (billingCountry !== INDIA_BILLING_COUNTRY) {
+      return NextResponse.json(
+        { error: 'Cashfree checkout is available only for billing addresses in India.' },
+        { status: 400 }
+      )
+    }
+
+    if (!isCashfreePaidPlan(plan)) {
+      return NextResponse.json(
+        { error: 'Invalid or unsupported plan for Cashfree checkout.' },
+        { status: 400 }
+      )
+    }
+
+    const normalizedPhone = customerPhone.replace(/[\s().-]/g, '')
+    const indianPhone = normalizedPhone.startsWith('+91')
+      ? normalizedPhone.slice(3)
+      : normalizedPhone
+    if (!/^[6-9]\d{9}$/.test(indianPhone)) {
+      return NextResponse.json(
+        { error: 'A valid 10-digit Indian mobile number is required for Cashfree checkout.' },
+        { status: 400 }
+      )
+    }
+
+    if (customerEmail && !/^\S+@\S+\.\S+$/.test(customerEmail)) {
+      return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 })
+    }
+
+    const planConfig = CASHFREE_PAID_PLAN_CONFIG[plan as CashfreePaidPlan]
+    const origin = new URL(request.url).origin
 
     if (plan === 'deep') {
-      const billingCountry = normalizeBillingCountry(body.billingCountry)
-      if (!isInternationalBillingCountry(billingCountry)) {
-        return NextResponse.json(
-          {
-            error:
-              'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.',
-          },
-          { status: 400 }
-        )
-      }
-
       const scanIdInput = typeof body.scanId === 'string' ? body.scanId.trim() : ''
       const keyInput = typeof body.key === 'string' ? body.key.trim() : ''
 
@@ -165,7 +166,7 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
         return NextResponse.json({ error: 'Scan is already paid.' }, { status: 409 })
       }
 
-      if (scan.payment_provider && scan.payment_provider !== 'paypal') {
+      if (scan.payment_provider && scan.payment_provider !== 'cashfree') {
         return NextResponse.json(
           { error: 'Payment provider conflict: scan is bound to another payment provider.' },
           { status: 409 }
@@ -174,86 +175,81 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
 
       const existingScanId = scan.id as string
       scanId = existingScanId
-      const origin = new URL(request.url).origin
       const statusUrl = `/technical-seo/scan/${existingScanId}/?key=${encodeURIComponent(keyInput)}`
-      const returnUrl = `${origin}${statusUrl}&provider=paypal`
-      const cancelUrl = `${origin}/technical-seo/cancelled/?plan=deep&scanId=${encodeURIComponent(existingScanId)}&key=${encodeURIComponent(keyInput)}`
+      const returnUrl = `${origin}${statusUrl}&provider=cashfree&order_id={order_id}`
+      const notifyUrl = `${origin}/api/technical-seo/cashfree/webhook`
 
       if (scan.payment_reference) {
         const orderA = scan.payment_reference
-        let existingOrder: Order | null = null
+        let existingOrder: CashfreeOrder | null = null
 
         try {
-          existingOrder = (await getPayPalOrderFn(orderA)) as Order
+          existingOrder = await getCashfreeOrderFn(orderA)
         } catch {
           existingOrder = null
         }
 
-        // Case D: Existing order is APPROVED or COMPLETED in PayPal (route into return/reconciliation path)
         if (
           existingOrder &&
-          existingOrder.id === orderA &&
-          (existingOrder.status === OrderStatus.Approved ||
-            existingOrder.status === OrderStatus.Completed)
+          existingOrder.order_id === orderA &&
+          existingOrder.order_status === 'PAID' &&
+          Number(existingOrder.order_amount) === planConfig.numericAmount &&
+          existingOrder.order_currency === 'INR'
         ) {
-          const captureReturnUrl = `${returnUrl}&token=${encodeURIComponent(orderA)}`
           return NextResponse.json({
             scanId: existingScanId,
             status: 'awaiting_payment',
             statusUrl,
             accessKey: keyInput,
-            checkoutUrl: captureReturnUrl,
-            provider: 'paypal',
+            paymentSessionId: existingOrder.payment_session_id,
             orderId: orderA,
+            cfOrderId: existingOrder.cf_order_id ?? null,
+            provider: 'cashfree',
+            checkoutMode: getCashfreeEnvironment(),
             plan: 'deep',
             alreadyApproved: true,
           })
         }
 
-        // Case B: Existing order is CREATED, valid, and safely reusable
-        const purchaseUnit = existingOrder?.purchaseUnits?.[0]
-        const approvalLink =
-          existingOrder?.links?.find((link) => link.rel === 'payer-action') ??
-          existingOrder?.links?.find((link) => link.rel === 'approve')
-
-        const isReusable =
+        if (
           existingOrder &&
-          existingOrder.id === orderA &&
-          existingOrder.status === OrderStatus.Created &&
-          purchaseUnit &&
-          purchaseUnit.customId?.trim() === existingScanId &&
-          purchaseUnit.amount?.currencyCode === PAYPAL_PAID_PLAN_CONFIG.deep.currency &&
-          purchaseUnit.amount?.value === PAYPAL_PAID_PLAN_CONFIG.deep.amount &&
-          typeof approvalLink?.href === 'string' &&
-          approvalLink.href.trim().length > 0
-
-        if (isReusable) {
+          existingOrder.order_id === orderA &&
+          existingOrder.order_status === 'ACTIVE' &&
+          existingOrder.payment_session_id &&
+          Number(existingOrder.order_amount) === planConfig.numericAmount &&
+          existingOrder.order_currency === 'INR'
+        ) {
           return NextResponse.json({
             scanId: existingScanId,
             status: 'awaiting_payment',
             statusUrl,
             accessKey: keyInput,
-            checkoutUrl: approvalLink!.href,
-            provider: 'paypal',
+            paymentSessionId: existingOrder.payment_session_id,
             orderId: orderA,
+            cfOrderId: existingOrder.cf_order_id ?? null,
+            provider: 'cashfree',
+            checkoutMode: getCashfreeEnvironment(),
             plan: 'deep',
           })
         }
 
-        // Case C: Existing order is VOIDED, incompatible, unretrievable, or missing approval link.
-        // Create replacement order and atomically swap reference.
-        const { orderId: newOrderId, approvalUrl: newApprovalUrl } = await createPayPalOrderFn({
-          amount: PAYPAL_PAID_PLAN_CONFIG.deep.amount,
+        const newOrderId = `locitra_${existingScanId.replace(/-/g, '')}_${Date.now().toString(36)}`
+        const newCashfreeOrder = await createCashfreeOrderFn({
+          orderId: newOrderId,
+          amount: planConfig.amount,
           scanId: existingScanId,
           returnUrl,
-          cancelUrl,
+          notifyUrl,
+          customerPhone: indianPhone,
+          customerEmail: customerEmail || undefined,
+          plan: 'deep',
         })
 
         const updatedScan = await replacePaymentOrderFn({
           scanId: existingScanId,
           previousReference: orderA,
-          newReference: newOrderId,
-          paymentCurrency: PAYPAL_PAID_PLAN_CONFIG.deep.currency,
+          newReference: newCashfreeOrder.orderId,
+          paymentCurrency: planConfig.currency,
         })
 
         if (!updatedScan) {
@@ -270,34 +266,37 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
           status: 'awaiting_payment',
           statusUrl,
           accessKey: keyInput,
-          checkoutUrl: newApprovalUrl,
-          provider: 'paypal',
-          orderId: newOrderId,
+          paymentSessionId: newCashfreeOrder.paymentSessionId,
+          orderId: newCashfreeOrder.orderId,
+          cfOrderId: newCashfreeOrder.cfOrderId,
+          provider: 'cashfree',
+          checkoutMode: getCashfreeEnvironment(),
           plan: 'deep',
         })
       }
 
-      // Case A: First checkout attempt
-      const { orderId, approvalUrl } = await createPayPalOrderFn({
-        amount: PAYPAL_PAID_PLAN_CONFIG.deep.amount,
+      const orderId = `locitra_${existingScanId.replace(/-/g, '')}`
+      const cashfreeOrder = await createCashfreeOrderFn({
+        orderId,
+        amount: planConfig.amount,
         scanId: existingScanId,
         returnUrl,
-        cancelUrl,
+        notifyUrl,
+        customerPhone: indianPhone,
+        customerEmail: customerEmail || undefined,
+        plan: 'deep',
       })
 
-      const updatedScan = await markPaymentOrderCreatedFn({
+      const boundScan = await markPaymentOrderCreatedFn({
         scanId: existingScanId,
-        paymentProvider: 'paypal',
-        paymentReference: orderId,
-        paymentCurrency: PAYPAL_PAID_PLAN_CONFIG.deep.currency,
+        paymentProvider: 'cashfree',
+        paymentReference: cashfreeOrder.orderId,
+        paymentCurrency: planConfig.currency,
       })
 
-      if (!updatedScan) {
+      if (!boundScan) {
         return NextResponse.json(
-          {
-            error:
-              'Failed to bind payment order to scan. The scan may already have an active payment order or is no longer awaiting payment.',
-          },
+          { error: 'Failed to bind Cashfree payment order to the scan.' },
           { status: 409 }
         )
       }
@@ -307,98 +306,92 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
         status: 'awaiting_payment',
         statusUrl,
         accessKey: keyInput,
-        checkoutUrl: approvalUrl,
-        provider: 'paypal',
-        orderId,
+        paymentSessionId: cashfreeOrder.paymentSessionId,
+        orderId: cashfreeOrder.orderId,
+        cfOrderId: cashfreeOrder.cfOrderId,
+        provider: 'cashfree',
+        checkoutMode: getCashfreeEnvironment(),
         plan: 'deep',
       })
     }
 
     const url = typeof body.url === 'string' ? body.url.trim() : ''
     const problem = typeof body.problem === 'string' ? body.problem : 'unknown'
-    const billingCountry = normalizeBillingCountry(body.billingCountry)
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })
-    }
-
-    if (!isInternationalBillingCountry(billingCountry)) {
-      return NextResponse.json(
-        {
-          error:
-            'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.',
-        },
-        { status: 400 }
-      )
     }
 
     if (!PROBLEMS.has(problem as DiagnosticProblem)) {
       return NextResponse.json({ error: 'Invalid diagnostic problem.' }, { status: 400 })
     }
 
-    if (plan !== 'quick' && plan !== 'full') {
-      return NextResponse.json(
-        {
-          error:
-            'Only the Targeted Troubleshoot ($49) and Full Troubleshoot ($99) plans are available for paid checkout.',
-        },
-        { status: 400 }
-      )
-    }
-
-    const planConfig = PAYPAL_PAID_PLAN_CONFIG[plan as SupportedPaidPlan]
-
     const accessKey = createReportAccessToken()
-    const scanTokenHash = hashReportAccessToken(accessKey)
-    const newScanId = randomUUID()
-    scanId = newScanId
-    const origin = new URL(request.url).origin
-    const statusUrl = `/technical-seo/scan/${newScanId}/?key=${encodeURIComponent(accessKey)}`
-    const returnUrl = `${origin}${statusUrl}&provider=paypal`
-    const cancelUrl = `${origin}/technical-seo/cancelled/?plan=${encodeURIComponent(plan)}`
+    const reportTokenHash = hashReportAccessToken(accessKey)
+    scanId = randomUUID()
+
+    const statusUrl = `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessKey)}`
+    const returnUrl = `${origin}${statusUrl}&provider=cashfree&order_id={order_id}`
+    const notifyUrl = `${origin}/api/technical-seo/cashfree/webhook`
 
     await createScanRecordFn({
-      scanId: newScanId,
+      scanId,
       websiteUrl: url,
       problem: problem as DiagnosticProblem,
-      plan: plan as SupportedPaidPlan,
+      plan: plan as CashfreePaidPlan,
       maxUrls: planConfig.maxUrls,
       accessMode: 'private',
-      reportTokenHash: scanTokenHash,
+      reportTokenHash,
       paymentStatus: 'pending',
       initialStatus: 'awaiting_payment',
       paymentCurrency: planConfig.currency,
     })
 
-    const { orderId, approvalUrl } = await createPayPalOrderFn({
+    const orderId = `locitra_${scanId.replace(/-/g, '')}`
+
+    const cashfreeOrder = await createCashfreeOrderFn({
+      orderId,
       amount: planConfig.amount,
-      scanId: newScanId,
+      scanId,
       returnUrl,
-      cancelUrl,
+      notifyUrl,
+      customerPhone: indianPhone,
+      customerEmail: customerEmail || undefined,
+      plan,
     })
 
-    await markPaymentOrderCreatedFn({
-      scanId: newScanId,
-      paymentProvider: 'paypal',
-      paymentReference: orderId,
+    const boundScan = await markPaymentOrderCreatedFn({
+      scanId,
+      paymentProvider: 'cashfree',
+      paymentReference: cashfreeOrder.orderId,
       paymentCurrency: planConfig.currency,
     })
 
+    if (!boundScan) {
+      return NextResponse.json(
+        { error: 'Failed to bind Cashfree payment order to the scan.' },
+        { status: 409 }
+      )
+    }
+
     return NextResponse.json({
-      scanId: newScanId,
+      scanId,
       status: 'awaiting_payment',
       statusUrl,
       accessKey,
-      checkoutUrl: approvalUrl,
-      provider: 'paypal',
-      orderId,
+      paymentSessionId: cashfreeOrder.paymentSessionId,
+      orderId: cashfreeOrder.orderId,
+      cfOrderId: cashfreeOrder.cfOrderId,
+      provider: 'cashfree',
+      checkoutMode: getCashfreeEnvironment(),
       plan,
     })
   } catch (error) {
-    const rawMessage = error instanceof Error ? error.message : 'Unable to start PayPal Checkout.'
-    const message = rawMessage.includes('PAYPAL_CLIENT_SECRET')
-      ? 'PayPal configuration error.'
-      : rawMessage
+    const rawMessage = error instanceof Error ? error.message : 'Unable to start Cashfree Checkout.'
+    const message =
+      rawMessage.includes('CASHFREE_CLIENT_SECRET') || rawMessage.includes('CASHFREE_CLIENT_ID')
+        ? 'Cashfree configuration error.'
+        : rawMessage
 
     if (scanId && planForCancellation !== 'deep') {
       try {
@@ -413,5 +406,5 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
 }
 
 export async function POST(request: Request) {
-  return handleCreateOrder(request)
+  return handleCashfreeCreateOrder(request)
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
+import { loadCashfreeSdk } from '@/lib/cashfree/sdk-loader'
 
 type Status =
   | 'awaiting_gsc'
@@ -79,8 +80,21 @@ export default function TechnicalSEOScanStatusPage({
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState('')
   const [accessKey, setAccessKey] = useState<string | null>(null)
+  const [billingCountry, setBillingCountry] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
   const [pollingCeilingReached, setPollingCeilingReached] = useState(false)
   const captureAttemptedRef = useRef(false)
+  const cashfreeConfirmAttemptedRef = useRef(false)
+  const [isConfirmingCashfree, setIsConfirmingCashfree] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      return (
+        searchParams.get('provider') === 'cashfree' &&
+        Boolean((searchParams.get('order_id') || searchParams.get('orderId'))?.trim())
+      )
+    }
+    return false
+  })
 
   // Phase 10C: Google Search Console property selection state
   const [properties, setProperties] = useState<PropertyItem[]>([])
@@ -89,9 +103,20 @@ export default function TechnicalSEOScanStatusPage({
   const [selectedProperty, setSelectedProperty] = useState<string>('')
   const [submittingProperty, setSubmittingProperty] = useState(false)
 
-  // Phase Deep-01: PayPal checkout state for Deep Investigation
+  // Phase Deep-01: PayPal & Cashfree checkout state for Deep Investigation
   const [initiatingPayment, setInitiatingPayment] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      const country =
+        searchParams.get('billing_country') ||
+        window.localStorage.getItem('locitra-technical-seo-billing-country') ||
+        ''
+      setBillingCountry(country.toUpperCase())
+    }
+  }, [])
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
@@ -156,6 +181,63 @@ export default function TechnicalSEOScanStatusPage({
   }, [])
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const provider = searchParams.get('provider')
+    const key = searchParams.get('key')?.trim()
+    const rawOrderId = searchParams.get('order_id') || searchParams.get('orderId')
+    const orderId = rawOrderId?.trim()
+
+    if (provider !== 'cashfree' || !key || !orderId) {
+      return
+    }
+
+    if (cashfreeConfirmAttemptedRef.current) return
+    cashfreeConfirmAttemptedRef.current = true
+
+    async function confirmCashfreePayment() {
+      try {
+        const pathMatch = window.location.pathname.match(/\/scan\/([^?#/]+)/)
+        const targetScanId = pathMatch ? pathMatch[1] : (await params).scanId
+
+        if (!targetScanId) return
+
+        const response = await fetch('/api/technical-seo/cashfree/confirm-order', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            scanId: targetScanId,
+            key,
+            orderId,
+          }),
+        })
+
+        const payload = (await response.json()) as { error?: string }
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Unable to confirm Cashfree payment.')
+        }
+
+        const cleanUrl = new URL(window.location.href)
+        cleanUrl.searchParams.delete('provider')
+        cleanUrl.searchParams.delete('order_id')
+        cleanUrl.searchParams.delete('orderId')
+
+        window.history.replaceState({}, '', cleanUrl.toString())
+      } catch (confirmError) {
+        setError(
+          confirmError instanceof Error
+            ? confirmError.message
+            : 'Unable to confirm Cashfree payment.'
+        )
+      } finally {
+        setIsConfirmingCashfree(false)
+      }
+    }
+
+    confirmCashfreePayment()
+  }, [params])
+
+  useEffect(() => {
     params.then(({ scanId: id }) => {
       setScanId(id)
       const key = new URLSearchParams(window.location.search).get('key')
@@ -165,7 +247,7 @@ export default function TechnicalSEOScanStatusPage({
   }, [params])
 
   useEffect(() => {
-    if (!scanId) return
+    if (!scanId || isConfirmingCashfree) return
 
     let cancelled = false
     let timerId: number | undefined
@@ -215,7 +297,7 @@ export default function TechnicalSEOScanStatusPage({
         window.clearTimeout(timerId)
       }
     }
-  }, [scanId, accessKey])
+  }, [scanId, accessKey, isConfirmingCashfree])
 
   useEffect(() => {
     if (
@@ -311,6 +393,10 @@ export default function TechnicalSEOScanStatusPage({
           scanId,
           key: accessKey,
           plan: 'deep',
+          billingCountry:
+            new URLSearchParams(window.location.search).get('billing_country') ||
+            window.localStorage.getItem('locitra-technical-seo-billing-country') ||
+            '',
         }),
       })
 
@@ -326,6 +412,63 @@ export default function TechnicalSEOScanStatusPage({
       window.location.assign(payload.checkoutUrl)
     } catch (err) {
       setPaymentError(err instanceof Error ? err.message : 'Unable to start PayPal checkout.')
+      setInitiatingPayment(false)
+    }
+  }
+
+  async function handleProceedToCashfree() {
+    if (!scanId || !accessKey || initiatingPayment) return
+
+    const trimmedPhone = customerPhone.replace(/[\s().-]/g, '')
+    const indianPhone = trimmedPhone.startsWith('+91') ? trimmedPhone.slice(3) : trimmedPhone
+    if (!/^[6-9]\d{9}$/.test(indianPhone)) {
+      setPaymentError('Enter a valid 10-digit Indian mobile number for Cashfree checkout.')
+      return
+    }
+
+    setInitiatingPayment(true)
+    setPaymentError('')
+
+    try {
+      const response = await fetch('/api/technical-seo/cashfree/create-order', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          scanId,
+          key: accessKey,
+          plan: 'deep',
+          customerPhone: indianPhone,
+          billingCountry: 'IN',
+        }),
+      })
+
+      const payload = (await response.json()) as {
+        paymentSessionId?: string
+        checkoutMode?: 'sandbox' | 'production'
+        error?: string
+      }
+
+      if (!response.ok || !payload.paymentSessionId) {
+        throw new Error(payload.error || 'Unable to start Cashfree checkout.')
+      }
+
+      await loadCashfreeSdk()
+      const mode = payload.checkoutMode || 'sandbox'
+      const checkout = window.Cashfree?.({ mode })
+      if (!checkout) {
+        throw new Error('Cashfree Checkout SDK did not initialize.')
+      }
+
+      const result = await checkout.checkout({
+        paymentSessionId: payload.paymentSessionId,
+        redirectTarget: '_self',
+      })
+
+      if (result?.error?.message) {
+        throw new Error(result.error.message)
+      }
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Unable to start Cashfree checkout.')
       setInitiatingPayment(false)
     }
   }
@@ -539,14 +682,52 @@ export default function TechnicalSEOScanStatusPage({
                             Search Console property confirmed. Complete checkout to begin your Deep
                             Investigation.
                           </p>
-                          <button
-                            type="button"
-                            onClick={handleProceedToPayPal}
-                            disabled={initiatingPayment}
-                            className="inline-flex items-center rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
-                          >
-                            {initiatingPayment ? 'Opening PayPal…' : 'Proceed to PayPal — $199'}
-                          </button>
+                          {billingCountry === 'IN' ? (
+                            <div className="space-y-4">
+                              <div className="mx-auto max-w-xs text-left">
+                                <label
+                                  htmlFor="deep-customer-phone"
+                                  className="mb-1 block text-xs font-semibold text-gray-900 dark:text-gray-100"
+                                >
+                                  Mobile number <span aria-hidden="true">*</span>
+                                </label>
+                                <input
+                                  id="deep-customer-phone"
+                                  type="tel"
+                                  inputMode="numeric"
+                                  autoComplete="tel"
+                                  value={customerPhone}
+                                  onChange={(e) => setCustomerPhone(e.target.value)}
+                                  placeholder="9876543210"
+                                  className="focus:border-primary-500 focus:ring-primary-200 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                                  required
+                                />
+                                <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                  A valid 10-digit Indian mobile number is required for Cashfree
+                                  checkout.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleProceedToCashfree}
+                                disabled={initiatingPayment}
+                                className="inline-flex items-center rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                              >
+                                {initiatingPayment
+                                  ? 'Opening Cashfree…'
+                                  : 'Proceed to Cashfree Checkout — $199'}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleProceedToPayPal}
+                              disabled={initiatingPayment}
+                              className="inline-flex items-center rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                            >
+                              {initiatingPayment ? 'Opening PayPal…' : 'Proceed to PayPal — $199'}
+                            </button>
+                          )}
                           {paymentError && (
                             <p className="mt-2 text-xs text-red-600 dark:text-red-400">
                               {paymentError}

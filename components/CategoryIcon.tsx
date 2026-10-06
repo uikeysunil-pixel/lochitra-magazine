@@ -1,7 +1,7 @@
 import Image from 'next/image'
 
 interface CategoryIconProps {
-  /** Category slug used to construct asset path: /static/images/icons/${slug}.webp */
+  /** Category slug used to construct asset path: /static/images/icons/${slug}.svg */
   slug: string
   /** Standard icon render size in pixels (e.g. 18, 20, 48, 56) */
   size: number
@@ -17,7 +17,7 @@ interface CategoryIconProps {
 
 /**
  * Reusable CategoryIcon component — single source of truth for category icon rendering on Locitra.
- * Maps category slug dynamically to /static/images/icons/${slug}.webp
+ * Maps category slug dynamically to /static/images/icons/${slug}.svg
  */
 export default function CategoryIcon({
   slug,
@@ -27,7 +27,7 @@ export default function CategoryIcon({
   alt = '',
   priority = false,
 }: CategoryIconProps) {
-  const src = `/static/images/icons/${slug}.webp`
+  const src = `/static/images/icons/${slug}.svg`
 
   return (
     <Image
@@ -37,6 +37,7 @@ export default function CategoryIcon({
       width={size}
       height={size}
       priority={priority}
+      unoptimized
       className={`object-contain ${className}`}
       style={{ width: `${size}px`, height: `${size}px` }}
     />

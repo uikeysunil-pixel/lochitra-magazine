@@ -22,8 +22,6 @@ export async function getScanRecord(scanId: string) {
       access_mode,
       report_token_hash,
       payment_status,
-      stripe_checkout_session_id,
-      stripe_payment_intent_id,
       payment_provider,
       payment_reference,
       payment_transaction_id,
@@ -125,8 +123,6 @@ export async function createScanRecord(input: {
   accessMode?: 'public' | 'private'
   reportTokenHash?: string | null
   paymentStatus?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
-  stripeCheckoutSessionId?: string | null
-  stripePaymentIntentId?: string | null
   paymentProvider?: string | null
   paymentReference?: string | null
   paymentTransactionId?: string | null
@@ -145,8 +141,6 @@ export async function createScanRecord(input: {
       access_mode,
       report_token_hash,
       payment_status,
-      stripe_checkout_session_id,
-      stripe_payment_intent_id,
       payment_provider,
       payment_reference,
       payment_transaction_id,
@@ -165,8 +159,6 @@ export async function createScanRecord(input: {
       ${input.accessMode ?? 'public'},
       ${input.reportTokenHash ?? null},
       ${input.paymentStatus ?? 'unpaid'},
-      ${input.stripeCheckoutSessionId ?? null},
-      ${input.stripePaymentIntentId ?? null},
       ${input.paymentProvider ?? null},
       ${input.paymentReference ?? null},
       ${input.paymentTransactionId ?? null},
@@ -183,35 +175,6 @@ export async function createScanRecord(input: {
   return rows[0]?.id as string
 }
 
-export async function markCheckoutSessionCreated(scanId: string, checkoutSessionId: string) {
-  await sql`
-    update seo_scans
-    set
-      stripe_checkout_session_id = ${checkoutSessionId},
-      payment_status = 'pending',
-      updated_at = now()
-    where id = ${scanId}::uuid
-  `
-}
-
-export async function markCheckoutFailed(
-  scanId: string,
-  checkoutSessionId: string,
-  message: string
-) {
-  await sql`
-    update seo_scans
-    set
-      payment_status = 'failed',
-      status = 'cancelled',
-      error_message = ${message},
-      updated_at = now()
-    where id = ${scanId}::uuid
-      and stripe_checkout_session_id = ${checkoutSessionId}
-      and payment_status <> 'paid'
-  `
-}
-
 export async function markCheckoutCancelled(scanId: string, message: string) {
   await sql`
     update seo_scans
@@ -225,46 +188,9 @@ export async function markCheckoutCancelled(scanId: string, message: string) {
   `
 }
 
-export async function markCheckoutPaid(input: {
-  scanId: string
-  checkoutSessionId: string
-  paymentIntentId?: string | null
-  customerEmail?: string | null
-}) {
-  const rows = await sql`
-    update seo_scans
-    set
-      payment_status = 'paid',
-      stripe_checkout_session_id = ${input.checkoutSessionId},
-      stripe_payment_intent_id = coalesce(
-        ${input.paymentIntentId ?? null},
-        stripe_payment_intent_id
-      ),
-      customer_email = coalesce(${input.customerEmail ?? null}, customer_email),
-      paid_at = coalesce(paid_at, now()),
-      status = case
-        when status = 'awaiting_payment' then 'queued'
-        else status
-      end,
-      updated_at = now()
-    where id = ${input.scanId}::uuid
-      and stripe_checkout_session_id = ${input.checkoutSessionId}
-    returning
-      id,
-      website_url,
-      problem,
-      plan,
-      status,
-      payment_status,
-      background_event_sent_at
-  `
-
-  return rows[0] ?? null
-}
-
 export async function markPaymentOrderCreated(input: {
   scanId: string
-  paymentProvider: 'paypal' | 'razorpay'
+  paymentProvider: 'paypal' | 'cashfree'
   paymentReference: string
   paymentCurrency: string
 }) {
@@ -333,7 +259,7 @@ export async function replacePaymentOrder(input: {
 
 export async function markPaymentPaid(input: {
   scanId: string
-  paymentProvider: 'paypal' | 'razorpay'
+  paymentProvider: 'paypal' | 'cashfree'
   paymentReference: string
   paymentTransactionId?: string | null
   customerEmail?: string | null
@@ -374,7 +300,7 @@ export async function markPaymentPaid(input: {
 
 export async function markPaymentFailed(
   scanId: string,
-  paymentProvider: 'paypal' | 'razorpay',
+  paymentProvider: 'paypal',
   paymentReference: string,
   message: string
 ) {

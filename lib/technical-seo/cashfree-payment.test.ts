@@ -44,26 +44,26 @@ function sign(body: string, timestamp: string) {
 
 describe('Cashfree surgical integration', () => {
   it('locks the India plans to fixed canonical INR pricing and crawl limits', () => {
-    assert.strictEqual(CASHFREE_QUICK_PLAN_CONFIG.amount, '4999.00')
+    assert.strictEqual(CASHFREE_QUICK_PLAN_CONFIG.amount, '3999.00')
     assert.strictEqual(CASHFREE_QUICK_PLAN_CONFIG.currency, 'INR')
     assert.strictEqual(CASHFREE_QUICK_PLAN_CONFIG.maxUrls, 50)
 
-    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.quick.amount, '4999.00')
-    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.quick.numericAmount, 4999)
+    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.quick.amount, '3999.00')
+    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.quick.numericAmount, 3999)
     assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.quick.maxUrls, 50)
     assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.quick.currency, 'INR')
 
-    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.full.amount, '9999.00')
-    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.full.numericAmount, 9999)
+    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.full.amount, '7999.00')
+    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.full.numericAmount, 7999)
     assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.full.maxUrls, 250)
     assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.full.currency, 'INR')
 
-    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.deep.amount, '19999.00')
-    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.deep.numericAmount, 19999)
+    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.deep.amount, '15999.00')
+    assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.deep.numericAmount, 15999)
     assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.deep.maxUrls, 1000)
     assert.strictEqual(CASHFREE_PAID_PLAN_CONFIG.deep.currency, 'INR')
 
-    assert.strictEqual(EXPECTED_AMOUNT, 4999)
+    assert.strictEqual(EXPECTED_AMOUNT, 3999)
     assert.strictEqual(EXPECTED_CURRENCY, 'INR')
 
     assert.strictEqual(isCashfreePaidPlan('quick'), true)
@@ -99,7 +99,7 @@ describe('Cashfree surgical integration', () => {
     assert.strictEqual(response.status, 400)
   })
 
-  it('creates and binds the Cashfree order for Quick plan (₹4,999, maxUrls 50)', async () => {
+  it('creates and binds the Cashfree order for Quick plan (₹3,999, maxUrls 50)', async () => {
     let createdScan: any = null
     let markedOrder: any = null
     let capturedCashfreeParams: any = null
@@ -138,14 +138,14 @@ describe('Cashfree surgical integration', () => {
     assert.strictEqual(createdScan.plan, 'quick')
     assert.strictEqual(createdScan.maxUrls, 50)
     assert.strictEqual(createdScan.paymentCurrency, 'INR')
-    assert.strictEqual(capturedCashfreeParams.amount, '4999.00')
+    assert.strictEqual(capturedCashfreeParams.amount, '3999.00')
     assert.strictEqual(markedOrder.paymentProvider, 'cashfree')
     assert.match(capturedCashfreeParams.returnUrl, /provider=cashfree/)
     assert.match(capturedCashfreeParams.returnUrl, /order_id=\{order_id\}/)
     assert.match(capturedCashfreeParams.returnUrl, /key=/)
   })
 
-  it('creates and binds the Cashfree order for Full plan (₹9,999, maxUrls 250)', async () => {
+  it('creates and binds the Cashfree order for Full plan (₹7,999, maxUrls 250)', async () => {
     let createdScan: any = null
     let markedOrder: any = null
     let capturedCashfreeParams: any = null
@@ -184,7 +184,7 @@ describe('Cashfree surgical integration', () => {
     assert.strictEqual(createdScan.plan, 'full')
     assert.strictEqual(createdScan.maxUrls, 250)
     assert.strictEqual(createdScan.paymentCurrency, 'INR')
-    assert.strictEqual(capturedCashfreeParams.amount, '9999.00')
+    assert.strictEqual(capturedCashfreeParams.amount, '7999.00')
     assert.strictEqual(markedOrder.paymentProvider, 'cashfree')
   })
 
@@ -235,7 +235,7 @@ describe('Cashfree surgical integration', () => {
     assert.strictEqual(data.scanId, existingScanId)
     assert.strictEqual(data.plan, 'deep')
     assert.strictEqual(data.paymentSessionId, 'session-deep')
-    assert.strictEqual(capturedCashfreeParams.amount, '19999.00')
+    assert.strictEqual(capturedCashfreeParams.amount, '15999.00')
     assert.strictEqual(capturedCashfreeParams.scanId, existingScanId)
     assert.strictEqual(markedOrder.paymentProvider, 'cashfree')
     assert.strictEqual(markedOrder.paymentCurrency, 'INR')
@@ -315,14 +315,14 @@ describe('Cashfree surgical integration', () => {
       data: {
         order: {
           order_id: orderId,
-          order_amount: 4999,
+          order_amount: 3999,
           order_currency: 'INR',
           order_tags: { scan_id: scanId },
         },
         payment: {
           cf_payment_id: '987654321',
           payment_status: 'SUCCESS',
-          payment_amount: 4999,
+          payment_amount: 3999,
           payment_currency: 'INR',
         },
         customer_details: { customer_email: 'customer@example.com' },
@@ -343,7 +343,7 @@ describe('Cashfree surgical integration', () => {
         getCashfreeOrder: async () => ({
           order_id: orderId,
           order_status: 'PAID',
-          order_amount: 4999,
+          order_amount: 3999,
           order_currency: 'INR',
           order_tags: { scan_id: scanId },
         }),
@@ -352,7 +352,7 @@ describe('Cashfree surgical integration', () => {
             cf_payment_id: '987654321',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 4999,
+            payment_amount: 3999,
             payment_currency: 'INR',
           },
         ],
@@ -471,7 +471,7 @@ describe('Cashfree surgical integration', () => {
         getCashfreeOrder: async () => ({
           order_id: orderId,
           order_status: 'PAID',
-          order_amount: 4999,
+          order_amount: 3999,
           order_currency: 'INR',
           order_tags: { scan_id: scanId },
           customer_details: { customer_email: 'return-customer@example.com' },
@@ -483,7 +483,7 @@ describe('Cashfree surgical integration', () => {
               cf_payment_id: 'cf_pay_999',
               order_id: orderId,
               payment_status: 'SUCCESS',
-              payment_amount: 4999,
+              payment_amount: 3999,
               payment_currency: 'INR',
             },
           ],
@@ -516,7 +516,7 @@ describe('Cashfree surgical integration', () => {
     }
 
     /* ================= Quick plan coverage ================= */
-    it('Quick: ₹4,999 + INR + quick -> accepted', async () => {
+    it('Quick: ₹3,999 + INR + quick -> accepted', async () => {
       const { deps, getPaidInput } = defaultMocks()
       const response = await handleCashfreeConfirmOrder(
         jsonRequest('http://localhost:3000/api/technical-seo/cashfree/confirm-order', {
@@ -535,15 +535,15 @@ describe('Cashfree surgical integration', () => {
       assert.strictEqual(getPaidInput().customerEmail, 'return-customer@example.com')
     })
 
-    it('Quick: ₹9,999 + INR + quick -> rejected', async () => {
+    it('Quick: ₹7,999 + INR + quick -> rejected', async () => {
       const { deps } = defaultMocks({
-        orderOverrides: { order_amount: 9999 },
+        orderOverrides: { order_amount: 7999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_999',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 9999,
+            payment_amount: 7999,
             payment_currency: 'INR',
           },
         ],
@@ -559,15 +559,15 @@ describe('Cashfree surgical integration', () => {
       assert.strictEqual(response.status, 409)
     })
 
-    it('Quick: ₹19,999 + INR + quick -> rejected', async () => {
+    it('Quick: ₹15,999 + INR + quick -> rejected', async () => {
       const { deps } = defaultMocks({
-        orderOverrides: { order_amount: 19999 },
+        orderOverrides: { order_amount: 15999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_999',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 19999,
+            payment_amount: 15999,
             payment_currency: 'INR',
           },
         ],
@@ -584,16 +584,16 @@ describe('Cashfree surgical integration', () => {
     })
 
     /* ================= Full plan coverage ================= */
-    it('Full: ₹9,999 + INR + full -> accepted', async () => {
+    it('Full: ₹7,999 + INR + full -> accepted', async () => {
       const { deps, getPaidInput } = defaultMocks({
         scanOverrides: { plan: 'full' },
-        orderOverrides: { order_amount: 9999 },
+        orderOverrides: { order_amount: 7999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_full_1',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 9999,
+            payment_amount: 7999,
             payment_currency: 'INR',
           },
         ],
@@ -613,16 +613,16 @@ describe('Cashfree surgical integration', () => {
       assert.strictEqual(getPaidInput().paymentTransactionId, 'cf_pay_full_1')
     })
 
-    it('Full: ₹4,999 + INR + full -> rejected', async () => {
+    it('Full: ₹3,999 + INR + full -> rejected', async () => {
       const { deps } = defaultMocks({
         scanOverrides: { plan: 'full' },
-        orderOverrides: { order_amount: 4999 },
+        orderOverrides: { order_amount: 3999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_full_wrong',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 4999,
+            payment_amount: 3999,
             payment_currency: 'INR',
           },
         ],
@@ -638,16 +638,16 @@ describe('Cashfree surgical integration', () => {
       assert.strictEqual(response.status, 409)
     })
 
-    it('Full: ₹19,999 + INR + full -> rejected', async () => {
+    it('Full: ₹15,999 + INR + full -> rejected', async () => {
       const { deps } = defaultMocks({
         scanOverrides: { plan: 'full' },
-        orderOverrides: { order_amount: 19999 },
+        orderOverrides: { order_amount: 15999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_full_wrong2',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 19999,
+            payment_amount: 15999,
             payment_currency: 'INR',
           },
         ],
@@ -664,16 +664,16 @@ describe('Cashfree surgical integration', () => {
     })
 
     /* ================= Deep plan coverage ================= */
-    it('Deep: ₹19,999 + INR + deep -> accepted', async () => {
+    it('Deep: ₹15,999 + INR + deep -> accepted', async () => {
       const { deps, getPaidInput } = defaultMocks({
         scanOverrides: { plan: 'deep' },
-        orderOverrides: { order_amount: 19999 },
+        orderOverrides: { order_amount: 15999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_deep_1',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 19999,
+            payment_amount: 15999,
             payment_currency: 'INR',
           },
         ],
@@ -693,16 +693,16 @@ describe('Cashfree surgical integration', () => {
       assert.strictEqual(getPaidInput().paymentTransactionId, 'cf_pay_deep_1')
     })
 
-    it('Deep: ₹4,999 + INR + deep -> rejected', async () => {
+    it('Deep: ₹3,999 + INR + deep -> rejected', async () => {
       const { deps } = defaultMocks({
         scanOverrides: { plan: 'deep' },
-        orderOverrides: { order_amount: 4999 },
+        orderOverrides: { order_amount: 3999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_deep_wrong1',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 4999,
+            payment_amount: 3999,
             payment_currency: 'INR',
           },
         ],
@@ -718,16 +718,16 @@ describe('Cashfree surgical integration', () => {
       assert.strictEqual(response.status, 409)
     })
 
-    it('Deep: ₹9,999 + INR + deep -> rejected', async () => {
+    it('Deep: ₹7,999 + INR + deep -> rejected', async () => {
       const { deps } = defaultMocks({
         scanOverrides: { plan: 'deep' },
-        orderOverrides: { order_amount: 9999 },
+        orderOverrides: { order_amount: 7999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_deep_wrong2',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 9999,
+            payment_amount: 7999,
             payment_currency: 'INR',
           },
         ],
@@ -752,7 +752,7 @@ describe('Cashfree surgical integration', () => {
             cf_payment_id: 'cf_pay_usd',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 4999,
+            payment_amount: 3999,
             payment_currency: 'USD',
           },
         ],
@@ -795,7 +795,7 @@ describe('Cashfree surgical integration', () => {
             cf_payment_id: 'cf_pay_failed',
             order_id: orderId,
             payment_status: 'FAILED',
-            payment_amount: 4999,
+            payment_amount: 3999,
             payment_currency: 'INR',
           },
         ],
@@ -886,13 +886,13 @@ describe('Cashfree surgical integration', () => {
     it('Dispatches scan.requested with correct plan data for paid scan', async () => {
       const { deps, getEventDispatched, isBackgroundEventMarked } = defaultMocks({
         scanOverrides: { plan: 'full' },
-        orderOverrides: { order_amount: 9999 },
+        orderOverrides: { order_amount: 7999 },
         paymentsOverrides: [
           {
             cf_payment_id: 'cf_pay_full_disp',
             order_id: orderId,
             payment_status: 'SUCCESS',
-            payment_amount: 9999,
+            payment_amount: 7999,
             payment_currency: 'INR',
           },
         ],

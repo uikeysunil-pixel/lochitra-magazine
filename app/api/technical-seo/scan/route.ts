@@ -86,7 +86,7 @@ export async function handleCreateScan(request: Request, deps: ScanRouteDependen
       return NextResponse.json(
         {
           error:
-            'Targeted ($49) and Full ($99) scans must be initiated through the secure checkout flow.',
+            'Targeted ($39) and Full ($79) scans must be initiated through the secure checkout flow.',
         },
         { status: 400 }
       )

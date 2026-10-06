@@ -379,6 +379,10 @@ export default function TechnicalSEOScanStatusPage({
           scanId,
           key: accessKey,
           plan: 'deep',
+          billingCountry:
+            new URLSearchParams(window.location.search).get('billing_country') ||
+            window.localStorage.getItem('locitra-technical-seo-billing-country') ||
+            '',
         }),
       })
 

@@ -281,7 +281,11 @@ export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detect
   const selectedProblem = useMemo(() => PROBLEMS.find((item) => item.id === problem), [problem])
   const countryOptions = useMemo(() => getCountryOptions(), [])
   const isIndiaBilling = billingCountry === INDIA_BILLING_COUNTRY
-  const recommendedPlan: Exclude<PlanId, 'free'> = isIndiaBilling ? 'quick' : 'full'
+  const recommendedPlan: Exclude<PlanId, 'free'> = isIndiaBilling
+    ? 'quick'
+    : PLANS.find((item) => item.id === 'full' && item.enabled)?.id === 'full'
+      ? 'full'
+      : 'deep'
   const visiblePlans = useMemo(
     () =>
       PLANS.filter(
@@ -629,9 +633,20 @@ export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detect
             About the paid Technical SEO service
           </h2>
           <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
-            The Targeted Troubleshoot is a one-time technical SEO investigation. It currently
-            includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed report
-            for the selected diagnostic concern. The current price is <strong>₹4,999</strong>.
+            {isIndiaBilling ? (
+              <>
+                The Targeted Troubleshoot is a one-time technical SEO investigation for India. It
+                includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
+                report for the selected diagnostic concern. The current price is{' '}
+                <strong>₹4,999</strong>.
+              </>
+            ) : (
+              <>
+                International customers can choose between the Full Troubleshoot at{' '}
+                <strong>$99</strong> and Deep Investigation at <strong>$199</strong>, depending on
+                the level of investigation required.
+              </>
+            )}{' '}
             Technical findings and recommendations are diagnostic information and do not guarantee
             search-engine rankings, traffic increases, indexing outcomes, or other business results.
           </p>

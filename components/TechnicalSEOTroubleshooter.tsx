@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { rememberScan } from '@/lib/technical-seo/browser-history'
 import type {
   CrawlReportResult,
@@ -8,6 +8,11 @@ import type {
   PlanId,
   ScanStatus,
 } from '@/lib/technical-seo/types'
+import {
+  INDIA_BILLING_COUNTRY,
+  isInternationalBillingCountry,
+  normalizeBillingCountry,
+} from '@/lib/technical-seo/billing-country'
 
 type ScanStatusPayload = {
   scanId: string
@@ -130,6 +135,65 @@ const PROBLEMS: Array<{ id: DiagnosticProblem; label: string; description: strin
   },
 ]
 
+const BILLING_COUNTRY_STORAGE_KEY = 'locitra-technical-seo-billing-country'
+
+const FALLBACK_COUNTRY_CODES = [
+  'IN',
+  'US',
+  'GB',
+  'CA',
+  'AU',
+  'AE',
+  'SG',
+  'DE',
+  'FR',
+  'JP',
+  'NZ',
+  'ZA',
+  'BR',
+  'MX',
+]
+
+function countryFlag(countryCode: string) {
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+}
+
+function getCountryOptions() {
+  const displayNames =
+    typeof Intl !== 'undefined' && 'DisplayNames' in Intl
+      ? new Intl.DisplayNames(['en'], { type: 'region' })
+      : null
+
+  let codes = FALLBACK_COUNTRY_CODES
+
+  try {
+    const supportedValuesOf = (
+      Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }
+    ).supportedValuesOf
+
+    const supportedRegions = supportedValuesOf?.('region')?.filter((code) => /^[A-Z]{2}$/.test(code))
+    if (supportedRegions?.length) {
+      codes = supportedRegions
+    }
+  } catch {
+    // Keep the compact fallback list when the browser does not expose region data.
+  }
+
+  const uniqueCodes = Array.from(new Set([INDIA_BILLING_COUNTRY, ...codes]))
+  return uniqueCodes
+    .map((code) => ({
+      code,
+      name: displayNames?.of(code) || code,
+    }))
+    .sort((a, b) => {
+      if (a.code === INDIA_BILLING_COUNTRY) return -1
+      if (b.code === INDIA_BILLING_COUNTRY) return 1
+      return a.name.localeCompare(b.name)
+    })
+}
+
 const PLANS: Array<{
   id: PlanId
   name: string
@@ -197,10 +261,14 @@ function severityClass(severity: CrawlReportResult['findings'][number]['severity
   }
 }
 
-export default function TechnicalSEOTroubleshooter() {
+export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detectedCountry?: string | null }) {
   const [url, setUrl] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
+  const [billingCountry, setBillingCountry] = useState(
+    normalizeBillingCountry(detectedCountry) || INDIA_BILLING_COUNTRY
+  )
+  const [countryInitialized, setCountryInitialized] = useState(false)
   const [problem, setProblem] = useState<DiagnosticProblem>('unknown')
   const [plan, setPlan] = useState<PlanId>('free')
   const [loading, setLoading] = useState(false)
@@ -211,13 +279,58 @@ export default function TechnicalSEOTroubleshooter() {
   const [statusUrl, setStatusUrl] = useState<string | null>(null)
 
   const selectedProblem = useMemo(() => PROBLEMS.find((item) => item.id === problem), [problem])
-
-  const recommendedPlan: Exclude<PlanId, 'free'> = 'quick'
-
+  const countryOptions = useMemo(() => getCountryOptions(), [])
+  const isIndiaBilling = billingCountry === INDIA_BILLING_COUNTRY
+  const recommendedPlan: Exclude<PlanId, 'free'> = isIndiaBilling ? 'quick' : 'full'
+  const visiblePlans = useMemo(
+    () =>
+      PLANS.filter(
+        (item) =>
+          item.id === 'free' ||
+          (isIndiaBilling ? item.id === 'quick' : item.id === 'full' || item.id === 'deep')
+      ),
+    [isIndiaBilling]
+  )
   const recommendedPlanDetails = useMemo(
     () => PLANS.find((item) => item.id === recommendedPlan),
     [recommendedPlan]
   )
+
+  useEffect(() => {
+    const savedCountry = normalizeBillingCountry(
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem(BILLING_COUNTRY_STORAGE_KEY)
+        : ''
+    )
+    const browserCountry = normalizeBillingCountry(
+      typeof navigator !== 'undefined' ? navigator.language.split('-')[1] : ''
+    )
+    const initialCountry =
+      savedCountry || normalizeBillingCountry(detectedCountry) || browserCountry || INDIA_BILLING_COUNTRY
+
+    setBillingCountry(initialCountry)
+    setCountryInitialized(true)
+  }, [detectedCountry])
+
+  useEffect(() => {
+    if (!countryInitialized) return
+
+    window.localStorage.setItem(BILLING_COUNTRY_STORAGE_KEY, billingCountry)
+    setPlan((currentPlan) => {
+      if (billingCountry === INDIA_BILLING_COUNTRY && !['free', 'quick'].includes(currentPlan)) {
+        return 'quick'
+      }
+      if (isInternationalBillingCountry(billingCountry) && currentPlan === 'quick') {
+        return 'full'
+      }
+      return currentPlan
+    })
+
+    if (billingCountry !== INDIA_BILLING_COUNTRY) {
+      setCustomerPhone('')
+      setCustomerEmail('')
+    }
+  }, [billingCountry, countryInitialized])
 
   async function wait(ms: number) {
     await new Promise((resolve) => setTimeout(resolve, ms))
@@ -263,7 +376,8 @@ export default function TechnicalSEOTroubleshooter() {
   async function initiatePayPalCheckout(
     targetUrl: string,
     targetProblem: DiagnosticProblem,
-    targetPlan: PlanId = 'quick'
+    targetPlan: PlanId = 'quick',
+    targetBillingCountry?: string
   ) {
     const trimmedUrl = targetUrl.trim()
     if (!trimmedUrl) {
@@ -278,7 +392,12 @@ export default function TechnicalSEOTroubleshooter() {
       const response = await fetch('/api/technical-seo/paypal/create-order', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl, problem: targetProblem, plan: targetPlan }),
+        body: JSON.stringify({
+          url: trimmedUrl,
+          problem: targetProblem,
+          plan: targetPlan,
+          billingCountry: targetBillingCountry || billingCountry,
+        }),
       })
 
       const data = (await response.json()) as {
@@ -312,7 +431,8 @@ export default function TechnicalSEOTroubleshooter() {
     targetUrl: string,
     targetProblem: DiagnosticProblem,
     phone: string,
-    email: string
+    email: string,
+    targetBillingCountry: string
   ) {
     const trimmedUrl = targetUrl.trim()
     const trimmedPhone = phone.trim()
@@ -345,6 +465,7 @@ export default function TechnicalSEOTroubleshooter() {
           plan: 'quick',
           customerPhone: trimmedPhone,
           customerEmail: trimmedEmail || undefined,
+          billingCountry: targetBillingCountry,
         }),
       })
 
@@ -404,12 +525,12 @@ export default function TechnicalSEOTroubleshooter() {
     }
 
     if (plan === 'quick') {
-      await initiateCashfreeCheckout(url, problem, customerPhone, customerEmail)
+      await initiateCashfreeCheckout(url, problem, customerPhone, customerEmail, billingCountry)
       return
     }
 
     if (plan === 'full') {
-      await initiatePayPalCheckout(url, problem, 'full')
+      await initiatePayPalCheckout(url, problem, 'full', billingCountry)
       return
     }
 
@@ -587,16 +708,73 @@ export default function TechnicalSEOTroubleshooter() {
             </div>
           </div>
 
-          {plan === 'quick' && (
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Billing country
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  Prices and payment options are shown for your billing country.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <label htmlFor="billing-country" className="sr-only">
+                  Billing country
+                </label>
+                <select
+                  id="billing-country"
+                  value={billingCountry}
+                  onChange={(event) => setBillingCountry(event.target.value)}
+                  className="focus:border-primary-500 focus:ring-primary-200 w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-sm font-semibold text-gray-900 outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                >
+                  {countryOptions.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {countryFlag(country.code)} {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-3 flex items-start gap-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+              <span aria-hidden="true">↗</span>
+              <span>
+                We use your approximate location to preselect a country. You can change it if you
+                are traveling or using a VPN. Please select the country that matches your billing
+                details.
+              </span>
+            </div>
+            {isIndiaBilling ? (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Indian checkout
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  Targeted Troubleshoot is priced at ₹4,999 for India and uses secure Cashfree
+                  checkout with available Indian payment methods.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  International checkout
+                </p>
+                <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  International plans are shown in USD and use secure PayPal checkout.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {plan === 'quick' && isIndiaBilling && (
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Indian customer details
+                  Contact details for checkout
                 </p>
                 <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                  Secure Cashfree checkout supports UPI, cards, net banking, and other available
-                  Indian payment methods. A mobile number is required by your Cashfree account
-                  configuration.
+                  A mobile number is required to open secure Cashfree checkout. Your email is
+                  optional.
                 </p>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -650,8 +828,8 @@ export default function TechnicalSEOTroubleshooter() {
                 evidence-based report.
               </p>
             </div>
-            <div className="grid gap-4 lg:grid-cols-4">
-              {PLANS.map((item) => {
+            <div className={`grid gap-4 ${visiblePlans.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+              {visiblePlans.map((item) => {
                 const active = plan === item.id
                 return (
                   <button
@@ -947,11 +1125,16 @@ export default function TechnicalSEOTroubleshooter() {
                       onClick={() => {
                         if (recommendedPlan === 'quick') {
                           setPlan('quick')
-                          initiatePayPalCheckout(url, problem, 'quick')
-                        } else {
-                          setError(
-                            'Full Troubleshoot ($99) is coming in a future release. Targeted Troubleshoot ($49) is currently available.'
+                          initiateCashfreeCheckout(
+                            url,
+                            problem,
+                            customerPhone,
+                            customerEmail,
+                            billingCountry
                           )
+                        } else {
+                          setPlan('full')
+                          initiatePayPalCheckout(url, problem, 'full', billingCountry)
                         }
                       }}
                       className="mt-5 w-full rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
@@ -959,12 +1142,14 @@ export default function TechnicalSEOTroubleshooter() {
                       {loading && plan === 'quick'
                         ? 'Opening secure checkout…'
                         : recommendedPlan === 'quick'
-                          ? 'Continue to Targeted Troubleshoot — $49'
+                          ? 'Continue to Targeted Troubleshoot — ₹4,999'
                           : 'Continue to Full Troubleshoot — $99'}
                     </button>
                     <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
                       {recommendedPlanDetails?.enabled
-                        ? 'One-time investigation · Secure PayPal checkout'
+                        ? isIndiaBilling
+                          ? 'One-time investigation · Secure Cashfree checkout'
+                          : 'One-time investigation · Secure PayPal checkout'
                         : 'One-time investigation · Available in a future release'}
                     </p>
                   </div>

@@ -103,6 +103,14 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
     planForCancellation = plan
 
     if (plan === 'deep') {
+      const billingCountry = normalizeBillingCountry(body.billingCountry)
+      if (!isInternationalBillingCountry(billingCountry)) {
+        return NextResponse.json(
+          { error: 'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.' },
+          { status: 400 }
+        )
+      }
+
       const scanIdInput = typeof body.scanId === 'string' ? body.scanId.trim() : ''
       const keyInput = typeof body.key === 'string' ? body.key.trim() : ''
 

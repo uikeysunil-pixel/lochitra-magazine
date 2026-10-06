@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server'
 import {
   confirmAndProcessCashfreePayment,
-  EXPECTED_AMOUNT,
+  CASHFREE_PAID_PLAN_CONFIG,
   EXPECTED_CURRENCY,
+  isCashfreePaidPlan,
   type CashfreePaymentConfirmationDependencies,
 } from '@/lib/technical-seo/cashfree-payment'
 import { verifyCashfreeWebhookSignature } from '@/lib/cashfree/client'
+import { getScanRecord } from '@/lib/technical-seo/scan-repository'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export type CashfreeWebhookDependencies = CashfreePaymentConfirmationDependencies
+export interface CashfreeWebhookDependencies extends CashfreePaymentConfirmationDependencies {
+  getScanRecord?: typeof getScanRecord
+}
 
 type CashfreeWebhookPayload = {
   type?: unknown
@@ -37,6 +41,7 @@ export async function handleCashfreeWebhook(
   request: Request,
   deps: CashfreeWebhookDependencies = {}
 ) {
+  const getScanRecordFn = deps.getScanRecord ?? getScanRecord
   const rawBody = await request.text()
   const signature = request.headers.get('x-webhook-signature')
   const timestamp = request.headers.get('x-webhook-timestamp')
@@ -75,11 +80,28 @@ export async function handleCashfreeWebhook(
     )
   }
 
+  const scan = await getScanRecordFn(scanId)
+  if (!scan) {
+    return NextResponse.json(
+      { error: 'Locitra scan cannot be found for Cashfree webhook.' },
+      { status: 404 }
+    )
+  }
+
+  if (!isCashfreePaidPlan(scan.plan)) {
+    return NextResponse.json(
+      { error: 'Cashfree webhook plan is invalid or unsupported.' },
+      { status: 400 }
+    )
+  }
+
+  const expectedAmount = CASHFREE_PAID_PLAN_CONFIG[scan.plan].numericAmount
+
   if (
-    Number(webhookOrder?.order_amount) !== EXPECTED_AMOUNT ||
+    Number(webhookOrder?.order_amount) !== expectedAmount ||
     String(webhookOrder?.order_currency) !== EXPECTED_CURRENCY ||
     String(webhookPayment?.payment_status) !== 'SUCCESS' ||
-    Number(webhookPayment?.payment_amount) !== EXPECTED_AMOUNT ||
+    Number(webhookPayment?.payment_amount) !== expectedAmount ||
     String(webhookPayment?.payment_currency) !== EXPECTED_CURRENCY
   ) {
     return NextResponse.json(

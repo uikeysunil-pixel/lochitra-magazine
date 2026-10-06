@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import {
   confirmAndProcessCashfreePayment,
+  isCashfreePaidPlan,
   type CashfreePaymentConfirmationDependencies,
 } from '@/lib/technical-seo/cashfree-payment'
 import { getScanRecord, verifyReportAccessToken } from '@/lib/technical-seo/scan-repository'
@@ -54,7 +55,7 @@ export async function handleCashfreeConfirmOrder(
   }
 
   if (
-    scan.plan !== 'quick' ||
+    !isCashfreePaidPlan(scan.plan) ||
     scan.payment_provider !== 'cashfree' ||
     scan.payment_reference !== orderId ||
     scan.payment_currency !== 'INR'

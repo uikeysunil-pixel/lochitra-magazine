@@ -8,11 +8,7 @@ import type {
   PlanId,
   ScanStatus,
 } from '@/lib/technical-seo/types'
-import {
-  INDIA_BILLING_COUNTRY,
-  isInternationalBillingCountry,
-  normalizeBillingCountry,
-} from '@/lib/technical-seo/billing-country'
+import { INDIA_BILLING_COUNTRY, normalizeBillingCountry } from '@/lib/technical-seo/billing-country'
 
 type ScanStatusPayload = {
   scanId: string
@@ -220,7 +216,7 @@ const PLANS: Array<{
   {
     id: 'quick',
     name: 'Targeted Troubleshoot',
-    price: '₹4,999',
+    price: '$49',
     description: 'Problem-specific diagnosis with a focused report.',
     features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
     enabled: true,
@@ -287,20 +283,8 @@ export default function TechnicalSEOTroubleshooter({
   const selectedProblem = useMemo(() => PROBLEMS.find((item) => item.id === problem), [problem])
   const countryOptions = useMemo(() => getCountryOptions(), [])
   const isIndiaBilling = billingCountry === INDIA_BILLING_COUNTRY
-  const recommendedPlan: Exclude<PlanId, 'free'> = isIndiaBilling
-    ? 'quick'
-    : PLANS.find((item) => item.id === 'full' && item.enabled)?.id === 'full'
-      ? 'full'
-      : 'deep'
-  const visiblePlans = useMemo(
-    () =>
-      PLANS.filter(
-        (item) =>
-          item.id === 'free' ||
-          (isIndiaBilling ? item.id === 'quick' : item.id === 'full' || item.id === 'deep')
-      ),
-    [isIndiaBilling]
-  )
+  const recommendedPlan: Exclude<PlanId, 'free'> = 'quick'
+  const visiblePlans = useMemo(() => PLANS, [])
   const recommendedPlanDetails = useMemo(
     () => PLANS.find((item) => item.id === recommendedPlan),
     [recommendedPlan]
@@ -327,17 +311,6 @@ export default function TechnicalSEOTroubleshooter({
     if (!countryInitialized) return
 
     window.localStorage.setItem(BILLING_COUNTRY_STORAGE_KEY, billingCountry)
-    setPlan((currentPlan) => {
-      if (billingCountry === INDIA_BILLING_COUNTRY && !['free', 'quick'].includes(currentPlan)) {
-        return 'quick'
-      }
-      if (isInternationalBillingCountry(billingCountry) && currentPlan === 'quick') {
-        return PLANS.find((item) => item.id === 'full' && item.enabled)?.id === 'full'
-          ? 'full'
-          : 'deep'
-      }
-      return currentPlan
-    })
 
     if (billingCountry !== INDIA_BILLING_COUNTRY) {
       setCustomerPhone('')
@@ -445,7 +418,8 @@ export default function TechnicalSEOTroubleshooter({
     targetProblem: DiagnosticProblem,
     phone: string,
     email: string,
-    targetBillingCountry: string
+    targetBillingCountry: string,
+    targetPlan: 'quick' | 'full' = 'quick'
   ) {
     const trimmedUrl = targetUrl.trim()
     const trimmedPhone = phone.trim()
@@ -475,7 +449,7 @@ export default function TechnicalSEOTroubleshooter({
         body: JSON.stringify({
           url: trimmedUrl,
           problem: targetProblem,
-          plan: 'quick',
+          plan: targetPlan,
           customerPhone: trimmedPhone,
           customerEmail: trimmedEmail || undefined,
           billingCountry: targetBillingCountry,
@@ -538,12 +512,34 @@ export default function TechnicalSEOTroubleshooter({
     }
 
     if (plan === 'quick') {
-      await initiateCashfreeCheckout(url, problem, customerPhone, customerEmail, billingCountry)
+      if (isIndiaBilling) {
+        await initiateCashfreeCheckout(
+          url,
+          problem,
+          customerPhone,
+          customerEmail,
+          billingCountry,
+          'quick'
+        )
+      } else {
+        await initiatePayPalCheckout(url, problem, 'quick', billingCountry)
+      }
       return
     }
 
     if (plan === 'full') {
-      await initiatePayPalCheckout(url, problem, 'full', billingCountry)
+      if (isIndiaBilling) {
+        await initiateCashfreeCheckout(
+          url,
+          problem,
+          customerPhone,
+          customerEmail,
+          billingCountry,
+          'full'
+        )
+      } else {
+        await initiatePayPalCheckout(url, problem, 'full', billingCountry)
+      }
       return
     }
 
@@ -642,22 +638,13 @@ export default function TechnicalSEOTroubleshooter({
             About the paid Technical SEO service
           </h2>
           <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
-            {isIndiaBilling ? (
-              <>
-                The Targeted Troubleshoot is a one-time technical SEO investigation for India. It
-                includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
-                report for the selected diagnostic concern. The current price is{' '}
-                <strong>₹4,999</strong>.
-              </>
-            ) : (
-              <>
-                International customers can choose between the Full Troubleshoot at{' '}
-                <strong>$99</strong> and Deep Investigation at <strong>$199</strong>, depending on
-                the level of investigation required.
-              </>
-            )}{' '}
-            Technical findings and recommendations are diagnostic information and do not guarantee
-            search-engine rankings, traffic increases, indexing outcomes, or other business results.
+            The Targeted Troubleshoot is a one-time technical SEO investigation available globally.
+            It includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
+            report for the selected diagnostic concern at a global price of <strong>$49</strong>{' '}
+            (with Full Troubleshoot at <strong>$99</strong> and Deep Investigation at{' '}
+            <strong>$199</strong>). Technical findings and recommendations are diagnostic
+            information and do not guarantee search-engine rankings, traffic increases, indexing
+            outcomes, or other business results.
           </p>
           <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
             Before purchasing, please review our{' '}
@@ -775,8 +762,8 @@ export default function TechnicalSEOTroubleshooter({
                   Indian checkout
                 </p>
                 <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                  Targeted Troubleshoot is priced at ₹4,999 for India and uses secure Cashfree
-                  checkout with available Indian payment methods.
+                  Paid plans use secure Cashfree Domestic checkout with available Indian payment
+                  methods (UPI, cards, net banking).
                 </p>
               </div>
             ) : (
@@ -791,7 +778,7 @@ export default function TechnicalSEOTroubleshooter({
             )}
           </div>
 
-          {plan === 'quick' && isIndiaBilling && (
+          {(plan === 'quick' || plan === 'full') && isIndiaBilling && (
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -853,9 +840,7 @@ export default function TechnicalSEOTroubleshooter({
                 evidence-based report.
               </p>
             </div>
-            <div
-              className={`grid gap-4 ${visiblePlans.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}
-            >
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {visiblePlans.map((item) => {
                 const active = plan === item.id
                 return (
@@ -927,7 +912,7 @@ export default function TechnicalSEOTroubleshooter({
                         ? 'Building report…'
                         : 'Crawling website…'
                 : plan === 'quick'
-                  ? 'Continue to secure checkout — ₹4,999'
+                  ? 'Continue to secure checkout — $49'
                   : plan === 'full'
                     ? 'Continue to secure checkout — $99'
                     : plan === 'deep'
@@ -1152,13 +1137,17 @@ export default function TechnicalSEOTroubleshooter({
                       onClick={() => {
                         if (recommendedPlan === 'quick') {
                           setPlan('quick')
-                          initiateCashfreeCheckout(
-                            url,
-                            problem,
-                            customerPhone,
-                            customerEmail,
-                            billingCountry
-                          )
+                          if (isIndiaBilling) {
+                            initiateCashfreeCheckout(
+                              url,
+                              problem,
+                              customerPhone,
+                              customerEmail,
+                              billingCountry
+                            )
+                          } else {
+                            initiatePayPalCheckout(url, problem, 'quick', billingCountry)
+                          }
                         } else {
                           setPlan('full')
                           initiatePayPalCheckout(url, problem, 'full', billingCountry)
@@ -1169,7 +1158,7 @@ export default function TechnicalSEOTroubleshooter({
                       {loading && plan === 'quick'
                         ? 'Opening secure checkout…'
                         : recommendedPlan === 'quick'
-                          ? 'Continue to Targeted Troubleshoot — ₹4,999'
+                          ? 'Continue to Targeted Troubleshoot — $49'
                           : 'Continue to Full Troubleshoot — $99'}
                     </button>
                     <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">

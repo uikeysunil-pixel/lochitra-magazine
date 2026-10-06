@@ -10,10 +10,45 @@ import {
   markBackgroundEventSent,
   markPaymentPaid,
 } from '@/lib/technical-seo/scan-repository'
+import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem, PlanId } from '@/lib/technical-seo/types'
 
-export const EXPECTED_AMOUNT = 4999
+export type CashfreePaidPlan = 'quick' | 'full' | 'deep'
+
+export interface CashfreePlanDetails {
+  amount: string
+  numericAmount: number
+  currency: 'INR'
+  maxUrls: number
+}
+
+export const CASHFREE_PAID_PLAN_CONFIG: Record<CashfreePaidPlan, CashfreePlanDetails> = {
+  quick: {
+    amount: '4999.00',
+    numericAmount: 4999,
+    currency: 'INR',
+    maxUrls: CRAWL_LIMITS.quick,
+  },
+  full: {
+    amount: '9999.00',
+    numericAmount: 9999,
+    currency: 'INR',
+    maxUrls: CRAWL_LIMITS.full,
+  },
+  deep: {
+    amount: '19999.00',
+    numericAmount: 19999,
+    currency: 'INR',
+    maxUrls: CRAWL_LIMITS.deep,
+  },
+}
+
+export function isCashfreePaidPlan(plan: unknown): plan is CashfreePaidPlan {
+  return typeof plan === 'string' && plan in CASHFREE_PAID_PLAN_CONFIG
+}
+
 export const EXPECTED_CURRENCY = 'INR'
+export const EXPECTED_AMOUNT = CASHFREE_PAID_PLAN_CONFIG.quick.numericAmount
 export const CASHFREE_QUICK_PLAN = 'quick'
 
 export interface CashfreePaymentConfirmationDependencies {
@@ -54,13 +89,14 @@ export interface ProcessCashfreePaymentResult {
 
 export function isValidSuccessPayment(
   payment: CashfreePayment | undefined,
-  orderId: string
+  orderId: string,
+  expectedAmount: number = EXPECTED_AMOUNT
 ): payment is CashfreePayment & { cf_payment_id: string | number } {
   return Boolean(
     payment &&
     String(payment.order_id) === orderId &&
     String(payment.payment_status) === 'SUCCESS' &&
-    Number(payment.payment_amount) === EXPECTED_AMOUNT &&
+    Number(payment.payment_amount) === expectedAmount &&
     String(payment.payment_currency) === EXPECTED_CURRENCY &&
     payment.cf_payment_id !== undefined &&
     payment.cf_payment_id !== null
@@ -98,7 +134,7 @@ export async function confirmAndProcessCashfreePayment(
   }
 
   if (
-    scan.plan !== CASHFREE_QUICK_PLAN ||
+    !isCashfreePaidPlan(scan.plan) ||
     scan.payment_provider !== 'cashfree' ||
     scan.payment_reference !== orderId ||
     scan.payment_currency !== EXPECTED_CURRENCY
@@ -109,6 +145,8 @@ export async function confirmAndProcessCashfreePayment(
       error: 'Cashfree payment does not match the expected Locitra scan.',
     }
   }
+
+  const expectedAmount = CASHFREE_PAID_PLAN_CONFIG[scan.plan].numericAmount
 
   if (scan.payment_status === 'failed' || scan.payment_status === 'refunded') {
     return {
@@ -134,7 +172,7 @@ export async function confirmAndProcessCashfreePayment(
   if (
     cashfreeOrder.order_id !== orderId ||
     cashfreeOrder.order_status !== 'PAID' ||
-    Number(cashfreeOrder.order_amount) !== EXPECTED_AMOUNT ||
+    Number(cashfreeOrder.order_amount) !== expectedAmount ||
     cashfreeOrder.order_currency !== EXPECTED_CURRENCY ||
     cashfreeOrder.order_tags?.scan_id !== scanId
   ) {
@@ -151,12 +189,14 @@ export async function confirmAndProcessCashfreePayment(
     const candidate = cashfreePayments.find(
       (payment) => String(payment.cf_payment_id) === String(input.expectedPaymentId)
     )
-    if (isValidSuccessPayment(candidate, orderId)) {
+    if (isValidSuccessPayment(candidate, orderId, expectedAmount)) {
       verifiedPayment = candidate
     }
   } else {
-    const candidate = cashfreePayments.find((payment) => isValidSuccessPayment(payment, orderId))
-    if (candidate && isValidSuccessPayment(candidate, orderId)) {
+    const candidate = cashfreePayments.find((payment) =>
+      isValidSuccessPayment(payment, orderId, expectedAmount)
+    )
+    if (candidate && isValidSuccessPayment(candidate, orderId, expectedAmount)) {
       verifiedPayment = candidate
     }
   }

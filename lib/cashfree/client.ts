@@ -98,6 +98,8 @@ export interface CreateCashfreeOrderParams {
   notifyUrl: string
   customerPhone: string
   customerEmail?: string
+  plan?: string
+  orderNote?: string
 }
 
 export interface CreateCashfreeOrderResult {
@@ -114,7 +116,17 @@ export async function createCashfreeOrder({
   notifyUrl,
   customerPhone,
   customerEmail,
+  plan,
+  orderNote,
 }: CreateCashfreeOrderParams): Promise<CreateCashfreeOrderResult> {
+  const resolvedPlan = plan || 'quick'
+  const defaultNote =
+    resolvedPlan === 'full'
+      ? 'Locitra Technical SEO Full Troubleshoot'
+      : resolvedPlan === 'deep'
+        ? 'Locitra Technical SEO Deep Investigation'
+        : 'Locitra Technical SEO Targeted Troubleshoot'
+
   const response = await cashfreeRequest<CashfreeOrder>('/orders', {
     method: 'POST',
     headers: {
@@ -135,10 +147,10 @@ export async function createCashfreeOrder({
       },
       order_tags: {
         scan_id: scanId,
-        plan: 'quick',
+        plan: resolvedPlan,
         product: 'technical-seo',
       },
-      order_note: 'Locitra Technical SEO Targeted Troubleshoot',
+      order_note: orderNote || defaultNote,
     }),
   })
 

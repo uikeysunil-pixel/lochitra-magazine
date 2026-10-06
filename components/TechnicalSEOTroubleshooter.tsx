@@ -232,7 +232,7 @@ const PLANS: Array<{
       'Duplicate candidates',
       'Detailed report',
     ],
-    enabled: process.env.NEXT_PUBLIC_TECHNICAL_SEO_FULL_ENABLED === 'true',
+    enabled: true,
   },
   {
     id: 'deep',

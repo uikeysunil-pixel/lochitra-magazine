@@ -560,9 +560,10 @@ export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detect
 
         rememberScan(data.scanId, data.accessKey)
         setScanStatus(data.status || 'awaiting_gsc')
-        const targetUrl =
+        const baseStatusUrl =
           data.statusUrl ||
           `/technical-seo/scan/${data.scanId}/${data.accessKey ? `?key=${encodeURIComponent(data.accessKey)}` : ''}`
+        const targetUrl = `${baseStatusUrl}${baseStatusUrl.includes('?') ? '&' : '?'}billing_country=${encodeURIComponent(billingCountry)}`
         setStatusUrl(targetUrl)
 
         window.location.assign(targetUrl)

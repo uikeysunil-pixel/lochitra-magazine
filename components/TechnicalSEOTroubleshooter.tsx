@@ -325,7 +325,9 @@ export default function TechnicalSEOTroubleshooter({ detectedCountry }: { detect
         return 'quick'
       }
       if (isInternationalBillingCountry(billingCountry) && currentPlan === 'quick') {
-        return 'full'
+        return PLANS.find((item) => item.id === 'full' && item.enabled)?.id === 'full'
+          ? 'full'
+          : 'deep'
       }
       return currentPlan
     })

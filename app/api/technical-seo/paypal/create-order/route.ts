@@ -15,6 +15,7 @@ import { createPayPalOrder, getPayPalOrder } from '@/lib/paypal/orders'
 import { OrderStatus, type Order } from '@paypal/paypal-server-sdk'
 import { CRAWL_LIMITS } from '@/lib/technical-seo/crawler'
 import type { DiagnosticProblem } from '@/lib/technical-seo/types'
+import { isInternationalBillingCountry, normalizeBillingCountry } from '@/lib/technical-seo/billing-country'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -301,9 +302,17 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
 
     const url = typeof body.url === 'string' ? body.url.trim() : ''
     const problem = typeof body.problem === 'string' ? body.problem : 'unknown'
+    const billingCountry = normalizeBillingCountry(body.billingCountry)
 
     if (!url) {
       return NextResponse.json({ error: 'Website URL is required.' }, { status: 400 })
+    }
+
+    if (!isInternationalBillingCountry(billingCountry)) {
+      return NextResponse.json(
+        { error: 'PayPal checkout is available for international billing countries. For India, use the Targeted Troubleshoot plan in INR.' },
+        { status: 400 }
+      )
     }
 
     if (!PROBLEMS.has(problem as DiagnosticProblem)) {

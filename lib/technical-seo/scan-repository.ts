@@ -223,13 +223,18 @@ export async function markPaymentOrderCreated(input: {
   return rows[0] ?? null
 }
 
-export async function replacePaymentOrder(input: {
-  scanId: string
-  previousReference: string
-  newReference: string
-  paymentCurrency: string
-}) {
-  const rows = await sql`
+export async function replacePaymentOrder(
+  input: {
+    scanId: string
+    previousReference: string
+    newReference: string
+    paymentCurrency: string
+    paymentProvider: 'paypal' | 'cashfree'
+  },
+  deps?: { sql?: typeof sql }
+) {
+  const sqlClient = deps?.sql ?? sql
+  const rows = await sqlClient`
     update seo_scans
     set
       payment_reference = ${input.newReference},
@@ -239,7 +244,7 @@ export async function replacePaymentOrder(input: {
     where id = ${input.scanId}::uuid
       and status = 'awaiting_payment'
       and payment_status in ('pending', 'unpaid')
-      and payment_provider = 'paypal'
+      and payment_provider = ${input.paymentProvider}
       and payment_reference = ${input.previousReference}
     returning
       id,

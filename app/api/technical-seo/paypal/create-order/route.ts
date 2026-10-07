@@ -254,6 +254,7 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
           previousReference: orderA,
           newReference: newOrderId,
           paymentCurrency: PAYPAL_PAID_PLAN_CONFIG.deep.currency,
+          paymentProvider: 'paypal',
         })
 
         if (!updatedScan) {

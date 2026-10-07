@@ -26,6 +26,7 @@ const {
   EXPECTED_CURRENCY,
 } = require('./cashfree-payment')
 const { verifyCashfreeWebhookSignature } = require('../cashfree/client')
+const { replacePaymentOrder } = require('./scan-repository')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 function jsonRequest(url: string, body: unknown) {
@@ -274,6 +275,205 @@ describe('Cashfree surgical integration', () => {
     assert.strictEqual(markedOrder.paymentProvider, 'cashfree')
     assert.strictEqual(markedOrder.paymentCurrency, 'INR')
     assert.ok(capturedCashfreeParams.notifyUrl.endsWith('/api/technical-seo/cashfree/webhook/'))
+  })
+
+  it('creates replacement Cashfree order for unpaid Deep plan, passing paymentProvider: "cashfree"', async () => {
+    const existingScanId = '44444444-4444-4444-8444-444444444444'
+    const accessKey = 'deep-replace-access-key'
+    let capturedCashfreeParams: any = null
+    let replacedOrderInput: any = null
+
+    const response = await handleCashfreeCreateOrder(
+      jsonRequest('http://localhost:3000/api/technical-seo/cashfree/create-order', {
+        scanId: existingScanId,
+        key: accessKey,
+        plan: 'deep',
+        customerPhone: '9876543210',
+        billingCountry: 'IN',
+      }),
+      {
+        getDeepScanAuthorizationRecord: async () => ({
+          id: existingScanId,
+          plan: 'deep',
+          status: 'awaiting_payment',
+          gsc_property: 'https://example.com/',
+          gsc_refresh_token_encrypted: 'encrypted-token',
+          payment_status: 'pending',
+          payment_provider: 'cashfree',
+          payment_reference: 'locitra_old_order_123',
+          report_token_hash: 'mock-hash',
+        }),
+        verifyReportAccessToken: () => true,
+        getCashfreeOrder: async () => ({
+          order_id: 'locitra_old_order_123',
+          order_status: 'EXPIRED',
+          order_amount: 15999,
+          order_currency: 'INR',
+        }),
+        createCashfreeOrder: async (input: any) => {
+          capturedCashfreeParams = input
+          return {
+            orderId: input.orderId,
+            cfOrderId: 'cf-deep-replacement-order',
+            paymentSessionId: 'session-deep-replacement',
+          }
+        },
+        replacePaymentOrder: async (input: any) => {
+          replacedOrderInput = input
+          return { id: input.scanId }
+        },
+      }
+    )
+
+    assert.strictEqual(response.status, 200)
+    const data = (await response.json()) as Record<string, unknown>
+    assert.strictEqual(data.scanId, existingScanId)
+    assert.strictEqual(data.plan, 'deep')
+    assert.strictEqual(data.paymentSessionId, 'session-deep-replacement')
+    assert.strictEqual(capturedCashfreeParams.amount, '15999.00')
+    assert.ok(replacedOrderInput)
+    assert.strictEqual(replacedOrderInput.scanId, existingScanId)
+    assert.strictEqual(replacedOrderInput.previousReference, 'locitra_old_order_123')
+    assert.strictEqual(replacedOrderInput.newReference, capturedCashfreeParams.orderId)
+    assert.strictEqual(replacedOrderInput.paymentCurrency, 'INR')
+    assert.strictEqual(replacedOrderInput.paymentProvider, 'cashfree')
+  })
+
+  it('rejects Cashfree checkout when Deep scan is bound to paypal', async () => {
+    const existingScanId = '55555555-5555-4555-8555-555555555555'
+    const accessKey = 'deep-paypal-bound-key'
+
+    const response = await handleCashfreeCreateOrder(
+      jsonRequest('http://localhost:3000/api/technical-seo/cashfree/create-order', {
+        scanId: existingScanId,
+        key: accessKey,
+        plan: 'deep',
+        customerPhone: '9876543210',
+        billingCountry: 'IN',
+      }),
+      {
+        getDeepScanAuthorizationRecord: async () => ({
+          id: existingScanId,
+          plan: 'deep',
+          status: 'awaiting_payment',
+          gsc_property: 'https://example.com/',
+          gsc_refresh_token_encrypted: 'encrypted-token',
+          payment_status: 'pending',
+          payment_provider: 'paypal',
+          payment_reference: 'paypal-order-xyz',
+          report_token_hash: 'mock-hash',
+        }),
+        verifyReportAccessToken: () => true,
+      }
+    )
+
+    assert.strictEqual(response.status, 409)
+    const data = (await response.json()) as Record<string, unknown>
+    assert.match(String(data.error), /bound to another payment provider/)
+  })
+
+  describe('replacePaymentOrder provider safety checks', () => {
+    it('an unpaid Deep Cashfree scan can replace its previous Cashfree order', async () => {
+      let executedSql = ''
+      let capturedParams: any[] = []
+      const mockSql = async (strings: TemplateStringsArray, ...values: any[]) => {
+        executedSql = strings.join('?')
+        capturedParams = values
+        return [{ id: 'scan-1', payment_provider: 'cashfree', payment_reference: 'new-cf-ref' }]
+      }
+
+      const result = await replacePaymentOrder(
+        {
+          scanId: '11111111-1111-4111-8111-111111111111',
+          previousReference: 'old-cf-ref',
+          newReference: 'new-cf-ref',
+          paymentCurrency: 'INR',
+          paymentProvider: 'cashfree',
+        },
+        { sql: mockSql as any }
+      )
+
+      assert.ok(result)
+      assert.strictEqual(result.id, 'scan-1')
+      assert.match(executedSql, /payment_provider = \?/)
+      assert.strictEqual(capturedParams[3], 'cashfree')
+      assert.strictEqual(capturedParams[4], 'old-cf-ref')
+    })
+
+    it('a Cashfree replacement cannot replace a PayPal-bound scan', async () => {
+      const mockSql = async (strings: TemplateStringsArray, ...values: any[]) => {
+        const providerInDb = 'paypal'
+        const providerParam = values[3]
+        if (providerParam === providerInDb) {
+          return [{ id: 'scan-1' }]
+        }
+        return []
+      }
+
+      const result = await replacePaymentOrder(
+        {
+          scanId: '11111111-1111-4111-8111-111111111111',
+          previousReference: 'old-paypal-ref',
+          newReference: 'new-cf-ref',
+          paymentCurrency: 'INR',
+          paymentProvider: 'cashfree',
+        },
+        { sql: mockSql as any }
+      )
+
+      assert.strictEqual(result, null)
+    })
+
+    it('an unpaid Deep PayPal scan can still replace its previous PayPal order', async () => {
+      let executedSql = ''
+      let capturedParams: any[] = []
+      const mockSql = async (strings: TemplateStringsArray, ...values: any[]) => {
+        executedSql = strings.join('?')
+        capturedParams = values
+        return [{ id: 'scan-1', payment_provider: 'paypal', payment_reference: 'new-paypal-ref' }]
+      }
+
+      const result = await replacePaymentOrder(
+        {
+          scanId: '22222222-2222-4222-8222-222222222222',
+          previousReference: 'old-paypal-ref',
+          newReference: 'new-paypal-ref',
+          paymentCurrency: 'USD',
+          paymentProvider: 'paypal',
+        },
+        { sql: mockSql as any }
+      )
+
+      assert.ok(result)
+      assert.strictEqual(result.id, 'scan-1')
+      assert.match(executedSql, /payment_provider = \?/)
+      assert.strictEqual(capturedParams[3], 'paypal')
+      assert.strictEqual(capturedParams[4], 'old-paypal-ref')
+    })
+
+    it('a PayPal replacement cannot replace a Cashfree-bound scan', async () => {
+      const mockSql = async (strings: TemplateStringsArray, ...values: any[]) => {
+        const providerInDb = 'cashfree'
+        const providerParam = values[3]
+        if (providerParam === providerInDb) {
+          return [{ id: 'scan-2' }]
+        }
+        return []
+      }
+
+      const result = await replacePaymentOrder(
+        {
+          scanId: '22222222-2222-4222-8222-222222222222',
+          previousReference: 'old-cf-ref',
+          newReference: 'new-paypal-ref',
+          paymentCurrency: 'USD',
+          paymentProvider: 'paypal',
+        },
+        { sql: mockSql as any }
+      )
+
+      assert.strictEqual(result, null)
+    })
   })
 
   it('rejects Cashfree checkout when the Indian mobile number is missing or invalid', async () => {

@@ -1523,6 +1523,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
     assert.strictEqual(replacedInput.previousReference, 'order-A')
     assert.strictEqual(replacedInput.newReference, 'order-B')
     assert.strictEqual(replacedInput.paymentCurrency, 'USD')
+    assert.strictEqual(replacedInput.paymentProvider, 'paypal')
   })
 
   it('9. Concurrent state change causes replacement failure to return a safe conflict', async () => {

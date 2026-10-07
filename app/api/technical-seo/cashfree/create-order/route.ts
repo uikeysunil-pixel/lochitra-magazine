@@ -250,6 +250,7 @@ export async function handleCashfreeCreateOrder(
           previousReference: orderA,
           newReference: newCashfreeOrder.orderId,
           paymentCurrency: planConfig.currency,
+          paymentProvider: 'cashfree',
         })
 
         if (!updatedScan) {

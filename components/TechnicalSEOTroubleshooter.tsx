@@ -199,6 +199,9 @@ const PLANS: Array<{
   description: string
   features: string[]
   enabled: boolean
+  regularPrice?: string
+  indiaPrice?: string
+  indiaRegularPrice?: string
 }> = [
   {
     id: 'free',
@@ -216,7 +219,10 @@ const PLANS: Array<{
   {
     id: 'quick',
     name: 'Targeted Troubleshoot',
-    price: '$49',
+    price: '$39',
+    regularPrice: '$49',
+    indiaPrice: '₹3,999',
+    indiaRegularPrice: '₹4,999',
     description: 'Problem-specific diagnosis with a focused report.',
     features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
     enabled: true,
@@ -224,7 +230,10 @@ const PLANS: Array<{
   {
     id: 'full',
     name: 'Full Troubleshoot',
-    price: '$99',
+    price: '$79',
+    regularPrice: '$99',
+    indiaPrice: '₹7,999',
+    indiaRegularPrice: '₹9,999',
     description: 'A broader crawl and website-wide technical analysis.',
     features: [
       'Expanded crawl',
@@ -237,7 +246,10 @@ const PLANS: Array<{
   {
     id: 'deep',
     name: 'Deep Investigation',
-    price: '$199',
+    price: '$159',
+    regularPrice: '$199',
+    indiaPrice: '₹15,999',
+    indiaRegularPrice: '₹19,999',
     description: 'Deeper diagnosis with Google Search Console data.',
     features: ['Search Console', 'URL Inspection', 'Deep diagnostics', 'Likely-cause analysis'],
     enabled: true,
@@ -640,11 +652,11 @@ export default function TechnicalSEOTroubleshooter({
           <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
             The Targeted Troubleshoot is a one-time technical SEO investigation available globally.
             It includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
-            report for the selected diagnostic concern at a global price of <strong>$49</strong>{' '}
-            (with Full Troubleshoot at <strong>$99</strong> and Deep Investigation at{' '}
-            <strong>$199</strong>). Technical findings and recommendations are diagnostic
-            information and do not guarantee search-engine rankings, traffic increases, indexing
-            outcomes, or other business results.
+            report for the selected diagnostic concern at launch pricing of <strong>$39</strong>{' '}
+            (regular $49), with Full Troubleshoot at <strong>$79</strong> (regular $99) and Deep
+            Investigation at <strong>$159</strong> (regular $199). Technical findings and
+            recommendations are diagnostic information and do not guarantee search-engine rankings,
+            traffic increases, indexing outcomes, or other business results.
           </p>
           <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
             Before purchasing, please review our{' '}
@@ -868,9 +880,25 @@ export default function TechnicalSEOTroubleshooter({
                         </span>
                       )}
                     </div>
-                    <div className="mt-3 text-2xl font-extrabold text-gray-900 dark:text-gray-100">
-                      {item.price}
-                    </div>
+                    {item.id === 'free' ? (
+                      <div className="mt-3 text-2xl font-extrabold text-gray-900 dark:text-gray-100">
+                        {item.price}
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm font-medium text-gray-400 line-through dark:text-gray-500">
+                            {isIndiaBilling ? item.indiaRegularPrice : item.regularPrice}
+                          </span>
+                          <span className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
+                            {isIndiaBilling ? item.indiaPrice : item.price}
+                          </span>
+                        </div>
+                        <p className="text-primary-600 dark:text-primary-400 mt-1 text-[11px] font-medium tracking-tight">
+                          Launch pricing · Save 20%
+                        </p>
+                      </div>
+                    )}
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {item.description}
                     </p>
@@ -912,11 +940,17 @@ export default function TechnicalSEOTroubleshooter({
                         ? 'Building report…'
                         : 'Crawling website…'
                 : plan === 'quick'
-                  ? 'Continue to secure checkout — $49'
+                  ? isIndiaBilling
+                    ? 'Continue to secure checkout — ₹3,999'
+                    : 'Continue to secure checkout — $39'
                   : plan === 'full'
-                    ? 'Continue to secure checkout — $99'
+                    ? isIndiaBilling
+                      ? 'Continue to secure checkout — ₹7,999'
+                      : 'Continue to secure checkout — $79'
                     : plan === 'deep'
-                      ? 'Start Deep Investigation — $199'
+                      ? isIndiaBilling
+                        ? 'Start Deep Investigation — ₹15,999'
+                        : 'Start Deep Investigation — $159'
                       : 'Troubleshoot My Website'}
             </button>
             {loading && (
@@ -1123,9 +1157,29 @@ export default function TechnicalSEOTroubleshooter({
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {recommendedPlanDetails?.name}
                     </p>
-                    <div className="mt-3 text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-                      {recommendedPlanDetails?.price}
-                    </div>
+                    {recommendedPlanDetails?.id === 'free' ? (
+                      <div className="mt-3 text-3xl font-extrabold text-gray-900 dark:text-gray-100">
+                        {recommendedPlanDetails?.price}
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <div className="flex items-baseline gap-2.5">
+                          <span className="text-base font-medium text-gray-400 line-through dark:text-gray-500">
+                            {isIndiaBilling
+                              ? recommendedPlanDetails?.indiaRegularPrice
+                              : recommendedPlanDetails?.regularPrice}
+                          </span>
+                          <span className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
+                            {isIndiaBilling
+                              ? recommendedPlanDetails?.indiaPrice
+                              : recommendedPlanDetails?.price}
+                          </span>
+                        </div>
+                        <p className="text-primary-600 dark:text-primary-400 mt-1 text-xs font-medium">
+                          Launch pricing · Save 20%
+                        </p>
+                      </div>
+                    )}
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {problem === 'unknown'
                         ? 'Continue with a 50-page targeted troubleshoot for evidence, prioritized findings, and a detailed report.'
@@ -1158,8 +1212,12 @@ export default function TechnicalSEOTroubleshooter({
                       {loading && plan === 'quick'
                         ? 'Opening secure checkout…'
                         : recommendedPlan === 'quick'
-                          ? 'Continue to Targeted Troubleshoot — $49'
-                          : 'Continue to Full Troubleshoot — $99'}
+                          ? isIndiaBilling
+                            ? 'Continue to Targeted Troubleshoot — ₹3,999'
+                            : 'Continue to Targeted Troubleshoot — $39'
+                          : isIndiaBilling
+                            ? 'Continue to Full Troubleshoot — ₹7,999'
+                            : 'Continue to Full Troubleshoot — $79'}
                     </button>
                     <p className="mt-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
                       {recommendedPlanDetails?.enabled

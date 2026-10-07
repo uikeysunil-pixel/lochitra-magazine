@@ -20,15 +20,15 @@ export const PAYPAL_PLAN_PRICING: Record<
   }
 > = {
   quick: {
-    amount: '49.00',
+    amount: '39.00',
     currency: 'USD',
   },
   full: {
-    amount: '99.00',
+    amount: '79.00',
     currency: 'USD',
   },
   deep: {
-    amount: '199.00',
+    amount: '159.00',
     currency: 'USD',
   },
 }

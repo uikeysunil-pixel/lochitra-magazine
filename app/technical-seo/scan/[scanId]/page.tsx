@@ -715,7 +715,7 @@ export default function TechnicalSEOScanStatusPage({
                               >
                                 {initiatingPayment
                                   ? 'Opening Cashfree…'
-                                  : 'Proceed to Cashfree Checkout — $199'}
+                                  : 'Proceed to Cashfree Checkout — ₹15,999'}
                               </button>
                             </div>
                           ) : (
@@ -725,7 +725,7 @@ export default function TechnicalSEOScanStatusPage({
                               disabled={initiatingPayment}
                               className="inline-flex items-center rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
                             >
-                              {initiatingPayment ? 'Opening PayPal…' : 'Proceed to PayPal — $199'}
+                              {initiatingPayment ? 'Opening PayPal…' : 'Proceed to PayPal — $159'}
                             </button>
                           )}
                           {paymentError && (

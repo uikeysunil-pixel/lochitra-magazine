@@ -21,15 +21,15 @@ interface PlanDetails {
 const PLAN_DETAILS: Record<PlanType, PlanDetails> = {
   quick: {
     name: 'Targeted Troubleshoot',
-    price: '$49',
+    price: '$39',
   },
   full: {
     name: 'Full Troubleshoot',
-    price: '$99',
+    price: '$79',
   },
   deep: {
     name: 'Deep Investigation',
-    price: '$199',
+    price: '$159',
   },
 }
 

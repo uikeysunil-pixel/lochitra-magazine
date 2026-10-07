@@ -47,17 +47,17 @@ export const PAYPAL_PAID_PLAN_CONFIG: Record<
   }
 > = {
   quick: {
-    amount: '49.00',
+    amount: '39.00',
     maxUrls: CRAWL_LIMITS.quick,
     currency: 'USD',
   },
   full: {
-    amount: '99.00',
+    amount: '79.00',
     maxUrls: CRAWL_LIMITS.full,
     currency: 'USD',
   },
   deep: {
-    amount: '199.00',
+    amount: '159.00',
     maxUrls: CRAWL_LIMITS.deep,
     currency: 'USD',
   },
@@ -340,7 +340,7 @@ export async function handleCreateOrder(request: Request, deps: CreateOrderDepen
       return NextResponse.json(
         {
           error:
-            'Only the Targeted Troubleshoot ($49) and Full Troubleshoot ($99) plans are available for paid checkout.',
+            'Only the Targeted Troubleshoot ($39) and Full Troubleshoot ($79) plans are available for paid checkout.',
         },
         { status: 400 }
       )

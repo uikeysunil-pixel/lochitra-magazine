@@ -24,20 +24,20 @@ export interface CashfreePlanDetails {
 
 export const CASHFREE_PAID_PLAN_CONFIG: Record<CashfreePaidPlan, CashfreePlanDetails> = {
   quick: {
-    amount: '4999.00',
-    numericAmount: 4999,
+    amount: '3999.00',
+    numericAmount: 3999,
     currency: 'INR',
     maxUrls: CRAWL_LIMITS.quick,
   },
   full: {
-    amount: '9999.00',
-    numericAmount: 9999,
+    amount: '7999.00',
+    numericAmount: 7999,
     currency: 'INR',
     maxUrls: CRAWL_LIMITS.full,
   },
   deep: {
-    amount: '19999.00',
-    numericAmount: 19999,
+    amount: '15999.00',
+    numericAmount: 15999,
     currency: 'INR',
     maxUrls: CRAWL_LIMITS.deep,
   },

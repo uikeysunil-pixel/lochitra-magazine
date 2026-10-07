@@ -28,12 +28,17 @@ const PayPalCancelledPage = require('../../app/technical-seo/cancelled/page').de
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 function createJsonRequest(url: string, body: unknown) {
+  const payload =
+    typeof body === 'object' && body !== null && !Array.isArray(body) && !('billingCountry' in body)
+      ? { billingCountry: 'US', ...body }
+      : body
+
   return new Request(url, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   })
 }
 
@@ -90,7 +95,7 @@ describe('Phase Deep-01 — Deep Scan Creation', () => {
 
 describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
   describe('Create Order Authorization', () => {
-    it('A: quick create-order uses $49.00 and 50 pages', async () => {
+    it('A: quick create-order uses $39.00 and 50 pages', async () => {
       let createdScan: any = null
       let createdOrder: any = null
       let markedOrder: any = null
@@ -145,7 +150,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(createdScan.initialStatus, 'awaiting_payment')
 
       assert.ok(createdOrder)
-      assert.strictEqual(createdOrder.amount, '49.00')
+      assert.strictEqual(createdOrder.amount, '39.00')
       assert.strictEqual(createdOrder.amount, PAYPAL_PAID_PLAN_CONFIG.quick.amount)
       assert.ok(
         typeof (createdOrder as Record<string, unknown>)?.cancelUrl === 'string' &&
@@ -158,7 +163,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(markedOrder.paymentCurrency, 'USD')
     })
 
-    it('B: full create-order uses $99.00 and 250 pages', async () => {
+    it('B: full create-order uses $79.00 and 250 pages', async () => {
       let createdScan: any = null
       let createdOrder: any = null
       let markedOrder: any = null
@@ -213,7 +218,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(createdScan.initialStatus, 'awaiting_payment')
 
       assert.ok(createdOrder)
-      assert.strictEqual(createdOrder.amount, '99.00')
+      assert.strictEqual(createdOrder.amount, '79.00')
       assert.strictEqual(createdOrder.amount, PAYPAL_PAID_PLAN_CONFIG.full.amount)
       assert.ok(
         typeof (createdOrder as Record<string, unknown>)?.cancelUrl === 'string' &&
@@ -226,7 +231,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(markedOrder.paymentCurrency, 'USD')
     })
 
-    it('C: valid Deep scan creates $199 USD order using existing scanId', async () => {
+    it('C: valid Deep scan creates $159 USD order using existing scanId', async () => {
       const scanId = 'scan-deep-valid-1'
       const accessKey = 'test-deep-access-key-123'
       const tokenHash = hashReportAccessToken(accessKey)
@@ -280,7 +285,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       )
 
       assert.ok(payPalOrderInput)
-      assert.strictEqual(payPalOrderInput.amount, '199.00')
+      assert.strictEqual(payPalOrderInput.amount, '159.00')
       assert.strictEqual(payPalOrderInput.scanId, scanId)
 
       assert.ok(markedOrder)
@@ -568,7 +573,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       captureStatus?: CaptureStatus
     }): Order {
       const currency = overrides.currency ?? 'USD'
-      const amount = overrides.amount ?? '99.00'
+      const amount = overrides.amount ?? '79.00'
       const orderId = overrides.orderId ?? 'mock-order-id'
       const scanId = overrides.scanId ?? 'scan-id-1'
       const status = overrides.status ?? OrderStatus.Completed
@@ -604,7 +609,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       } as unknown as Order
     }
 
-    it('E: Full capture with $99 succeeds when DB scan.plan = full', async () => {
+    it('E: Full capture with $79 succeeds when DB scan.plan = full', async () => {
       const orderId = 'order-full-99'
       const scanId = 'scan-full-uuid'
       let inngestDispatched = false
@@ -614,7 +619,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '99.00',
+        amount: '79.00',
         currency: 'USD',
       })
 
@@ -677,17 +682,17 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual((inngestEventPayload.data as Record<string, unknown>).plan, 'full')
     })
 
-    it('F: Full scan with $49 PayPal order is rejected', async () => {
+    it('F: Full scan with $39 PayPal order is rejected', async () => {
       const orderId = 'order-cheat-49'
       const scanId = 'scan-full-target'
       let markPaidCalled = false
       let inngestDispatched = false
 
-      // PayPal order has $49.00
+      // PayPal order has $39.00
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '49.00',
+        amount: '39.00',
         currency: 'USD',
       })
 
@@ -703,7 +708,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
             id: scanId,
             website_url: 'https://example.com',
             problem: 'indexing',
-            plan: 'full', // DB scan requires Full ($99)
+            plan: 'full', // DB scan requires Full ($79)
             payment_provider: 'paypal',
             payment_reference: orderId,
             payment_currency: 'USD',
@@ -727,17 +732,17 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(inngestDispatched, false, 'Inngest must NOT be dispatched')
     })
 
-    it('G: Quick scan with $99 PayPal order is rejected', async () => {
+    it('G: Quick scan with $79 PayPal order is rejected', async () => {
       const orderId = 'order-mismatch-99'
       const scanId = 'scan-quick-target'
       let markPaidCalled = false
       let inngestDispatched = false
 
-      // PayPal order has $99.00
+      // PayPal order has $79.00
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '99.00',
+        amount: '79.00',
         currency: 'USD',
       })
 
@@ -753,7 +758,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
             id: scanId,
             website_url: 'https://example.com',
             problem: 'indexing',
-            plan: 'quick', // DB scan requires Quick ($49)
+            plan: 'quick', // DB scan requires Quick ($39)
             payment_provider: 'paypal',
             payment_reference: orderId,
             payment_currency: 'USD',
@@ -785,7 +790,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '99.00',
+        amount: '79.00',
         currency: 'EUR', // Invalid currency
       })
 
@@ -825,7 +830,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId: orderCustomId,
-        amount: '49.00',
+        amount: '39.00',
         currency: 'USD',
       })
 
@@ -897,7 +902,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(inngestDispatched, false)
     })
 
-    it('K: Deep capture with $199 succeeds and queues scan + dispatches Inngest', async () => {
+    it('K: Deep capture with $159 succeeds and queues scan + dispatches Inngest', async () => {
       const orderId = 'order-deep-199'
       const scanId = 'scan-deep-uuid'
       let inngestDispatched = false
@@ -907,7 +912,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '199.00',
+        amount: '159.00',
         currency: 'USD',
       })
 
@@ -964,7 +969,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       assert.strictEqual(inngestEventPayload.data.plan, 'deep')
     })
 
-    it('K2: Deep scan with $49 or $99 PayPal order is rejected', async () => {
+    it('K2: Deep scan with $39 or $79 PayPal order is rejected', async () => {
       const orderId = 'order-deep-cheat-49'
       const scanId = 'scan-deep-target'
       let markPaidCalled = false
@@ -973,7 +978,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '49.00',
+        amount: '39.00',
         currency: 'USD',
       })
 
@@ -1022,7 +1027,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '199.00',
+        amount: '159.00',
         currency: 'USD',
       })
 
@@ -1073,7 +1078,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '199.00',
+        amount: '159.00',
         currency: 'USD',
       })
 
@@ -1121,7 +1126,7 @@ describe('Phase 1 — PayPal Payment Authorization & Plan Support', () => {
       const mockOrder = createMockPayPalOrder({
         orderId,
         scanId,
-        amount: '99.00',
+        amount: '79.00',
         currency: 'USD',
       })
 
@@ -1217,7 +1222,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
     const id = overrides.id ?? 'order-A'
     const status = overrides.status ?? OrderStatus.Created
     const customId = overrides.customId ?? scanId
-    const amount = overrides.amount ?? '199.00'
+    const amount = overrides.amount ?? '159.00'
     const currency = overrides.currency ?? 'USD'
     const approvalUrl =
       overrides.approvalUrl !== undefined
@@ -1285,7 +1290,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
     assert.strictEqual(data.status, 'awaiting_payment')
 
     assert.ok(createdOrderInput)
-    assert.strictEqual(createdOrderInput.amount, '199.00')
+    assert.strictEqual(createdOrderInput.amount, '159.00')
     assert.strictEqual(createdOrderInput.scanId, scanId)
     assert.ok(createdOrderInput.cancelUrl.includes(`scanId=${scanId}`))
     assert.ok(createdOrderInput.cancelUrl.includes(`key=${encodeURIComponent(accessKey)}`))
@@ -1364,7 +1369,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
     assert.strictEqual(replacedInput.newReference, 'order-B')
   })
 
-  it('4. Reuse requires exact 199.00 USD (amount mismatch triggers replacement)', async () => {
+  it('4. Reuse requires exact 159.00 USD (amount mismatch triggers replacement)', async () => {
     let replacedInput: any = null
 
     const req = createJsonRequest('http://localhost:3000/api/technical-seo/paypal/create-order', {
@@ -1376,7 +1381,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
     const res = await handleCreateOrder(req, {
       getDeepScanAuthorizationRecord: async () =>
         createMockExistingDeepScan({ payment_reference: 'order-A' }),
-      getPayPalOrder: async () => createMockPayPalOrderResponse({ id: 'order-A', amount: '99.00' }),
+      getPayPalOrder: async () => createMockPayPalOrderResponse({ id: 'order-A', amount: '79.00' }),
       createPayPalOrder: async () => ({
         orderId: 'order-B-amount',
         approvalUrl: 'https://paypal.com/b',
@@ -1656,7 +1661,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
       createScanRecord: async () => 'scan-q',
       createPayPalOrder: async (input: any) => {
         quickCreated = true
-        assert.strictEqual(input.amount, '49.00')
+        assert.strictEqual(input.amount, '39.00')
         return { orderId: 'order-q', approvalUrl: 'https://paypal.com/q' }
       },
       markPaymentOrderCreated: async () => ({ id: 'scan-q' }) as any,
@@ -1676,7 +1681,7 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
       createScanRecord: async () => 'scan-f',
       createPayPalOrder: async (input: any) => {
         fullCreated = true
-        assert.strictEqual(input.amount, '99.00')
+        assert.strictEqual(input.amount, '79.00')
         return { orderId: 'order-f', approvalUrl: 'https://paypal.com/f' }
       },
       markPaymentOrderCreated: async () => ({ id: 'scan-f' }) as any,
@@ -1745,13 +1750,13 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
           purchaseUnits: [
             {
               customId: scanId,
-              amount: { currencyCode: 'USD', value: '199.00' },
+              amount: { currencyCode: 'USD', value: '159.00' },
               payments: {
                 captures: [
                   {
                     id: 'cap-A',
                     status: CaptureStatus.Completed,
-                    amount: { currencyCode: 'USD', value: '199.00' },
+                    amount: { currencyCode: 'USD', value: '159.00' },
                   },
                 ],
               },

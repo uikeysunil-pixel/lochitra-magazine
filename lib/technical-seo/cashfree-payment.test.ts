@@ -143,6 +143,40 @@ describe('Cashfree surgical integration', () => {
     assert.match(capturedCashfreeParams.returnUrl, /provider=cashfree/)
     assert.match(capturedCashfreeParams.returnUrl, /order_id=\{order_id\}/)
     assert.match(capturedCashfreeParams.returnUrl, /key=/)
+    assert.ok(capturedCashfreeParams.notifyUrl.endsWith('/api/technical-seo/cashfree/webhook/'))
+  })
+
+  it('asserts notifyUrl passed to createCashfreeOrder ends with /api/technical-seo/cashfree/webhook/', async () => {
+    let capturedCashfreeParams: any = null
+    const response = await handleCashfreeCreateOrder(
+      jsonRequest('https://www.locitra.com/api/technical-seo/cashfree/create-order', {
+        url: 'https://example.com',
+        problem: 'indexing',
+        plan: 'quick',
+        customerPhone: '9876543210',
+        billingCountry: 'IN',
+      }),
+      {
+        createScanRecord: async (input: any) => input.scanId,
+        createCashfreeOrder: async (input: any) => {
+          capturedCashfreeParams = input
+          return {
+            orderId: input.orderId,
+            cfOrderId: 'cf-notify-test',
+            paymentSessionId: 'session-notify-test',
+          }
+        },
+        markPaymentOrderCreated: async (input: any) => ({ id: input.scanId }),
+      }
+    )
+
+    assert.strictEqual(response.status, 200)
+    assert.ok(capturedCashfreeParams, 'createCashfreeOrder should be called')
+    assert.strictEqual(
+      capturedCashfreeParams.notifyUrl,
+      'https://www.locitra.com/api/technical-seo/cashfree/webhook/'
+    )
+    assert.ok(capturedCashfreeParams.notifyUrl.endsWith('/api/technical-seo/cashfree/webhook/'))
   })
 
   it('creates and binds the Cashfree order for Full plan (₹7,999, maxUrls 250)', async () => {
@@ -239,6 +273,7 @@ describe('Cashfree surgical integration', () => {
     assert.strictEqual(capturedCashfreeParams.scanId, existingScanId)
     assert.strictEqual(markedOrder.paymentProvider, 'cashfree')
     assert.strictEqual(markedOrder.paymentCurrency, 'INR')
+    assert.ok(capturedCashfreeParams.notifyUrl.endsWith('/api/technical-seo/cashfree/webhook/'))
   })
 
   it('rejects Cashfree checkout when the Indian mobile number is missing or invalid', async () => {

@@ -177,7 +177,7 @@ export async function handleCashfreeCreateOrder(
       scanId = existingScanId
       const statusUrl = `/technical-seo/scan/${existingScanId}/?key=${encodeURIComponent(keyInput)}`
       const returnUrl = `${origin}${statusUrl}&provider=cashfree&order_id={order_id}`
-      const notifyUrl = `${origin}/api/technical-seo/cashfree/webhook`
+      const notifyUrl = `${origin}/api/technical-seo/cashfree/webhook/`
 
       if (scan.payment_reference) {
         const orderA = scan.payment_reference
@@ -332,7 +332,7 @@ export async function handleCashfreeCreateOrder(
 
     const statusUrl = `/technical-seo/scan/${scanId}/?key=${encodeURIComponent(accessKey)}`
     const returnUrl = `${origin}${statusUrl}&provider=cashfree&order_id={order_id}`
-    const notifyUrl = `${origin}/api/technical-seo/cashfree/webhook`
+    const notifyUrl = `${origin}/api/technical-seo/cashfree/webhook/`
 
     await createScanRecordFn({
       scanId,

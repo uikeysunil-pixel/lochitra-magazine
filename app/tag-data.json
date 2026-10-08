@@ -5,7 +5,7 @@
   "privacy": 14,
   "software-reviews": 36,
   "bitwarden": 2,
-  "artificial-intelligence": 49,
+  "artificial-intelligence": 50,
   "career-growth": 39,
   "future-of-work": 15,
   "resilience": 1,
@@ -20,6 +20,10 @@
   "saas": 14,
   "seo-tools": 7,
   "semrush": 3,
+  "ai-agents": 1,
+  "automation": 7,
+  "future-technology": 9,
+  "machine-learning": 2,
   "ai-interview-prep": 1,
   "mock-interview": 1,
   "job-search": 6,
@@ -75,7 +79,6 @@
   "resume-optimization": 1,
   "applicant-tracking-system": 1,
   "autonomous-vehicles": 1,
-  "future-technology": 8,
   "transportation": 1,
   "smart-cities": 3,
   "blog-monetization": 8,
@@ -140,7 +143,6 @@
   "spatial-computing": 1,
   "mixed-reality": 1,
   "executive-careers": 1,
-  "automation": 6,
   "technology-trends": 1,
   "automation-resilience": 1,
   "career-planning": 2,
@@ -227,6 +229,5 @@
   "total-compensation": 1,
   "in-demand-skills": 1,
   "ubersuggest": 1,
-  "agi": 1,
-  "machine-learning": 1
+  "agi": 1
 }

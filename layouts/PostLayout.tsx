@@ -204,8 +204,6 @@ export default function PostLayout({
                   )}
                 </>
               )}
-
-
             </div>
           </div>
 

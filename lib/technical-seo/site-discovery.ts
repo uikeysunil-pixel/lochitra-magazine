@@ -1,3 +1,5 @@
+import { assertSafeHostname } from './scanner'
+
 const TIMEOUT_MS = 8000
 const MAX_BYTES = 1000000
 const MAX_SITEMAPS = 10
@@ -7,22 +9,38 @@ export interface RobotsPolicy {
   loaded?: boolean
 }
 
+export interface SiteDiscoveryDependencies {
+  assertSafeHostname?: (hostname: string) => Promise<void>
+  fetch?: typeof fetch
+}
+
 type RobotsFetchResult =
   | { kind: 'success'; text: string }
   | { kind: 'not_found' }
   | { kind: 'error' }
 
-async function fetchRobotsContent(url: URL): Promise<RobotsFetchResult> {
+export async function fetchRobotsContent(
+  url: URL,
+  deps?: SiteDiscoveryDependencies
+): Promise<RobotsFetchResult> {
+  const assertSafe = deps?.assertSafeHostname ?? assertSafeHostname
+  const fetchFn = deps?.fetch ?? fetch
   let current = new URL(url)
 
   for (let redirects = 0; redirects <= 3; redirects += 1) {
     if (current.origin !== url.origin) return { kind: 'error' }
 
+    try {
+      await assertSafe(current.hostname)
+    } catch {
+      return { kind: 'error' }
+    }
+
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
     try {
-      const response = await fetch(current, {
+      const response = await fetchFn(current, {
         redirect: 'manual',
         headers: {
           'user-agent': 'LocitraBot/0.1 (+https://www.locitra.com/technical-seo/)',
@@ -80,17 +98,28 @@ function extractLocs(xml: string): string[] {
   return values.filter(Boolean)
 }
 
-async function fetchText(url: URL): Promise<string | null> {
+export async function fetchText(
+  url: URL,
+  deps?: SiteDiscoveryDependencies
+): Promise<string | null> {
+  const assertSafe = deps?.assertSafeHostname ?? assertSafeHostname
+  const fetchFn = deps?.fetch ?? fetch
   let current = new URL(url)
 
   for (let redirects = 0; redirects <= 3; redirects += 1) {
     if (current.origin !== url.origin) return null
 
+    try {
+      await assertSafe(current.hostname)
+    } catch {
+      return null
+    }
+
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
     try {
-      const response = await fetch(current, {
+      const response = await fetchFn(current, {
         redirect: 'manual',
         headers: {
           'user-agent': 'LocitraBot/0.1 (+https://www.locitra.com/technical-seo/)',
@@ -125,7 +154,10 @@ async function fetchText(url: URL): Promise<string | null> {
   return null
 }
 
-export async function loadRobotsPolicy(rootUrl: string): Promise<{
+export async function loadRobotsPolicy(
+  rootUrl: string,
+  deps?: SiteDiscoveryDependencies
+): Promise<{
   rules: Array<{ pattern: string; allow: boolean; specificity: number }>
   loaded: boolean
 }> {
@@ -136,7 +168,7 @@ export async function loadRobotsPolicy(rootUrl: string): Promise<{
     return { rules: [], loaded: false }
   }
 
-  const result = await fetchRobotsContent(new URL('/robots.txt', root))
+  const result = await fetchRobotsContent(new URL('/robots.txt', root), deps)
   if (result.kind === 'not_found') {
     return { rules: [], loaded: true }
   }
@@ -215,8 +247,17 @@ export function isAllowedByRobots(
   return matches[0].allow
 }
 
-export async function discoverSitemapPages(rootUrl: string, maxPages: number): Promise<string[]> {
-  const root = new URL(rootUrl)
+export async function discoverSitemapPages(
+  rootUrl: string,
+  maxPages: number,
+  deps?: SiteDiscoveryDependencies
+): Promise<string[]> {
+  let root: URL
+  try {
+    root = new URL(rootUrl)
+  } catch {
+    return []
+  }
   const sitemapQueue = [
     new URL('/sitemap.xml', root).toString(),
     new URL('/sitemap_index.xml', root).toString(),
@@ -224,7 +265,7 @@ export async function discoverSitemapPages(rootUrl: string, maxPages: number): P
   const visited = new Set<string>()
   const pages = new Set<string>()
 
-  const robotsText = await fetchText(new URL('/robots.txt', root))
+  const robotsText = await fetchText(new URL('/robots.txt', root), deps)
   if (robotsText) {
     for (const match of robotsText.matchAll(/(?:^|\n)\s*sitemap\s*:\s*([^\s#]+)/gi)) {
       sitemapQueue.push(decodeXml(match[1]))
@@ -246,7 +287,7 @@ export async function discoverSitemapPages(rootUrl: string, maxPages: number): P
     if (visited.has(normalized)) continue
     visited.add(normalized)
 
-    const xml = await fetchText(sitemapUrl)
+    const xml = await fetchText(sitemapUrl, deps)
     if (!xml) continue
 
     const locs = extractLocs(xml)

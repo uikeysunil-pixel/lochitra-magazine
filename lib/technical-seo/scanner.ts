@@ -58,9 +58,26 @@ function isPrivateIPv6(ip: string): boolean {
   )
 }
 
-async function assertSafeHostname(hostname: string): Promise<void> {
-  const lower = hostname.toLowerCase()
-  if (BLOCKED_HOSTNAMES.has(lower) || lower.endsWith('.localhost')) {
+export interface DnsResolver {
+  lookup(
+    hostname: string,
+    options: { all: true }
+  ): Promise<Array<{ address: string; family: number }>>
+}
+
+export async function assertSafeHostname(
+  hostname: string,
+  resolver: DnsResolver = dns
+): Promise<void> {
+  const rawLower = hostname.toLowerCase()
+  const lower =
+    rawLower.startsWith('[') && rawLower.endsWith(']') ? rawLower.slice(1, -1) : rawLower
+
+  if (
+    BLOCKED_HOSTNAMES.has(rawLower) ||
+    BLOCKED_HOSTNAMES.has(lower) ||
+    lower.endsWith('.localhost')
+  ) {
     throw new Error('Local and private network targets are not allowed.')
   }
 
@@ -72,7 +89,7 @@ async function assertSafeHostname(hostname: string): Promise<void> {
     throw new Error('Private network targets are not allowed.')
   }
 
-  const records = await dns.lookup(lower, { all: true })
+  const records = await resolver.lookup(lower, { all: true })
   for (const record of records) {
     if (
       (record.family === 4 && isPrivateIPv4(record.address)) ||

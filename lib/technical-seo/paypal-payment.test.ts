@@ -24,6 +24,8 @@ const {
   PAYPAL_PLAN_PRICING,
 } = require('../../app/api/technical-seo/paypal/capture-order/route')
 const { hashReportAccessToken, replacePaymentOrder } = require('./scan-repository')
+const { handlePayPalWebhook } = require('../../app/api/technical-seo/paypal/webhook/route')
+const { verifyPayPalWebhookSignature, isValidPayPalCertUrl } = require('../paypal/webhook')
 const PayPalCancelledPage = require('../../app/technical-seo/cancelled/page').default
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -1778,5 +1780,719 @@ describe('Phase Deep-08 — PayPal Unpaid Retry & Cancellation Flow', () => {
     assert.strictEqual(res.status, 409)
     const data = (await res.json()) as any
     assert.match(data.error, /mismatch/)
+  })
+
+  describe('PayPal Webhook Recovery Flow & Defense-in-Depth', () => {
+    function createMockWebhookRequest(body: unknown, headers: Record<string, string> = {}) {
+      const defaultHeaders: Record<string, string> = {
+        'content-type': 'application/json',
+        'paypal-transmission-id': 'mock-tx-12345',
+        'paypal-transmission-time': '2026-10-08T12:00:00Z',
+        'paypal-cert-url': 'https://api.sandbox.paypal.com/v1/notifications/certs/CERT-123',
+        'paypal-auth-algo': 'SHA256withRSA',
+        'paypal-transmission-sig': 'mock-signature-abc',
+        ...headers,
+      }
+
+      return new Request('http://localhost:3000/api/technical-seo/paypal/webhook', {
+        method: 'POST',
+        headers: defaultHeaders,
+        body: typeof body === 'string' ? body : JSON.stringify(body),
+      })
+    }
+
+    function createMockPayPalOrderResource(overrides: {
+      orderId?: string
+      scanId?: string
+      amount?: string
+      currency?: string
+      status?: OrderStatus
+      captureStatus?: CaptureStatus
+    }): Order {
+      const currency = overrides.currency ?? 'USD'
+      const amount = overrides.amount ?? '79.00'
+      const orderId = overrides.orderId ?? 'order-recovery-123'
+      const scanId = overrides.scanId ?? 'scan-recovery-uuid'
+      const status = overrides.status ?? OrderStatus.Completed
+      const captureStatus = overrides.captureStatus ?? CaptureStatus.Completed
+
+      return {
+        id: orderId,
+        status,
+        purchaseUnits: [
+          {
+            customId: scanId,
+            amount: {
+              currencyCode: currency,
+              value: amount,
+            },
+            payments: {
+              captures: [
+                {
+                  id: `cap-${orderId}`,
+                  status: captureStatus,
+                  amount: {
+                    currencyCode: currency,
+                    value: amount,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        payer: {
+          emailAddress: 'customer@example.com',
+        },
+      } as unknown as Order
+    }
+
+    it('1. Invalid webhook signature is rejected with 401', async () => {
+      const req = createMockWebhookRequest({ event_type: 'CHECKOUT.ORDER.APPROVED' })
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => false,
+      })
+
+      assert.strictEqual(res.status, 401)
+      const data = (await res.json()) as any
+      assert.match(data.error, /Invalid PayPal webhook signature/)
+    })
+
+    it('2. Missing transmission headers causes verification rejection (401)', async () => {
+      const req = new Request('http://localhost:3000/api/technical-seo/paypal/webhook', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ event_type: 'CHECKOUT.ORDER.APPROVED' }),
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyDependencies: {
+          fetch: async () => new Response('{}', { status: 200 }),
+          getAccessToken: async () => 'mock-token',
+          webhookId: 'WH-123',
+        },
+      })
+
+      assert.strictEqual(res.status, 401)
+    })
+
+    it('3. Unsupported event types are ignored safely with 200 status', async () => {
+      const req = createMockWebhookRequest({
+        event_type: 'PAYMENT.CAPTURE.DENIED',
+        resource: { id: 'order-123' },
+      })
+
+      let captureCalled = false
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        capturePayPalOrder: async () => {
+          captureCalled = true
+          return {} as any
+        },
+      })
+
+      assert.strictEqual(res.status, 200)
+      const data = (await res.json()) as any
+      assert.strictEqual(data.received, true)
+      assert.strictEqual(data.ignored, true)
+      assert.strictEqual(captureCalled, false)
+    })
+
+    it('4. Valid CHECKOUT.ORDER.APPROVED event resolves the correct PayPal order and captures', async () => {
+      const orderId = 'order-approved-recovery'
+      const scanId = 'scan-approved-recovery'
+      let capturedOrderId = ''
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+        currency: 'USD',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async (id) => {
+          capturedOrderId = id
+          return mockOrder
+        },
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'pending',
+            status: 'awaiting_payment',
+          }) as any,
+        markPaymentPaid: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            status: 'queued',
+            payment_status: 'paid',
+            background_event_sent_at: null,
+          }) as any,
+        sendInngestEvent: async () => ({}),
+        markBackgroundEventSent: async () => {},
+      })
+
+      assert.strictEqual(res.status, 200)
+      assert.strictEqual(capturedOrderId, orderId)
+      const data = (await res.json()) as any
+      assert.strictEqual(data.success, true)
+      assert.strictEqual(data.scanId, scanId)
+      assert.strictEqual(data.orderId, orderId)
+    })
+
+    it('5. Order with mismatched payment_reference is rejected with 409', async () => {
+      const orderId = 'order-mismatch-1'
+      const scanId = 'scan-mismatch-1'
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: 'different-order-ref',
+            payment_currency: 'USD',
+            payment_status: 'pending',
+          }) as any,
+      })
+
+      assert.strictEqual(res.status, 409)
+      const data = (await res.json()) as any
+      assert.match(data.error, /mismatch/)
+    })
+
+    it('6. Failed or refunded scan state is rejected with 409', async () => {
+      const orderId = 'order-state-fail'
+      const scanId = 'scan-state-fail'
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const reqFailed = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const resFailed = await handlePayPalWebhook(reqFailed, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'failed',
+          }) as any,
+      })
+
+      assert.strictEqual(resFailed.status, 409)
+      const dataFailed = (await resFailed.json()) as any
+      assert.match(dataFailed.error, /Cannot capture scan with payment status 'failed'/)
+
+      const reqRefunded = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const resRefunded = await handlePayPalWebhook(reqRefunded, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'refunded',
+          }) as any,
+      })
+
+      assert.strictEqual(resRefunded.status, 409)
+    })
+
+    it('7. Order amount mismatch against scan plan is rejected with 400', async () => {
+      const orderId = 'order-amount-mismatch'
+      const scanId = 'scan-amount-mismatch'
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '39.00',
+        currency: 'USD',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'pending',
+          }) as any,
+      })
+
+      assert.strictEqual(res.status, 400)
+      const data = (await res.json()) as any
+      assert.match(data.error, /does not match the scan plan/)
+    })
+
+    it('8. Webhook calls markPaymentPaid with correct transaction ID and customer email', async () => {
+      const orderId = 'order-mark-paid-rec'
+      const scanId = 'scan-mark-paid-rec'
+      let markPaidInput: any = null
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '159.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'indexing',
+            plan: 'deep',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'pending',
+          }) as any,
+        markPaymentPaid: async (input) => {
+          markPaidInput = input
+          return {
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'indexing',
+            plan: 'deep',
+            status: 'queued',
+            payment_status: 'paid',
+            background_event_sent_at: null,
+          } as any
+        },
+        sendInngestEvent: async () => ({}),
+        markBackgroundEventSent: async () => {},
+      })
+
+      assert.strictEqual(res.status, 200)
+      assert.ok(markPaidInput)
+      assert.strictEqual(markPaidInput.scanId, scanId)
+      assert.strictEqual(markPaidInput.paymentProvider, 'paypal')
+      assert.strictEqual(markPaidInput.paymentReference, orderId)
+      assert.strictEqual(markPaidInput.paymentTransactionId, `cap-${orderId}`)
+      assert.strictEqual(markPaidInput.customerEmail, 'customer@example.com')
+    })
+
+    it('9. Dispatches Inngest event with exact deterministic ID technical-seo-paid-scan-${scanId}', async () => {
+      const orderId = 'order-event-id-rec'
+      const scanId = 'scan-event-id-rec'
+      let dispatchedEvent: any = null
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '39.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'slow',
+            plan: 'quick',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'pending',
+          }) as any,
+        markPaymentPaid: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'slow',
+            plan: 'quick',
+            status: 'queued',
+            payment_status: 'paid',
+            background_event_sent_at: null,
+          }) as any,
+        sendInngestEvent: async (event) => {
+          dispatchedEvent = event
+        },
+        markBackgroundEventSent: async () => {},
+      })
+
+      assert.ok(dispatchedEvent)
+      assert.strictEqual(dispatchedEvent.id, `technical-seo-paid-scan-${scanId}`)
+      assert.strictEqual(dispatchedEvent.name, 'technical-seo/scan.requested')
+      assert.strictEqual(dispatchedEvent.data.scanId, scanId)
+      assert.strictEqual(dispatchedEvent.data.plan, 'quick')
+    })
+
+    it('10. markBackgroundEventSent is called strictly after sendInngestEvent succeeds', async () => {
+      const orderId = 'order-order-seq'
+      const scanId = 'scan-order-seq'
+      const executionOrder: string[] = []
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'pending',
+          }) as any,
+        markPaymentPaid: async () => {
+          executionOrder.push('markPaymentPaid')
+          return {
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            status: 'queued',
+            payment_status: 'paid',
+            background_event_sent_at: null,
+          } as any
+        },
+        sendInngestEvent: async () => {
+          executionOrder.push('sendInngestEvent')
+        },
+        markBackgroundEventSent: async () => {
+          executionOrder.push('markBackgroundEventSent')
+        },
+      })
+
+      assert.deepStrictEqual(executionOrder, [
+        'markPaymentPaid',
+        'sendInngestEvent',
+        'markBackgroundEventSent',
+      ])
+    })
+
+    it('11. Inngest send failure does NOT call markBackgroundEventSent', async () => {
+      const orderId = 'order-inngest-fail'
+      const scanId = 'scan-inngest-fail'
+      let markBackgroundCalled = false
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'pending',
+          }) as any,
+        markPaymentPaid: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            status: 'queued',
+            payment_status: 'paid',
+            background_event_sent_at: null,
+          }) as any,
+        sendInngestEvent: async () => {
+          throw new Error('Inngest unavailable')
+        },
+        markBackgroundEventSent: async () => {
+          markBackgroundCalled = true
+        },
+      })
+
+      assert.strictEqual(res.status, 200)
+      assert.strictEqual(markBackgroundCalled, false, 'markBackgroundEventSent must NOT be called')
+    })
+
+    it('12. Duplicate webhook delivery returns alreadyPaid=true without duplicate capture', async () => {
+      const orderId = 'order-dup-rec'
+      const scanId = 'scan-dup-rec'
+      let captureCount = 0
+      let markPaidCount = 0
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        capturePayPalOrder: async () => {
+          captureCount++
+          return {} as any
+        },
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'paid',
+            background_event_sent_at: '2026-10-08T12:05:00Z',
+          }) as any,
+        markPaymentPaid: async () => {
+          markPaidCount++
+          return null as any
+        },
+      })
+
+      assert.strictEqual(res.status, 200)
+      const data = (await res.json()) as any
+      assert.strictEqual(data.alreadyPaid, true)
+      assert.strictEqual(captureCount, 0, 'capture must not be called')
+      assert.strictEqual(markPaidCount, 0, 'markPaymentPaid must not be called')
+    })
+
+    it('13. Already-paid scan recovers missing background event if null', async () => {
+      const orderId = 'order-already-paid-missing-evt'
+      const scanId = 'scan-already-paid-missing-evt'
+      let inngestSent = false
+      let markBackgroundSent = false
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'paid',
+            background_event_sent_at: null,
+          }) as any,
+        sendInngestEvent: async () => {
+          inngestSent = true
+        },
+        markBackgroundEventSent: async () => {
+          markBackgroundSent = true
+        },
+      })
+
+      assert.strictEqual(res.status, 200)
+      const data = (await res.json()) as any
+      assert.strictEqual(data.alreadyPaid, true)
+      assert.strictEqual(inngestSent, true)
+      assert.strictEqual(markBackgroundSent, true)
+    })
+
+    it('14. Concurrent race where markPaymentPaid returns null because competitor won resolves safely', async () => {
+      const orderId = 'order-race-rec'
+      const scanId = 'scan-race-rec'
+      let inngestCount = 0
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      let scanFetchCount = 0
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () => {
+          scanFetchCount++
+          if (scanFetchCount === 1) {
+            return {
+              id: scanId,
+              website_url: 'https://example.com',
+              problem: 'technical',
+              plan: 'full',
+              payment_provider: 'paypal',
+              payment_reference: orderId,
+              payment_currency: 'USD',
+              payment_status: 'pending',
+            } as any
+          }
+          return {
+            id: scanId,
+            website_url: 'https://example.com',
+            problem: 'technical',
+            plan: 'full',
+            payment_provider: 'paypal',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'paid',
+            background_event_sent_at: '2026-10-08T12:00:01Z',
+          } as any
+        },
+        markPaymentPaid: async () => null as any,
+        sendInngestEvent: async () => {
+          inngestCount++
+        },
+      })
+
+      assert.strictEqual(res.status, 200)
+      const data = (await res.json()) as any
+      assert.strictEqual(data.success, true)
+      assert.strictEqual(data.alreadyPaid, true)
+      assert.strictEqual(inngestCount, 0, 'No duplicate Inngest dispatch')
+    })
+
+    it('15. Scan with provider cashfree cannot be processed by PayPal webhook', async () => {
+      const orderId = 'order-cashfree-cross'
+      const scanId = 'scan-cashfree-cross'
+
+      const mockOrder = createMockPayPalOrderResource({
+        orderId,
+        scanId,
+        amount: '79.00',
+      })
+
+      const req = createMockWebhookRequest({
+        event_type: 'CHECKOUT.ORDER.APPROVED',
+        resource: { id: orderId },
+      })
+
+      const res = await handlePayPalWebhook(req, {
+        verifyWebhookSignature: async () => true,
+        getPayPalOrder: async () => mockOrder,
+        getScanRecord: async () =>
+          ({
+            id: scanId,
+            plan: 'full',
+            payment_provider: 'cashfree',
+            payment_reference: orderId,
+            payment_currency: 'USD',
+            payment_status: 'pending',
+          }) as any,
+      })
+
+      assert.strictEqual(res.status, 409)
+      const data = (await res.json()) as any
+      assert.match(data.error, /mismatch/)
+    })
+
+    it('16. isValidPayPalCertUrl validates official PayPal domains and blocks spoofed URLs', () => {
+      assert.strictEqual(isValidPayPalCertUrl('https://api.paypal.com/cert.pem'), true)
+      assert.strictEqual(isValidPayPalCertUrl('https://api.sandbox.paypal.com/cert.pem'), true)
+      assert.strictEqual(isValidPayPalCertUrl('https://notifications.paypal.com/cert.pem'), true)
+      assert.strictEqual(isValidPayPalCertUrl('http://api.paypal.com/cert.pem'), false)
+      assert.strictEqual(isValidPayPalCertUrl('https://evil-paypal.com/cert.pem'), false)
+      assert.strictEqual(isValidPayPalCertUrl('https://paypal.com.attacker.com/cert.pem'), false)
+      assert.strictEqual(isValidPayPalCertUrl('not-a-url'), false)
+      assert.strictEqual(isValidPayPalCertUrl(null), false)
+    })
   })
 })

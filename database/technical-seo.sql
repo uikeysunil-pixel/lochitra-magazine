@@ -46,6 +46,12 @@ create table if not exists seo_scans (
 create index if not exists seo_scans_status_created_idx
   on seo_scans (status, created_at);
 
+create index if not exists seo_scans_unprocessed_paid_idx
+  on seo_scans (paid_at)
+  where payment_status = 'paid'
+    and status = 'queued'
+    and background_event_sent_at is null;
+
 
 create table if not exists seo_scan_urls (
   id bigserial primary key,

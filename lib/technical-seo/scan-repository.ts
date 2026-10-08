@@ -323,14 +323,58 @@ export async function markPaymentFailed(
   `
 }
 
-export async function markBackgroundEventSent(scanId: string) {
-  await sql`
+export async function markBackgroundEventSent(scanId: string, deps?: { sql?: typeof sql }) {
+  const sqlClient = deps?.sql ?? sql
+  await sqlClient`
     update seo_scans
     set
       background_event_sent_at = coalesce(background_event_sent_at, now()),
       updated_at = now()
     where id = ${scanId}::uuid
   `
+}
+
+export async function listUnsentPaidScans(
+  options: {
+    limit?: number
+    olderThanSeconds?: number
+  } = {},
+  deps?: { sql?: typeof sql }
+) {
+  const sqlClient = deps?.sql ?? sql
+  const limit = Math.max(1, Math.min(100, Math.floor(options.limit ?? 20)))
+  const olderThanSeconds = Math.max(0, Math.floor(options.olderThanSeconds ?? 60))
+
+  const rows = await sqlClient`
+    select
+      id,
+      website_url,
+      problem,
+      plan,
+      payment_status,
+      status,
+      paid_at,
+      background_event_sent_at
+    from seo_scans
+    where payment_status = 'paid'
+      and status = 'queued'
+      and background_event_sent_at is null
+      and paid_at is not null
+      and paid_at < now() - (${olderThanSeconds} * interval '1 second')
+    order by paid_at asc
+    limit ${limit}
+  `
+
+  return rows as Array<{
+    id: string
+    website_url: string
+    problem: DiagnosticProblem
+    plan: PlanId
+    payment_status: string
+    status: string
+    paid_at: string | Date | null
+    background_event_sent_at: string | Date | null
+  }>
 }
 
 export async function markScanRunning(scanId: string) {

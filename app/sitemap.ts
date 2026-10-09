@@ -46,6 +46,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }> = [
     { route: '', priority: 1.0, changeFreq: 'daily' },
     { route: 'blog', priority: 0.9, changeFreq: 'daily' },
+    { route: 'technical-seo', priority: 0.8, changeFreq: 'weekly' },
     { route: 'newsletter', priority: 0.8, changeFreq: 'weekly' },
     { route: 'categories', priority: 0.7, changeFreq: 'weekly' },
     { route: 'about', priority: 0.7, changeFreq: 'monthly' },

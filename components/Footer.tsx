@@ -92,6 +92,7 @@ export default function Footer() {
                 {[
                   { href: '/', label: 'Home' },
                   { href: '/blog', label: 'All Articles' },
+                  { href: '/technical-seo', label: 'Technical SEO Troubleshooter' },
                   { href: '/about', label: 'About Us' },
                   { href: '/editorial-policy', label: 'Editorial Policy' },
                   { href: '/privacy-policy', label: 'Privacy Policy' },

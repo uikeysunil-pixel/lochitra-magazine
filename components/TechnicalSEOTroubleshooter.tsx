@@ -209,10 +209,10 @@ const PLANS: Array<{
     price: 'Free',
     description: 'A first look at the highest-confidence technical signals.',
     features: [
-      'Core accessibility checks',
-      'Indexability signals',
-      'Canonical check',
-      'Sitemap/robots check',
+      'Crawl of up to 5 URLs',
+      'Indexability & canonical checks',
+      'Sitemap and robots.txt validation',
+      'Initial on-page technical signals',
     ],
     enabled: true,
   },
@@ -224,7 +224,12 @@ const PLANS: Array<{
     indiaPrice: '₹3,999',
     indiaRegularPrice: '₹4,999',
     description: 'Problem-specific diagnosis with a focused report.',
-    features: ['50-page targeted crawl', 'Evidence', 'Prioritized findings', 'Detailed report'],
+    features: [
+      'Targeted crawl of up to 50 URLs',
+      'Prioritized findings with evidence',
+      'Downloadable PDF report',
+      'Detailed diagnostic breakdown',
+    ],
     enabled: true,
   },
   {
@@ -236,10 +241,10 @@ const PLANS: Array<{
     indiaRegularPrice: '₹9,999',
     description: 'A broader crawl and website-wide technical analysis.',
     features: [
-      'Expanded crawl',
-      'Architecture analysis',
-      'Duplicate candidates',
-      'Detailed report',
+      'Broader crawl of up to 250 URLs',
+      'Site architecture & crawl depth graph',
+      'Duplicate content & canonical analysis',
+      'Downloadable PDF report',
     ],
     enabled: true,
   },
@@ -251,7 +256,12 @@ const PLANS: Array<{
     indiaPrice: '₹15,999',
     indiaRegularPrice: '₹19,999',
     description: 'Deeper diagnosis with Google Search Console data.',
-    features: ['Search Console', 'URL Inspection', 'Deep diagnostics', 'Likely-cause analysis'],
+    features: [
+      'Deep crawl of up to 1,000 URLs',
+      'Google Search Console integration',
+      'Search Analytics query & landing insights',
+      'Downloadable PDF report',
+    ],
     enabled: true,
   },
 ]
@@ -645,37 +655,7 @@ export default function TechnicalSEOTroubleshooter({
           </p>
         </div>
 
-        <div className="mx-auto mt-8 max-w-4xl rounded-2xl border border-gray-200 bg-gray-50 p-5 text-left dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-            About the paid Technical SEO service
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
-            The Targeted Troubleshoot is a one-time technical SEO investigation available globally.
-            It includes a 50-page targeted crawl, evidence, prioritized findings, and a detailed
-            report for the selected diagnostic concern at launch pricing of <strong>$39</strong>{' '}
-            (regular $49), with Full Troubleshoot at <strong>$79</strong> (regular $99) and Deep
-            Investigation at <strong>$159</strong> (regular $199). Technical findings and
-            recommendations are diagnostic information and do not guarantee search-engine rankings,
-            traffic increases, indexing outcomes, or other business results.
-          </p>
-          <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
-            Before purchasing, please review our{' '}
-            <a href="/terms" className="font-semibold underline underline-offset-2">
-              Terms &amp; Conditions
-            </a>
-            ,{' '}
-            <a href="/refund-policy" className="font-semibold underline underline-offset-2">
-              Cancellation &amp; Refund Policy
-            </a>
-            , and{' '}
-            <a href="/privacy-policy" className="font-semibold underline underline-offset-2">
-              Privacy Policy
-            </a>
-            .
-          </p>
-        </div>
-
-        <form onSubmit={handleAnalyze} className="mx-auto mt-10 max-w-4xl space-y-8">
+        <form onSubmit={handleAnalyze} className="mx-auto mt-8 max-w-4xl space-y-8">
           <div>
             <label
               htmlFor="seo-url"
@@ -701,8 +681,8 @@ export default function TechnicalSEOTroubleshooter({
                   What are you trying to troubleshoot?
                 </p>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  This selection will steer the future diagnostic engine toward the most relevant
-                  tests.
+                  This selection tailors the diagnostic analysis and prioritized findings toward
+                  your specific concern.
                 </p>
               </div>
             </div>
@@ -848,8 +828,8 @@ export default function TechnicalSEOTroubleshooter({
                 Choose a plan
               </p>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                The first paid slice is a 50-page targeted troubleshoot with a detailed
-                evidence-based report.
+                Choose from a targeted diagnostic of up to 50 URLs to deep investigations of up to
+                1,000 URLs with Google Search Console data.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -917,6 +897,40 @@ export default function TechnicalSEOTroubleshooter({
                 )
               })}
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-left dark:border-gray-800 dark:bg-gray-900">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              About the paid Technical SEO service
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
+              The Targeted Troubleshoot is a one-time technical SEO investigation available
+              globally. It includes a targeted crawl of up to 50 URLs, evidence, prioritized
+              findings, and a detailed report with downloadable PDF for the selected diagnostic
+              concern at launch pricing of <strong>{isIndiaBilling ? '₹3,999' : '$39'}</strong>{' '}
+              (regular {isIndiaBilling ? '₹4,999' : '$49'}), with Full Troubleshoot at{' '}
+              <strong>{isIndiaBilling ? '₹7,999' : '$79'}</strong> (regular{' '}
+              {isIndiaBilling ? '₹9,999' : '$99'}) and Deep Investigation at{' '}
+              <strong>{isIndiaBilling ? '₹15,999' : '$159'}</strong> (regular{' '}
+              {isIndiaBilling ? '₹19,999' : '$199'}). Technical findings and recommendations are
+              diagnostic information and do not guarantee search-engine rankings, traffic increases,
+              indexing outcomes, or other business results.
+            </p>
+            <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
+              Before purchasing, please review our{' '}
+              <a href="/terms" className="font-semibold underline underline-offset-2">
+                Terms &amp; Conditions
+              </a>
+              ,{' '}
+              <a href="/refund-policy" className="font-semibold underline underline-offset-2">
+                Cancellation &amp; Refund Policy
+              </a>
+              , and{' '}
+              <a href="/privacy-policy" className="font-semibold underline underline-offset-2">
+                Privacy Policy
+              </a>
+              .
+            </p>
           </div>
 
           <div className="flex flex-col items-center gap-3">
@@ -1134,10 +1148,10 @@ export default function TechnicalSEOTroubleshooter({
                     </p>
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
                       {[
+                        'Crawl of up to 50 URLs',
                         'Evidence for findings',
                         'Priority and recommended actions',
-                        'More pages and site-wide technical signals',
-                        'Deeper problem-specific investigation',
+                        'Downloadable PDF report',
                       ].map((item) => (
                         <div
                           key={item}
@@ -1182,32 +1196,89 @@ export default function TechnicalSEOTroubleshooter({
                     )}
                     <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {problem === 'unknown'
-                        ? 'Continue with a 50-page targeted troubleshoot for evidence, prioritized findings, and a detailed report.'
-                        : `Continue investigating: ${selectedProblem?.label?.toLowerCase() || 'your selected problem'}.`}
+                        ? 'Continue with a targeted crawl of up to 50 URLs with evidence, prioritized findings, and a downloadable PDF report.'
+                        : `Continue investigating up to 50 URLs for ${selectedProblem?.label?.toLowerCase() || 'your selected problem'} with a downloadable PDF report.`}
                     </p>
+
+                    {isIndiaBilling && (
+                      <div className="mt-4 text-left">
+                        <label
+                          htmlFor="upsell-cashfree-phone"
+                          className="mb-1.5 block text-xs font-semibold text-gray-900 dark:text-gray-100"
+                        >
+                          Mobile number{' '}
+                          <span aria-hidden="true" className="text-red-500">
+                            *
+                          </span>
+                        </label>
+                        <input
+                          id="upsell-cashfree-phone"
+                          type="tel"
+                          inputMode="numeric"
+                          autoComplete="tel"
+                          value={customerPhone}
+                          onChange={(event) => {
+                            setCustomerPhone(event.target.value)
+                            if (error) setError('')
+                          }}
+                          placeholder="9876543210"
+                          className="focus:border-primary-500 focus:ring-primary-200 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition outline-none focus:ring-2 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                          required
+                        />
+                        <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                          A 10-digit Indian mobile number is required for Cashfree checkout.
+                        </p>
+                      </div>
+                    )}
+
+                    {error && (
+                      <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-left text-xs text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                        {error}
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       disabled={loading || !recommendedPlanDetails?.enabled}
                       onClick={() => {
+                        const targetUrl = url || result.url || result.finalUrl
+                        const targetProblem = problem || result.requestedProblem || 'unknown'
                         if (recommendedPlan === 'quick') {
                           setPlan('quick')
                           if (isIndiaBilling) {
                             initiateCashfreeCheckout(
-                              url,
-                              problem,
+                              targetUrl,
+                              targetProblem,
                               customerPhone,
                               customerEmail,
-                              billingCountry
+                              billingCountry,
+                              'quick'
                             )
                           } else {
-                            initiatePayPalCheckout(url, problem, 'quick', billingCountry)
+                            initiatePayPalCheckout(
+                              targetUrl,
+                              targetProblem,
+                              'quick',
+                              billingCountry
+                            )
                           }
                         } else {
                           setPlan('full')
-                          initiatePayPalCheckout(url, problem, 'full', billingCountry)
+                          if (isIndiaBilling) {
+                            initiateCashfreeCheckout(
+                              targetUrl,
+                              targetProblem,
+                              customerPhone,
+                              customerEmail,
+                              billingCountry,
+                              'full'
+                            )
+                          } else {
+                            initiatePayPalCheckout(targetUrl, targetProblem, 'full', billingCountry)
+                          }
                         }
                       }}
-                      className="mt-5 w-full rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                      className="mt-4 w-full rounded-full bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                     >
                       {loading && plan === 'quick'
                         ? 'Opening secure checkout…'
@@ -1427,9 +1498,10 @@ export default function TechnicalSEOTroubleshooter({
                     </div>
                   </div>
                   <div className="mt-6 rounded-xl bg-gray-50 p-4 text-xs leading-5 text-gray-600 dark:bg-gray-900 dark:text-gray-400">
-                    This audit performs an automated crawl using sitemap and internal-link
-                    discovery. It does not yet integrate Google Search Console API data or headless
-                    browser JavaScript rendering.
+                    This quick scan performs an automated crawl using sitemap and internal-link
+                    discovery without headless browser JavaScript rendering. Google Search Console
+                    API integration and search analytics are available in the Deep Investigation
+                    plan.
                     {result.diagnosticFocus && (
                       <span className="mt-2 block font-medium">
                         Findings matching this diagnostic focus:{' '}

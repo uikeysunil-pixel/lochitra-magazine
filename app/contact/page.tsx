@@ -133,27 +133,7 @@ export default function ContactPage() {
             <p className="text-gray-600 dark:text-gray-400">
               Prefer to email us directly from your email client? You can reach Locitra at:
             </p>
-            <div className="mt-3 space-y-3 text-sm text-gray-600 dark:text-gray-400">
-              <div>
-                <p className="font-semibold text-gray-900 dark:text-gray-100">Operating Address</p>
-                <address className="mt-1 not-italic">
-                  Sirsoti, Bijpur, Rihand Nagar
-                  <br />
-                  Sonbhadra district, Uttar Pradesh, India
-                  <br />
-                  PIN: 231223
-                </address>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 dark:text-gray-100">Phone</p>
-                <a
-                  href="tel:+919516453454"
-                  className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 mt-1 inline-flex items-center font-semibold"
-                  aria-label="Call Locitra at +91 95164 53454"
-                >
-                  +91 95164 53454
-                </a>
-              </div>
+            <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
               <div>
                 <p className="font-semibold text-gray-900 dark:text-gray-100">Email</p>
                 <a

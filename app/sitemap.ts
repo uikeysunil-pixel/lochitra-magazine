@@ -55,6 +55,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { route: 'disclaimer', priority: 0.3, changeFreq: 'monthly' },
     { route: 'terms', priority: 0.3, changeFreq: 'monthly' },
     { route: 'editorial-policy', priority: 0.4, changeFreq: 'monthly' },
+    { route: 'refund-policy', priority: 0.3, changeFreq: 'monthly' },
+    { route: 'service-delivery-policy', priority: 0.3, changeFreq: 'monthly' },
   ]
 
   const routes = staticRoutes.map(({ route, priority, changeFreq }) => ({

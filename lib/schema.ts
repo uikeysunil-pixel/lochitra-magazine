@@ -1,5 +1,5 @@
 import siteMetadata from '@/data/siteMetadata'
-import { resolveAbsoluteUrl, resolvePostImage } from './seo'
+import { resolveAbsoluteUrl, resolvePostImage, resolvePostDateModified } from './seo'
 import type {
   OrganizationSchema,
   WebsiteSchema,
@@ -194,7 +194,7 @@ export function buildBlogPosting(
     headline: post.title,
     url: articleUrl,
     datePublished: post.date,
-    dateModified: post.lastmod || post.date,
+    dateModified: resolvePostDateModified(post),
     description: post.summary,
     image: resolvePostImage(post.featuredImage, post.images),
     publisher: { '@id': ORGANIZATION_ID },
@@ -343,7 +343,7 @@ export function buildReview(
     author: authorNode,
     publisher: { '@id': ORGANIZATION_ID },
     datePublished: post.date,
-    dateModified: post.lastmod || post.date,
+    dateModified: resolvePostDateModified(post),
   }
 
   if (reviewData.reviewSummary) {

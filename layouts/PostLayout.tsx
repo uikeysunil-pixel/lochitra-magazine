@@ -17,6 +17,7 @@ import ArticleCard from '@/components/ArticleCard'
 import ArticleNewsletterBox from '@/components/ArticleNewsletterBox'
 import { formatReadingTime, shouldShowUpdateBadge, isRecentlyUpdated } from '@/lib/reading'
 import ReadingUtilities from '@/components/ReadingUtilities'
+import { resolvePostDateModified } from '@/lib/seo'
 
 const postDateTemplate: Intl.DateTimeFormatOptions = {
   year: 'numeric',
@@ -52,8 +53,8 @@ export default function PostLayout({
   relatedPosts = [],
   children,
 }: LayoutProps) {
-  const { path, slug, date, lastmod, title, tags, featuredImage, category, readingTime, toc } =
-    content
+  const { path, slug, date, title, tags, featuredImage, category, readingTime, toc } = content
+  const modifiedDate = resolvePostDateModified(content)
 
   const cat = category ? CATEGORY_MAP[category] : undefined
   const catBadgeClass = cat
@@ -174,7 +175,7 @@ export default function PostLayout({
               )}
 
               {/* Updated date — shown only when different from publish date */}
-              {shouldShowUpdateBadge(lastmod, date) && (
+              {shouldShowUpdateBadge(modifiedDate, date) && (
                 <>
                   <span aria-hidden="true" className="text-gray-300 dark:text-gray-600">
                     ·
@@ -195,9 +196,12 @@ export default function PostLayout({
                       />
                     </svg>
                     Updated{' '}
-                    {new Date(lastmod!).toLocaleDateString(siteMetadata.locale, postDateTemplate)}
+                    {new Date(modifiedDate).toLocaleDateString(
+                      siteMetadata.locale,
+                      postDateTemplate
+                    )}
                   </span>
-                  {isRecentlyUpdated(lastmod, date) && (
+                  {isRecentlyUpdated(modifiedDate, date) && (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300">
                       Recently Updated
                     </span>

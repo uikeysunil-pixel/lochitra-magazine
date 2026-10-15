@@ -12,7 +12,7 @@ import PostBanner from '@/layouts/PostBanner'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
-import { resolvePostImage } from '@/lib/seo'
+import { resolvePostImage, resolvePostDateModified } from '@/lib/seo'
 import {
   buildBlogPosting,
   buildReview,
@@ -45,7 +45,7 @@ export async function generateMetadata(props: {
   }
 
   const publishedAt = new Date(post.date).toISOString()
-  const modifiedAt = new Date(post.lastmod || post.date).toISOString()
+  const modifiedAt = resolvePostDateModified(post)
   const authors = authorDetails.map((author) => author.name)
 
   // Build OG image list using shared SEO helper

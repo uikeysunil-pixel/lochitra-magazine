@@ -54,3 +54,59 @@ export function getCanonicalUrl(path?: string): string {
   }
   return `${basePath}${normalizedPath}`
 }
+
+/**
+ * Narrow interface representing the minimum date fields required for modification resolution.
+ */
+export interface ArticleDateFields {
+  date: string
+  lastmod?: string | null
+  lastUpdated?: string | null
+  slug?: string
+}
+
+/**
+ * Validates whether a value is a valid, parseable date string.
+ */
+function isValidDate(dateStr: unknown): dateStr is string {
+  if (typeof dateStr !== 'string' || !dateStr.trim()) return false
+  const time = Date.parse(dateStr)
+  return !isNaN(time)
+}
+
+/**
+ * Resolves the effective modification date for an article using strict precedence:
+ * 1. post.lastmod, when present and valid.
+ * 2. post.lastUpdated, when present and valid.
+ * 3. post.date, as the publication-date fallback.
+ *
+ * Normalizes valid dates to an ISO 8601 string to maintain consistent UTC serialization
+ * across sitemap, Open Graph, schema.org, and UI components.
+ *
+ * Throws a descriptive Error if post.date is also missing or invalid, preventing
+ * corrupted date metadata from being published.
+ */
+export function resolvePostDateModified(post: ArticleDateFields): string {
+  if (post.lastmod) {
+    if (isValidDate(post.lastmod)) {
+      return new Date(post.lastmod).toISOString()
+    }
+    console.warn(`[Date Resolution] Invalid lastmod date: "${post.lastmod}". Falling back.`)
+  }
+
+  if (post.lastUpdated) {
+    if (isValidDate(post.lastUpdated)) {
+      return new Date(post.lastUpdated).toISOString()
+    }
+    console.warn(`[Date Resolution] Invalid lastUpdated date: "${post.lastUpdated}". Falling back.`)
+  }
+
+  if (isValidDate(post.date)) {
+    return new Date(post.date).toISOString()
+  }
+
+  const identifier = post.slug ? `Article "${post.slug}"` : 'Article'
+  throw new Error(
+    `[Date Resolution] ${identifier} has an invalid or unparseable publication date: "${post.date}". Cannot resolve modified date.`
+  )
+}

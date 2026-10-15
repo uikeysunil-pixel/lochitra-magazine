@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import { allBlogs, allAuthors } from 'contentlayer/generated'
 import siteMetadata from '@/data/siteMetadata'
 import { CATEGORIES } from '@/data/categoryData'
+import { resolvePostDateModified } from '@/lib/seo'
 
 export const dynamic = 'force-static'
 
@@ -14,7 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .filter((post) => !post.draft)
     .map((post) => ({
       url: `${siteUrl}/${post.path}/`,
-      lastModified: post.lastmod || post.date,
+      lastModified: resolvePostDateModified(post),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     }))

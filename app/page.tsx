@@ -12,9 +12,9 @@ import { CATEGORIES } from '@/data/categoryData'
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || siteMetadata.siteUrl.replace(/\/$/, '')
 
-const HOMEPAGE_TITLE = 'Locitra'
+const HOMEPAGE_TITLE = 'Locitra — Practical AI, Technology & Digital Growth'
 const HOMEPAGE_DESCRIPTION =
-  'Locitra – Practical AI, Technology, Software Reviews, Career Growth & Online Income'
+  'Locitra delivers authoritative guides, software reviews, and practical strategies across AI tools, technology trends, online income, and digital career growth.'
 
 export const metadata: Metadata = {
   title: HOMEPAGE_TITLE,
